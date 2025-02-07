@@ -12,6 +12,8 @@ from io import BytesIO
 from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
 from storage import ObjectStorage
+import zipfile
+from io import BytesIO
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -254,4 +256,31 @@ def download_order_image(order_id, filename):
         file_data,
         mimetype='image/png',
         headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+@app.route('/admin/order/<int:order_id>/download-all')
+def download_all_images(order_id):
+    order = Order.query.get_or_404(order_id)
+
+    # Create a zip file in memory
+    memory_file = BytesIO()
+    with zipfile.ZipFile(memory_file, 'w') as zf:
+        for item in order.items:
+            try:
+                file_data = storage.get_file(item.file_key)
+                if file_data:
+                    # Add file to zip with its original filename
+                    zf.writestr(item.file_key, file_data)
+            except Exception as e:
+                logger.error(f"Error adding {item.file_key} to zip: {str(e)}")
+                continue
+
+    # Prepare zip file for download
+    memory_file.seek(0)
+    return Response(
+        memory_file.getvalue(),
+        mimetype='application/zip',
+        headers={
+            'Content-Disposition': f'attachment; filename=order_{order.order_number}_files.zip'
+        }
     )
