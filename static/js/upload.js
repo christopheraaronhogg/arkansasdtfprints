@@ -12,10 +12,6 @@ const PrintCalculator = (() => {
         return area * state.basePrice * quantity;
     }
 
-    function pixelsToInches(pixels) {
-        return (pixels / 300).toFixed(2);
-    }
-
     return {
         addImage(file, img) {
             const id = crypto.randomUUID();
@@ -40,8 +36,8 @@ const PrintCalculator = (() => {
                 quantity: 1,
                 get cost() {
                     return calculateCost(
-                        Math.round(this.current.width),
-                        Math.round(this.current.height), 
+                        this.current.width,
+                        this.current.height, 
                         this.quantity
                     );
                 }
@@ -58,19 +54,19 @@ const PrintCalculator = (() => {
             if (isNaN(newValue)) return;
 
             // Update the specified dimension
-            imageState.current[dimension] = parseFloat(newValue.toFixed(2));
+            imageState.current[dimension] = Math.max(0.1, parseFloat(newValue.toFixed(2)));
 
             // Update the other dimension to maintain aspect ratio
             const otherDimension = dimension === 'width' ? 'height' : 'width';
-            const otherValue = newValue / imageState.original.aspect;
-            imageState.current[otherDimension] = parseFloat(otherValue.toFixed(2));
+            const otherValue = imageState.current[dimension] / imageState.original.aspect;
+            imageState.current[otherDimension] = Math.max(0.1, parseFloat(otherValue.toFixed(2)));
         },
 
         updateQuantity(id, quantity) {
             const imageState = state.images.get(id);
             if (!imageState) return;
 
-            imageState.quantity = parseInt(quantity) || 1;
+            imageState.quantity = Math.max(1, parseInt(quantity) || 1);
         },
 
         getImageState(id) {
@@ -79,7 +75,7 @@ const PrintCalculator = (() => {
 
         getImageCost(id) {
             const imageState = state.images.get(id);
-            return imageState.cost;
+            return imageState ? imageState.cost : 0;
         },
 
         getTotalCost() {
@@ -239,7 +235,7 @@ const PrintUI = {
 
         // Add event listeners to input fields
         container.querySelectorAll('input').forEach(input => {
-            input.addEventListener('change', () => {
+            input.addEventListener('input', () => {
                 if (input.classList.contains('width-input') || input.classList.contains('height-input')) {
                     this.handleDimensionInput(input);
                 } else if (input.classList.contains('quantity-input')) {
@@ -284,6 +280,7 @@ const PrintUI = {
             const id = container.dataset.imageId;
             const imageState = PrintCalculator.getImageState(id);
             if (imageState) {
+                formData.append('files[]', imageState.file);
                 orderDetails.push({
                     width: imageState.current.width,
                     height: imageState.current.height,
