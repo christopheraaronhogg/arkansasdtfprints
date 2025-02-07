@@ -1,16 +1,95 @@
 // STATE & CORE LOGIC
 const PrintCalculator = (() => {
     const state = {
-        basePrice: 5.00,
-        pricePerSqInch: 0.15
+        images: new Map(),
+        basePrice: 0.02, // price per square inch
     };
 
-    function calculateCost(width, height) {
-        const area = width * height;
-        return state.basePrice + (area * state.pricePerSqInch);
+    function calculateCost(width, height, quantity = 1) {
+        const roundedWidth = Math.round(width);
+        const roundedHeight = Math.round(height);
+        const area = roundedWidth * roundedHeight;
+        return area * state.basePrice * quantity;
     }
 
-    return { calculateCost };
+    function pixelsToInches(pixels) {
+        return (pixels / 300).toFixed(2);
+    }
+
+    return {
+        addImage(file, img) {
+            const id = crypto.randomUUID();
+            const DPI = 300;
+            const maxWidth = 24 * DPI;
+            const maxHeight = 24 * DPI;
+            const scale = Math.min(maxWidth / img.naturalWidth, maxHeight / img.naturalHeight, 1);
+            const finalWidth = (img.naturalWidth * scale) / DPI;
+            const finalHeight = (img.naturalHeight * scale) / DPI;
+
+            state.images.set(id, {
+                file,
+                original: {
+                    width: finalWidth,
+                    height: finalHeight,
+                    aspect: finalWidth / finalHeight
+                },
+                current: {
+                    width: finalWidth,
+                    height: finalHeight
+                },
+                quantity: 1,
+                get cost() {
+                    return calculateCost(
+                        Math.round(this.current.width),
+                        Math.round(this.current.height), 
+                        this.quantity
+                    );
+                }
+            });
+
+            return id;
+        },
+
+        updateDimension(id, dimension, value) {
+            const imageState = state.images.get(id);
+            if (!imageState) return;
+
+            const newValue = parseFloat(value);
+            if (isNaN(newValue)) return;
+
+            // Update the specified dimension
+            imageState.current[dimension] = parseFloat(newValue.toFixed(2));
+
+            // Update the other dimension to maintain aspect ratio
+            const otherDimension = dimension === 'width' ? 'height' : 'width';
+            const otherValue = newValue / imageState.original.aspect;
+            imageState.current[otherDimension] = parseFloat(otherValue.toFixed(2));
+        },
+
+        updateQuantity(id, quantity) {
+            const imageState = state.images.get(id);
+            if (!imageState) return;
+
+            imageState.quantity = parseInt(quantity) || 1;
+        },
+
+        getImageState(id) {
+            return state.images.get(id);
+        },
+
+        getImageCost(id) {
+            const imageState = state.images.get(id);
+            return imageState.cost;
+        },
+
+        getTotalCost() {
+            let total = 0;
+            state.images.forEach(img => {
+                total += img.cost;
+            });
+            return total;
+        }
+    };
 })();
 
 // UI MANAGEMENT
@@ -19,7 +98,6 @@ const PrintUI = {
         this.form = document.getElementById('upload-form');
         this.dropZone = document.getElementById('dropZone');
         this.fileInput = document.getElementById('file-input');
-        this.preview = document.getElementById('image-preview');
         this.totalDisplay = document.getElementById('totalCost');
         this.setupEventListeners();
     },
@@ -34,21 +112,17 @@ const PrintUI = {
             this.dropZone.classList.remove('dragover');
         });
 
-        this.dropZone.addEventListener('drop', (e) => {
+        this.dropZone.addEventListener('drop', async (e) => {
             e.preventDefault();
             this.dropZone.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file && file.type.startsWith('image/')) { // Allow other image types
-                this.fileInput.files = e.dataTransfer.files;
-                this.handleFile(file);
-            }
+
+            const files = [...e.dataTransfer.files].filter(f => f.type === 'image/png');
+            await this.handleFiles(files);
         });
 
-        this.fileInput.addEventListener('change', () => {
-            const file = this.fileInput.files[0];
-            if (file) {
-                this.handleFile(file);
-            }
+        this.fileInput.addEventListener('change', async () => {
+            const files = [...this.fileInput.files].filter(f => f.type === 'image/png');
+            await this.handleFiles(files);
         });
 
         this.form.addEventListener('submit', (e) => {
@@ -57,50 +131,135 @@ const PrintUI = {
         });
     },
 
-    handleFile(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
+    loadImage(file) {
+        return new Promise((resolve, reject) => {
             const img = new Image();
-            img.onload = () => {
-                // Convert pixels to inches (300 DPI)
-                const widthInches = (img.width / 300).toFixed(2);
-                const heightInches = (img.height / 300).toFixed(2);
-                const cost = PrintCalculator.calculateCost(widthInches, heightInches);
-
-                this.renderPreview(e.target.result, widthInches, heightInches, cost);
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+        });
     },
 
-    renderPreview(imgSrc, width, height, cost) {
-        const container = document.getElementById('images-container');
+    async handleFiles(files) {
+        for (const file of files) {
+            try {
+                const img = await this.loadImage(file);
+                const id = PrintCalculator.addImage(file, img);
+                this.renderImagePreview(id, img);
+                this.updateTotalDisplay();
+            } catch (error) {
+                console.error('Error processing image:', error);
+            }
+        }
+    },
+
+    handleDimensionInput(input) {
+        const container = input.closest('.size-inputs');
+        const id = container.dataset.imageId;
+        const dimension = input.classList.contains('width-input') ? 'width' : 'height';
+
+        PrintCalculator.updateDimension(id, dimension, input.value);
+        const imageState = PrintCalculator.getImageState(id);
+
+        // Update linked dimension input
+        const otherDimension = dimension === 'width' ? 'height' : 'width';
+        const otherInput = container.querySelector(
+            `.${otherDimension}-input`
+        );
+        otherInput.value = imageState.current[otherDimension].toFixed(2);
+
+        // Update costs
+        this.updateCostDisplay(id);
+        this.updateTotalDisplay();
+    },
+
+    handleQuantityInput(input) {
+        const container = input.closest('.size-inputs');
+        const id = container.dataset.imageId;
+        PrintCalculator.updateQuantity(id, input.value);
+        this.updateCostDisplay(id);
+        this.updateTotalDisplay();
+    },
+
+    updateCostDisplay(id) {
+        const container = document.querySelector(`[data-image-id="${id}"]`);
+        const costValue = container.querySelector('.cost-value');
+        if (costValue) {
+            costValue.textContent = `$${PrintCalculator.getImageCost(id).toFixed(2)}`;
+        }
+    },
+
+    renderImagePreview(id, img) {
+        const container = document.createElement('div');
+        container.className = 'size-inputs';
+        container.dataset.imageId = id;
+
+        const imageState = PrintCalculator.getImageState(id);
+
         container.innerHTML = `
             <div class="preview-content">
                 <div class="preview-section">
-                    <img src="${imgSrc}" class="preview-image" alt="Preview">
+                    <img src="${img.src}" class="preview-image" alt="Preview">
                 </div>
-                <div class="info-container">
-                    <p>Dimensions: ${width}" × ${height}"</p>
-                    <p>Estimated Cost: $${cost.toFixed(2)}</p>
+                <div class="controls-section">
+                    <div class="input-with-unit">
+                        <label>Width</label>
+                        <input type="number" 
+                               value="${imageState.current.width.toFixed(2)}" 
+                               step="0.01" 
+                               min="0.1" 
+                               class="width-input">
+                        <span class="unit">in</span>
+                    </div>
+                    <div class="input-with-unit">
+                        <label>Height</label>
+                        <input type="number" 
+                               value="${imageState.current.height.toFixed(2)}" 
+                               step="0.01" 
+                               min="0.1" 
+                               class="height-input">
+                        <span class="unit">in</span>
+                    </div>
+                    <div class="input-with-unit">
+                        <label>Qty</label>
+                        <input type="number" 
+                               value="${imageState.quantity}" 
+                               min="1" 
+                               step="1" 
+                               class="quantity-input">
+                    </div>
                 </div>
+            </div>
+            <div class="cost-display">
+                <span>Cost: </span>
+                <span class="cost-value">$${imageState.cost.toFixed(2)}</span>
             </div>`;
 
-        this.totalDisplay.textContent = `Total: $${cost.toFixed(2)}`;
+        document.getElementById('images-container').appendChild(container);
 
-        // Setup modal preview
-        const previewImage = container.querySelector('.preview-image');
+        // Add event listeners to input fields
+        container.querySelectorAll('input').forEach(input => {
+            input.addEventListener('change', () => {
+                if (input.classList.contains('width-input') || input.classList.contains('height-input')) {
+                    this.handleDimensionInput(input);
+                } else if (input.classList.contains('quantity-input')) {
+                    this.handleQuantityInput(input);
+                }
+            });
+        });
+
+        // Add click handler to preview images
+        container.querySelector('.preview-image').addEventListener('click', () => this.showFullSizePreview(img.src));
+    },
+
+    showFullSizePreview(src) {
         const modal = document.getElementById('previewModal');
         const modalImg = document.getElementById('modalImage');
-        const closeBtn = document.querySelector('.close-modal');
+        modalImg.src = src;
+        modal.style.display = 'flex';
 
-        previewImage.onclick = () => {
-            modal.style.display = 'flex';
-            modalImg.src = imgSrc;
-        };
-
-        closeBtn.onclick = () => {
+        // Close modal handlers
+        modal.querySelector('.close-modal').onclick = () => {
             modal.style.display = 'none';
         };
 
@@ -111,8 +270,31 @@ const PrintUI = {
         };
     },
 
+    updateTotalDisplay() {
+        this.totalDisplay.textContent = 
+            `Total: $${PrintCalculator.getTotalCost().toFixed(2)}`;
+    },
+
     async handleSubmit() {
         const formData = new FormData(this.form);
+        const orderDetails = [];
+
+        // Add all image details
+        document.querySelectorAll('.size-inputs').forEach((container) => {
+            const id = container.dataset.imageId;
+            const imageState = PrintCalculator.getImageState(id);
+            if (imageState) {
+                orderDetails.push({
+                    width: imageState.current.width,
+                    height: imageState.current.height,
+                    quantity: imageState.quantity,
+                    cost: imageState.cost
+                });
+            }
+        });
+
+        formData.append('orderDetails', JSON.stringify(orderDetails));
+        formData.append('totalCost', PrintCalculator.getTotalCost());
 
         try {
             const response = await fetch('/upload', {

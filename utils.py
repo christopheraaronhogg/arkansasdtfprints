@@ -12,7 +12,7 @@ def generate_order_number():
 
 def calculate_cost(width_inches, height_inches):
     area = width_inches * height_inches
-    return Config.BASE_COST + (area * Config.COST_PER_SQINCH)
+    return area * Config.COST_PER_SQINCH
 
 def get_image_dimensions(file_path):
     with Image.open(file_path) as img:
