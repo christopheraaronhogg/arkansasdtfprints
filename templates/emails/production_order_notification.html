@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #007bff; color: white; padding: 20px; border-radius: 5px; }
+        .order-details { background: #f8f9fa; padding: 20px; border-radius: 5px; margin-top: 20px; }
+        .item { margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>New DTF Printing Order</h1>
+            <p>A new order has been received and requires processing.</p>
+        </div>
+
+        <div class="order-details">
+            <h2>Order Information</h2>
+            <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+            <p><strong>Customer Email:</strong> {{ order.email }}</p>
+            <p><strong>Order Date:</strong> {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</p>
+            <p><strong>Total Cost:</strong> ${{ "%.2f"|format(order.total_cost) }}</p>
+
+            <h3>Order Items</h3>
+            {% for item in order.items %}
+            <div class="item">
+                <p><strong>Item {{ loop.index }}</strong></p>
+                <p>File: {{ item.file_key }}</p>
+                <p>Dimensions: {{ item.width_inches }}" × {{ item.height_inches }}"</p>
+                <p>Quantity: {{ item.quantity }}</p>
+                <p>Cost: ${{ "%.2f"|format(item.cost) }}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

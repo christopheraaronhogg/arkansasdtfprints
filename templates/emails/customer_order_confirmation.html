@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { text-align: center; margin-bottom: 30px; }
+        .order-details { background: #f8f9fa; padding: 20px; border-radius: 5px; }
+        .footer { text-align: center; margin-top: 30px; color: #666; }
+        .item { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Order Confirmation</h1>
+            <p>Thank you for your DTF printing order!</p>
+        </div>
+
+        <div class="order-details">
+            <h2>Order Information</h2>
+            <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+            <p><strong>Order Date:</strong> {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</p>
+            <p><strong>Total Cost:</strong> ${{ "%.2f"|format(order.total_cost) }}</p>
+
+            <h3>Order Items</h3>
+            {% for item in order.items %}
+            <div class="item">
+                <p><strong>Item {{ loop.index }}</strong></p>
+                <p>Dimensions: {{ item.width_inches }}" × {{ item.height_inches }}"</p>
+                <p>Quantity: {{ item.quantity }}</p>
+                <p>Cost: ${{ "%.2f"|format(item.cost) }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="footer">
+            <p>We will process your order shortly and notify you when it's ready.</p>
+            <p>If you have any questions, please contact us.</p>
+        </div>
+    </div>
+</body>
+</html>
