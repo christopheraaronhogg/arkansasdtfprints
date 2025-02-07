@@ -17,4 +17,5 @@ dependencies = [
     "anthropic>=0.45.2",
     "sendgrid>=6.11.0",
     "replit>=4.1.0",
+    "replit-object-storage>=1.0.2",
 ]
