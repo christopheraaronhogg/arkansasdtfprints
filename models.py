@@ -28,3 +28,15 @@ class OrderItem(db.Model):
     height_inches = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
     cost = db.Column(db.Float, nullable=False)
+
+    def format_dimensions(self):
+        return f"{self.width_inches:.2f}\" × {self.height_inches:.2f}\""
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'file_key': self.file_key,
+            'dimensions': self.format_dimensions(),
+            'quantity': self.quantity,
+            'cost': f"${self.cost:.2f}"
+        }

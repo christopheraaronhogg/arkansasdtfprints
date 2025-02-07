@@ -8,7 +8,7 @@
     </header>
 
     <div class="upload-section">
-        <div class="d-flex justify-content-end mb-3">
+        <div class="d-flex justify-content-end mb-4">
             <a href="{{ url_for('admin') }}" class="upload-btn me-2" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
                 <i class="fas fa-arrow-left me-1"></i>Back to Orders
             </a>
@@ -17,41 +17,41 @@
             </a>
         </div>
 
-        <div class="size-inputs mb-4">
+        <div class="size-inputs mb-5">
             <div class="preview-content p-4">
                 <div class="row g-4">
                     <div class="col-md-8">
-                        <h5 class="text-primary mb-3" style="font-size: 1rem;">Order Information</h5>
-                        <div class="d-flex flex-column gap-3">
+                        <h5 class="text-primary mb-4" style="font-size: 1rem;">Order Information</h5>
+                        <div class="d-flex flex-column gap-4">
                             <div class="input-with-unit">
-                                <label style="font-size: 0.85rem;">Order Number</label>
+                                <label style="font-size: 0.85rem; margin-bottom: 0.5rem;">Order Number</label>
                                 <div class="fw-bold" style="font-size: 0.95rem;">{{ order.order_number }}</div>
                             </div>
                             <div class="input-with-unit">
-                                <label style="font-size: 0.85rem;">Customer Email</label>
+                                <label style="font-size: 0.85rem; margin-bottom: 0.5rem;">Customer Email</label>
                                 <div class="fw-bold" style="font-size: 0.95rem;">{{ order.email }}</div>
                             </div>
                             <div class="input-with-unit">
-                                <label style="font-size: 0.85rem;">Order Date</label>
+                                <label style="font-size: 0.85rem; margin-bottom: 0.5rem;">Order Date</label>
                                 <div class="fw-bold" style="font-size: 0.95rem;">{{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</div>
                             </div>
                             <div class="input-with-unit">
-                                <label style="font-size: 0.85rem;">Total Cost</label>
+                                <label style="font-size: 0.85rem; margin-bottom: 0.5rem;">Total Cost</label>
                                 <div class="fw-bold text-success" style="font-size: 0.95rem;">${{ "%.2f"|format(order.total_cost) }}</div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <h5 class="text-primary mb-3" style="font-size: 1rem;">Order Status</h5>
+                        <h5 class="text-primary mb-4" style="font-size: 1rem;">Order Status</h5>
                         <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" class="d-flex flex-column gap-3">
                             <div class="input-with-unit">
-                                <select name="status" class="form-select" style="font-size: 0.9rem; padding: 0.5rem;">
+                                <select name="status" class="form-select" style="font-size: 0.9rem; padding: 0.75rem;">
                                     <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
                                     <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
                                     <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
                                 </select>
                             </div>
-                            <button type="submit" class="submit-btn w-100" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                            <button type="submit" class="submit-btn w-100" style="padding: 0.75rem; font-size: 0.9rem;">
                                 <i class="fas fa-check me-1"></i>Update Status
                             </button>
                         </form>
@@ -60,35 +60,35 @@
             </div>
         </div>
 
-        <h4 class="text-primary mb-3" style="font-size: 1.1rem;">Order Items</h4>
+        <h4 class="text-primary mb-4" style="font-size: 1.1rem;">Order Items</h4>
         <div class="images-grid">
             {% for item in order.items %}
             <div class="size-inputs">
-                <div class="preview-content">
-                    <div class="preview-section">
+                <div class="preview-content p-4">
+                    <div class="preview-section mb-4">
                         <img src="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
                              class="preview-image"
                              alt="Preview of {{ item.file_key }}"
                              onclick="showFullSizePreview(this.src)">
                     </div>
-                    <div class="controls-section mt-3">
-                        <div class="input-with-unit mb-2">
-                            <label style="font-size: 0.85rem;">Dimensions</label>
-                            <div class="fw-bold" style="font-size: 0.95rem;">{{ item.width_inches }}" × {{ item.height_inches }}"</div>
+                    <div class="controls-section">
+                        <div class="input-with-unit mb-3">
+                            <label style="font-size: 0.85rem; margin-bottom: 0.5rem;">Dimensions</label>
+                            <div class="fw-bold" style="font-size: 0.95rem;">{{ item.format_dimensions() }}</div>
                         </div>
-                        <div class="input-with-unit mb-2">
-                            <label style="font-size: 0.85rem;">Quantity</label>
+                        <div class="input-with-unit mb-3">
+                            <label style="font-size: 0.85rem; margin-bottom: 0.5rem;">Quantity</label>
                             <div class="fw-bold" style="font-size: 0.95rem;">{{ item.quantity }}</div>
                         </div>
                         <div class="input-with-unit">
-                            <label style="font-size: 0.85rem;">Cost</label>
+                            <label style="font-size: 0.85rem; margin-bottom: 0.5rem;">Cost</label>
                             <div class="fw-bold text-success" style="font-size: 0.95rem;">${{ "%.2f"|format(item.cost) }}</div>
                         </div>
                     </div>
                 </div>
                 <div class="cost-display">
                     <a href="{{ url_for('download_order_image', order_id=order.id, filename=item.file_key) }}"
-                       class="submit-btn w-100" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                       class="submit-btn w-100" style="padding: 0.75rem; font-size: 0.9rem;">
                         <i class="fas fa-download me-1"></i>Download File
                     </a>
                 </div>
