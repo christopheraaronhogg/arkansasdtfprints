@@ -5,11 +5,11 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1><i class="fas fa-file-invoice me-2"></i>Order Details</h1>
         <div class="btn-group">
-            <a href="{{ url_for('admin') }}" class="btn btn-outline-secondary">
-                <i class="fas fa-arrow-left me-2"></i>Back to Orders
+            <a href="{{ url_for('admin') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-1"></i>Back to Orders
             </a>
             <a href="{{ url_for('download_all_images', order_id=order.id) }}" class="btn btn-primary">
-                <i class="fas fa-download me-2"></i>Download All Files
+                <i class="fas fa-download me-1"></i>Download All Files
             </a>
         </div>
     </div>
@@ -35,15 +35,15 @@
                 </div>
                 <div class="col-md-6">
                     <h5>Order Status</h5>
-                    <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}">
-                        <div class="input-group">
-                            <select name="status" class="form-select">
-                                <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
-                                <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
-                                <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
-                            </select>
-                            <button type="submit" class="btn btn-primary">Update Status</button>
-                        </div>
+                    <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" class="d-flex gap-2">
+                        <select name="status" class="form-select">
+                            <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
+                            <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check me-1"></i>Update Status
+                        </button>
                     </form>
                 </div>
             </div>
@@ -66,7 +66,7 @@
                         <label>Width</label>
                         <input type="number" 
                                value="{{ item.width_inches }}"
-                               class="form-control width-input" 
+                               class="form-control" 
                                readonly>
                         <span class="unit">in</span>
                     </div>
@@ -74,7 +74,7 @@
                         <label>Height</label>
                         <input type="number" 
                                value="{{ item.height_inches }}"
-                               class="form-control height-input" 
+                               class="form-control" 
                                readonly>
                         <span class="unit">in</span>
                     </div>
@@ -82,7 +82,7 @@
                         <label>Quantity</label>
                         <input type="number" 
                                value="{{ item.quantity }}"
-                               class="form-control quantity-input"
+                               class="form-control"
                                readonly>
                     </div>
                 </div>
@@ -91,13 +91,11 @@
                 <span>Cost: </span>
                 <span class="cost-value">${{ "%.2f"|format(item.cost) }}</span>
             </div>
-            <div class="p-3 border-top">
-                <div class="d-grid">
-                    <a href="{{ url_for('download_order_image', order_id=order.id, filename=item.file_key) }}"
-                       class="btn btn-primary">
-                        <i class="fas fa-download me-2"></i>Download File
-                    </a>
-                </div>
+            <div class="actions mt-3">
+                <a href="{{ url_for('download_order_image', order_id=order.id, filename=item.file_key) }}"
+                   class="btn btn-primary d-block">
+                    <i class="fas fa-download me-1"></i>Download File
+                </a>
             </div>
         </div>
         {% endfor %}
