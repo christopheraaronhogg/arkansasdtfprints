@@ -84,7 +84,8 @@ def upload_file():
         order = Order(
             order_number=generate_order_number(),
             email=email,
-            total_cost=total_cost
+            total_cost=total_cost,
+            status='pending'
         )
         db.session.add(order)
 
@@ -95,14 +96,19 @@ def upload_file():
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
 
+                # Validate image
+                is_valid, error_message = validate_image(filepath)
+                if not is_valid:
+                    return jsonify({'error': error_message}), 400
+
                 # Create order item
                 item = OrderItem(
                     order=order,
                     file_key=filename,
-                    width_inches=details['width'],
-                    height_inches=details['height'],
-                    quantity=details['quantity'],
-                    cost=details['cost']
+                    width_inches=float(details['width']),
+                    height_inches=float(details['height']),
+                    quantity=int(details['quantity']),
+                    cost=float(details['cost'])
                 )
                 db.session.add(item)
 
