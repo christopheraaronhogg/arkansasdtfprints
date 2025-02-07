@@ -8,10 +8,10 @@
             <p class="subtitle mb-0">View and manage your print orders</p>
         </div>
         <div class="d-flex gap-2">
-            <button class="upload-btn me-2" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+            <button class="upload-btn" onclick="toggleFilterModal()">
                 <i class="fas fa-filter me-1"></i>Filter
             </button>
-            <button class="upload-btn" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">
+            <button class="upload-btn">
                 <i class="fas fa-download me-1"></i>Export
             </button>
         </div>
@@ -19,7 +19,9 @@
 
     <div class="order-list mt-4">
         {% for order in orders %}
-        <div class="order-item">
+        <div class="order-item" 
+             data-status="{{ order.status }}"
+             data-date="{{ order.created_at.strftime('%Y-%m-%d') }}">
             <!-- Left: Order Info -->
             <div class="order-details">
                 <h5 class="order-number mb-1">{{ order.order_number }}</h5>
@@ -55,7 +57,38 @@
     </div>
 </div>
 
-<!-- Full Size Preview Modal -->
+<!-- Filter Modal -->
+<div id="filterModal" class="modal" style="display: none;">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Filter Orders</h3>
+            <span class="close-modal" onclick="toggleFilterModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="mb-3">
+                <label class="form-label">Status</label>
+                <select id="statusFilter" class="form-select">
+                    <option value="">All</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Date Range</label>
+                <div class="d-flex gap-2">
+                    <input type="date" id="startDate" class="form-control">
+                    <input type="date" id="endDate" class="form-control">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="upload-btn" onclick="applyFilters()">Apply Filters</button>
+            <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+    </div>
+</div>
+
+<!-- Image Preview Modal -->
 <div id="previewModal" class="modal">
     <span class="close-modal">&times;</span>
     <img id="modalImage" class="modal-image" src="" alt="Full size preview">
@@ -155,6 +188,87 @@
     color: white;
     text-decoration: none;
 }
+
+/* Filter Modal Styles */
+.modal-content {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.modal-body {
+    margin-bottom: 1.5rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.form-select, .form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.btn-secondary {
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-secondary:hover {
+    opacity: 0.9;
+}
+
+.modal {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.close-modal {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    cursor: pointer;
+    font-size: 1.5rem;
+}
 </style>
 
 <script>
@@ -169,6 +283,50 @@ function showFullSizePreview(src) {
             modal.style.display = 'none';
         }
     };
+}
+
+function toggleFilterModal() {
+    const modal = document.getElementById('filterModal');
+    modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+}
+
+function applyFilters() {
+    const status = document.getElementById('statusFilter').value;
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+
+    const orders = document.querySelectorAll('.order-item');
+
+    orders.forEach(order => {
+        let show = true;
+
+        // Filter by status
+        if (status && order.dataset.status !== status) {
+            show = false;
+        }
+
+        // Filter by date range
+        if (startDate || endDate) {
+            const orderDate = order.dataset.date;
+            if (startDate && orderDate < startDate) show = false;
+            if (endDate && orderDate > endDate) show = false;
+        }
+
+        order.style.display = show ? 'flex' : 'none';
+    });
+
+    toggleFilterModal();
+}
+
+function clearFilters() {
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+
+    const orders = document.querySelectorAll('.order-item');
+    orders.forEach(order => order.style.display = 'flex');
+
+    toggleFilterModal();
 }
 </script>
 {% endblock %}
