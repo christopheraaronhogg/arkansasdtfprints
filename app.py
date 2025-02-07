@@ -26,6 +26,11 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 from models import Order
 from utils import allowed_file, generate_order_number, calculate_cost, get_image_dimensions, validate_image
 
+with app.app_context():
+    # Import models and create tables
+    db.create_all()
+    logging.info("Database tables created successfully")
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -96,6 +101,3 @@ def upload_file():
     except Exception as e:
         logging.error(f"Error processing upload: {str(e)}")
         return jsonify({'error': 'Error processing upload'}), 500
-
-with app.app_context():
-    db.create_all()
