@@ -1,7 +1,6 @@
 import os
 import logging
 import json
-import base64
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
@@ -9,10 +8,10 @@ from werkzeug.utils import secure_filename
 from sqlalchemy.orm import DeclarativeBase
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail as SGMail
-from storage import ObjectStorage
 from io import BytesIO
 from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
+from storage import ObjectStorage
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -22,7 +21,13 @@ class Base(DeclarativeBase):
 
 db = SQLAlchemy(model_class=Base)
 mail = Mail()
-storage = ObjectStorage()
+
+try:
+    storage = ObjectStorage()
+    logger.info("Successfully initialized ObjectStorage")
+except Exception as e:
+    logger.error(f"Failed to initialize ObjectStorage: {str(e)}")
+    raise
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
@@ -84,6 +89,7 @@ def success():
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
+        logger.error("No file provided in request")
         return jsonify({'error': 'No file provided'}), 400
 
     files = request.files.getlist('file')
@@ -135,11 +141,10 @@ def upload_file():
                     # Reset pointer for storage
                     file_data.seek(0)
 
-                    # Upload to object storage
+                    # Upload to object storage with explicit error handling
                     logger.info(f"Uploading file {filename} to object storage")
                     if not storage.upload_file(file_data, filename):
                         raise Exception(f"Failed to upload file {filename} to object storage")
-                    logger.info(f"File uploaded successfully: {filename}")
 
                     # Create order item
                     item = OrderItem(
@@ -162,9 +167,7 @@ def upload_file():
                 retry_count += 1
                 if retry_count == max_retries:
                     logger.error(f"Database error after {max_retries} retries: {str(db_error)}")
-                    return jsonify({
-                        'error': 'Database error occurred. Please try again.'
-                    }), 500
+                    return jsonify({'error': 'Database error occurred. Please try again.'}), 500
                 logger.warning(f"Database error (attempt {retry_count}): {str(db_error)}")
                 continue
 
@@ -181,9 +184,7 @@ def upload_file():
         except Exception as e:
             db.session.rollback()
             logger.error(f"Error processing upload: {str(e)}")
-            return jsonify({
-                'error': str(e) or 'Error processing your order. Please try again.'
-            }), 500
+            return jsonify({'error': str(e)}), 500
 
 @app.route('/admin')
 def admin():
@@ -227,29 +228,3 @@ def download_order_image(order_id, filename):
         mimetype='image/png',
         headers={'Content-Disposition': f'attachment; filename={filename}'}
     )
-
-
-class ObjectStorage: # Assumed class structure for ObjectStorage
-    def __init__(self, namespace="my-app-storage"):  # Added namespace for clarity.  Adjust as needed.
-        self.namespace = namespace
-        self.db = {} # in-memory DB for demonstration. Replace with your actual DB interaction
-
-    def upload_file(self, file_data, filename):
-        """Upload a file to object storage"""
-        try:
-            # Convert binary data to base64 before storing
-            key = f"{self.namespace}:{filename}"
-            binary_data = file_data.read()
-            base64_data = base64.b64encode(binary_data).decode('utf-8')
-            self.db[key] = base64_data #Store in in-memory DB. Replace with your actual DB
-            return True
-        except Exception as e:
-            logger.error(f"Error uploading file to object storage: {e}")
-            return False
-
-    def get_file(self, filename):
-        key = f"{self.namespace}:{filename}"
-        if key in self.db:
-            base64_data = self.db[key]
-            return base64.b64decode(base64_data) #Decode from base64
-        return None
