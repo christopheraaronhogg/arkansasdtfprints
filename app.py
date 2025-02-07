@@ -1,13 +1,15 @@
 import os
 import logging
 import json
-from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file
+from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import DeclarativeBase
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail as SGMail
+from storage import ObjectStorage
+from io import BytesIO
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -17,17 +19,13 @@ class Base(DeclarativeBase):
 
 db = SQLAlchemy(model_class=Base)
 mail = Mail()
+storage = ObjectStorage()
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
 
 db.init_app(app)
 mail.init_app(app)
-
-# Ensure upload folder exists
-upload_folder = app.config['UPLOAD_FOLDER']
-os.makedirs(upload_folder, exist_ok=True)
-logger.info(f"Upload folder initialized at: {upload_folder}")
 
 from models import Order, OrderItem
 from utils import allowed_file, generate_order_number, calculate_cost, get_image_dimensions, validate_image
@@ -107,21 +105,25 @@ def upload_file():
         for file, details in zip(files, order_details):
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
 
-                logger.info(f"Saving file {filename} for order {order.order_number}")
-                try:
-                    file.save(filepath)
-                    logger.info(f"File saved successfully: {filepath}")
-                except Exception as save_error:
-                    logger.error(f"Error saving file {filename}: {str(save_error)}")
-                    raise
+                # Store file in memory for validation
+                file_data = BytesIO(file.read())
+                file_data.seek(0)  # Reset pointer for validation
 
                 # Validate image
-                is_valid, error_message = validate_image(filepath)
+                is_valid, error_message = validate_image(file_data)
                 if not is_valid:
                     logger.error(f"Image validation failed for {filename}: {error_message}")
                     return jsonify({'error': error_message}), 400
+
+                # Reset pointer for storage
+                file_data.seek(0)
+
+                # Upload to object storage
+                logger.info(f"Uploading file {filename} to object storage")
+                if not storage.upload_file(file_data, filename):
+                    raise Exception(f"Failed to upload file {filename} to object storage")
+                logger.info(f"File uploaded successfully: {filename}")
 
                 # Create order item
                 item = OrderItem(
@@ -147,7 +149,6 @@ def upload_file():
 
         # Send emails
         if not send_order_emails(order):
-            # Log email failure but don't return error to user since order was saved
             logger.warning(f"Failed to send emails for order {order.order_number}")
 
         return jsonify({
@@ -182,16 +183,26 @@ def update_order_status(order_id):
 
 @app.route('/admin/order/<int:order_id>/image/<path:filename>')
 def get_order_image(order_id, filename):
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    if not os.path.exists(filepath):
-        logger.error(f"Image file not found: {filepath}")
+    file_data = storage.get_file(filename)
+    if file_data is None:
+        logger.error(f"Image file not found in storage: {filename}")
         return "Image not found", 404
-    return send_file(filepath)
+
+    return Response(
+        file_data,
+        mimetype='image/png',
+        headers={'Content-Disposition': f'inline; filename={filename}'}
+    )
 
 @app.route('/admin/order/<int:order_id>/download/<path:filename>')
 def download_order_image(order_id, filename):
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    if not os.path.exists(filepath):
-        logger.error(f"Image file not found for download: {filepath}")
+    file_data = storage.get_file(filename)
+    if file_data is None:
+        logger.error(f"Image file not found in storage: {filename}")
         return "Image not found", 404
-    return send_file(filepath, as_attachment=True)
+
+    return Response(
+        file_data,
+        mimetype='image/png',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
