@@ -63,6 +63,10 @@ def send_order_emails(order):
 def index():
     return render_template('index.html')
 
+@app.route('/success')
+def success():
+    return render_template('success.html')
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -128,7 +132,8 @@ def upload_file():
 
         return jsonify({
             'message': 'Order submitted successfully',
-            'order': order.to_dict()
+            'order': order.to_dict(),
+            'redirect': url_for('success')
         }), 200
 
     except Exception as e:

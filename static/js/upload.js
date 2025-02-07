@@ -308,9 +308,18 @@ const PrintUI = {
 
             // Show success message and reset form
             this.showAlert(data.message || 'Order successfully submitted! Check your email for confirmation.', 'success');
-            this.form.reset();
-            document.getElementById('images-container').innerHTML = '';
-            this.totalDisplay.textContent = 'Total: $0.00';
+
+            // If there's a redirect URL, navigate to it after a short delay
+            if (data.redirect) {
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 1000);
+            } else {
+                // If no redirect, just reset the form
+                this.form.reset();
+                document.getElementById('images-container').innerHTML = '';
+                this.totalDisplay.textContent = 'Total: $0.00';
+            }
 
         } catch (error) {
             console.error('Submission error:', error);
