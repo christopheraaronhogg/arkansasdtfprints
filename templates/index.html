@@ -1,91 +1,52 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row mb-5">
-    <div class="col-12 text-center">
-        <h1 class="display-4 mb-4">Professional DTF Printing Service</h1>
-        <p class="lead">High-quality Direct to Film printing for your custom designs</p>
-    </div>
+<div class="container">
+    <header>
+        <h1><i class="fas fa-print"></i> Direct-To-Film Print Orders</h1>
+        <p class="subtitle">Upload your PNG files for instant pricing</p>
+    </header>
+
+    <main>
+        <form id="upload-form">
+            <div class="upload-section">
+                <div class="upload-area" id="dropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p class="upload-title">Drag & drop your PNG files here</p>
+                    <p class="upload-subtitle">or</p>
+                    <label class="upload-btn">
+                        <i class="fas fa-folder-open"></i>
+                        Choose Files
+                        <input type="file" name="file" accept="image/png" required id="file-input">
+                    </label>
+                </div>
+                <div id="fileList" class="file-list"></div>
+            </div>
+
+            <div id="images-container" class="images-grid"></div>
+
+            <div class="order-submit-section">
+                <div class="email-input">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" name="email" required 
+                           placeholder="Enter your email">
+                </div>
+                <div class="total-display" id="totalCost">Total: $0.00</div>
+                <button type="submit" class="submit-btn">
+                    <i class="fas fa-paper-plane"></i>
+                    Submit
+                </button>
+            </div>
+        </form>
+    </main>
 </div>
 
-<div class="row mb-5">
-    <div class="col-md-3 mb-4">
-        <div class="feature-card p-3">
-            <i class="bi bi-upload fs-1 text-primary mb-3"></i>
-            <h3 class="h5">Easy Upload</h3>
-            <p>Simple PNG file upload process</p>
+<div id="previewModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <div class="modal-image-container">
+            <img id="modalImage" class="modal-image">
         </div>
-    </div>
-    <div class="col-md-3 mb-4">
-        <div class="feature-card p-3">
-            <i class="bi bi-rulers fs-1 text-info mb-3"></i>
-            <h3 class="h5">Custom Sizes</h3>
-            <p>Support for various dimensions</p>
-        </div>
-    </div>
-    <div class="col-md-3 mb-4">
-        <div class="feature-card p-3">
-            <i class="bi bi-cash-stack fs-1 text-success mb-3"></i>
-            <h3 class="h5">Instant Quote</h3>
-            <p>Real-time price calculation</p>
-        </div>
-    </div>
-    <div class="col-md-3 mb-4">
-        <div class="feature-card p-3">
-            <i class="bi bi-truck fs-1 text-warning mb-3"></i>
-            <h3 class="h5">Fast Processing</h3>
-            <p>Quick turnaround time</p>
-        </div>
-    </div>
-</div>
-
-<div class="upload-container">
-    <h2 class="mb-4">Upload Your Design</h2>
-    <form id="upload-form">
-        <div class="mb-3">
-            <label for="email" class="form-label">Email address</label>
-            <input type="email" class="form-control" id="email" name="email" required>
-        </div>
-        
-        <div class="mb-3">
-            <label for="file-input" class="form-label">Choose PNG file</label>
-            <input type="file" class="form-control" id="file-input" name="file" accept=".png" required>
-        </div>
-        
-        <div class="preview-container">
-            <img id="image-preview" class="img-fluid" alt="Preview">
-        </div>
-        
-        <div class="info-container">
-            <p id="dimensions-info" class="mb-2"></p>
-            <p id="cost-info" class="mb-0"></p>
-        </div>
-        
-        <div class="progress">
-            <div id="upload-progress" class="progress-bar" role="progressbar"></div>
-        </div>
-        
-        <button type="submit" class="btn btn-primary mt-3">
-            <i class="bi bi-cloud-upload me-2"></i>Upload and Order
-        </button>
-    </form>
-</div>
-
-<div class="row mt-5">
-    <div class="col-12">
-        <h2 class="text-center mb-4">Sample Prints</h2>
-    </div>
-    <div class="col-md-3 mb-4">
-        <img src="https://images.unsplash.com/photo-1503694978374-8a2fa686963a" class="img-fluid sample-image" alt="DTF Sample 1">
-    </div>
-    <div class="col-md-3 mb-4">
-        <img src="https://images.unsplash.com/photo-1597765221336-1f65bb4c4fee" class="img-fluid sample-image" alt="DTF Sample 2">
-    </div>
-    <div class="col-md-3 mb-4">
-        <img src="https://images.unsplash.com/photo-1599727277707-b429a4994c15" class="img-fluid sample-image" alt="DTF Sample 3">
-    </div>
-    <div class="col-md-3 mb-4">
-        <img src="https://images.unsplash.com/photo-1579154204449-47c454770447" class="img-fluid sample-image" alt="DTF Sample 4">
     </div>
 </div>
 {% endblock %}
