@@ -53,30 +53,46 @@ with app.app_context():
     logger.info("Database tables created successfully")
 
 def send_order_emails(order):
-    # Customer email
-    customer_email = SGMail(
-        from_email=app.config['MAIL_DEFAULT_SENDER'],
-        to_emails=order.email,
-        subject=f'DTF Printing Order Confirmation - {order.order_number}',
-        html_content=render_template('emails/customer_order_confirmation.html', order=order)
-    )
-
-    # Production team email
-    production_email = SGMail(
-        from_email=app.config['MAIL_DEFAULT_SENDER'],
-        to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
-        subject=f'New DTF Printing Order - {order.order_number}',
-        html_content=render_template('emails/production_order_notification.html', order=order)
-    )
-
+    """Send order confirmation emails to customer and production team"""
     try:
-        sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
-        sg.send(customer_email)
-        sg.send(production_email)
-        logger.info(f"Order confirmation emails sent successfully for order: {order.order_number}")
-        return True
+        # Customer email
+        customer_email = SGMail(
+            from_email=app.config['MAIL_DEFAULT_SENDER'],
+            to_emails=order.email,
+            subject=f'DTF Printing Order Confirmation - {order.order_number}',
+            html_content=render_template('emails/customer_order_confirmation.html', order=order)
+        )
+
+        # Production team email
+        production_email = SGMail(
+            from_email=app.config['MAIL_DEFAULT_SENDER'],
+            to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
+            subject=f'New DTF Printing Order - {order.order_number}',
+            html_content=render_template('emails/production_order_notification.html', order=order)
+        )
+
+        try:
+            sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
+            # Send customer email
+            response = sg.send(customer_email)
+            if response.status_code not in [200, 201, 202]:
+                logger.error(f"Failed to send customer email for order {order.order_number}. Status code: {response.status_code}")
+                return False
+            logger.info(f"Customer email sent successfully for order {order.order_number}")
+
+            # Send production team email
+            response = sg.send(production_email)
+            if response.status_code not in [200, 201, 202]:
+                logger.error(f"Failed to send production team email for order {order.order_number}. Status code: {response.status_code}")
+                return False
+            logger.info(f"Production team email sent successfully for order {order.order_number}")
+
+            return True
+        except Exception as e:
+            logger.error(f"SendGrid API error for order {order.order_number}: {str(e)}")
+            return False
     except Exception as e:
-        logger.error(f"Error sending emails: {str(e)}")
+        logger.error(f"Error preparing emails for order {order.order_number}: {str(e)}")
         return False
 
 @app.route('/')
