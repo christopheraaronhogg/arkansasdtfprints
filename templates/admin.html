@@ -2,15 +2,16 @@
 
 {% block content %}
 <div class="container py-4">
-    <h1 class="mb-4">Order Management</h1>
-    
+    <h1 class="mb-4">DTF Print Order Management</h1>
+
     <div class="table-responsive">
-        <table class="table table-dark table-striped">
-            <thead>
+        <table class="table table-hover">
+            <thead class="table-dark">
                 <tr>
                     <th>Order #</th>
                     <th>Date</th>
                     <th>Customer Email</th>
+                    <th>Items</th>
                     <th>Total Cost</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -22,15 +23,16 @@
                     <td>{{ order.order_number }}</td>
                     <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
                     <td>{{ order.email }}</td>
+                    <td>{{ order.items|length }} file(s)</td>
                     <td>${{ "%.2f"|format(order.total_cost) }}</td>
                     <td>
-                        <span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' }}">
+                        <span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' if order.status == 'pending' else 'secondary' }}">
                             {{ order.status|title }}
                         </span>
                     </td>
                     <td>
                         <a href="{{ url_for('view_order', order_id=order.id) }}" class="btn btn-sm btn-primary">
-                            View Details
+                            <i class="fas fa-eye"></i> View Details
                         </a>
                     </td>
                 </tr>
