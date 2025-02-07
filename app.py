@@ -74,14 +74,21 @@ def upload_file():
 
     files = request.files.getlist('file')
     email = request.form.get('email')
-    order_details = json.loads(request.form.get('orderDetails', '[]'))
-    total_cost = float(request.form.get('totalCost', 0))
+
+    try:
+        order_details = json.loads(request.form.get('orderDetails', '[]'))
+        total_cost = float(request.form.get('totalCost', 0))
+    except (json.JSONDecodeError, ValueError) as e:
+        return jsonify({'error': 'Invalid order details format'}), 400
 
     if not email:
         return jsonify({'error': 'Email is required'}), 400
 
     if not files:
         return jsonify({'error': 'No files selected'}), 400
+
+    # Create a new session for this request
+    session = db.create_scoped_session()
 
     try:
         # Create order
@@ -91,7 +98,7 @@ def upload_file():
             total_cost=total_cost,
             status='pending'
         )
-        db.session.add(order)
+        session.add(order)
 
         # Process each file
         for file, details in zip(files, order_details):
@@ -114,12 +121,12 @@ def upload_file():
                     quantity=int(details['quantity']),
                     cost=float(details['cost'])
                 )
-                db.session.add(item)
+                session.add(item)
 
         try:
-            db.session.commit()
+            session.commit()
         except Exception as db_error:
-            db.session.rollback()
+            session.rollback()
             logging.error(f"Database error: {str(db_error)}")
             return jsonify({
                 'error': 'Database error occurred. Please try again.'
@@ -137,10 +144,13 @@ def upload_file():
         }), 200
 
     except Exception as e:
+        session.rollback()
         logging.error(f"Error processing upload: {str(e)}")
         return jsonify({
             'error': 'Error processing your order. Please try again.'
         }), 500
+    finally:
+        session.close()
 
 @app.route('/admin')
 def admin():

@@ -306,7 +306,7 @@ const PrintUI = {
                 throw new Error(data.error || 'Failed to submit order');
             }
 
-            // Show success message and reset form
+            // Show success message and handle redirect
             this.showAlert(data.message || 'Order successfully submitted! Check your email for confirmation.', 'success');
 
             // If there's a redirect URL, navigate to it after a short delay
@@ -327,10 +327,13 @@ const PrintUI = {
         }
     },
 
-    showAlert(message, type) {
+    showAlert(message, type = 'error') {
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type}`;
-        alertDiv.textContent = message;
+        alertDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
 
         // Remove any existing alerts
         const existingAlerts = document.querySelectorAll('.alert');
@@ -339,8 +342,10 @@ const PrintUI = {
         // Insert the new alert at the top of the form
         this.form.insertAdjacentElement('beforebegin', alertDiv);
 
-        // Remove the alert after 5 seconds
-        setTimeout(() => alertDiv.remove(), 5000);
+        // Remove the alert after 5 seconds if it's a success message
+        if (type === 'success') {
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
     }
 };
 
