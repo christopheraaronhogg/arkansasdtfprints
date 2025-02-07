@@ -9,7 +9,7 @@
 
     {% if orders %}
     <div class="upload-section">
-        <div class="d-flex justify-content-end mb-4">
+        <div class="d-flex justify-content-end" style="margin-bottom: 1.5rem;">
             <button class="upload-btn me-2" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
                 <i class="fas fa-filter me-1"></i>Filter
             </button>
@@ -19,17 +19,17 @@
         </div>
 
         {% for order in orders %}
-        <div class="size-inputs mb-4">
-            <div class="preview-content p-4">
+        <div class="size-inputs" style="margin-bottom: 1rem;">
+            <div class="preview-content" style="padding: 1.5rem;">
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
-                        <h5 class="text-primary mb-3" style="font-size: 1rem;">{{ order.order_number }}</h5>
-                        <p class="text-muted mb-3" style="font-size: 0.9rem;">{{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</p>
-                        <p class="mb-3" style="font-size: 0.9rem;">{{ order.email }}</p>
+                        <h5 class="text-primary" style="font-size: 1rem; margin-bottom: 0.5rem;">{{ order.order_number }}</h5>
+                        <p class="text-muted" style="font-size: 0.9rem; margin-bottom: 0.5rem;">{{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</p>
+                        <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">{{ order.email }}</p>
                         <span class="badge bg-secondary" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">{{ order.items|length }} file{% if order.items|length != 1 %}s{% endif %}</span>
                     </div>
                     <div class="text-end">
-                        <h4 class="text-success mb-3" style="font-size: 1.1rem;">${{ "%.2f"|format(order.total_cost) }}</h4>
+                        <h4 class="text-success" style="font-size: 1.1rem; margin-bottom: 0.5rem;">${{ "%.2f"|format(order.total_cost) }}</h4>
                         <span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' if order.status == 'pending' else 'info' }}" style="font-size: 0.8rem; padding: 0.25rem 0.75rem;">
                             {{ order.status|title }}
                         </span>
