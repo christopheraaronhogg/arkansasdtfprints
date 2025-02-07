@@ -8,51 +8,51 @@
     </header>
 
     <div class="upload-section">
-        <div class="d-flex justify-content-end mb-4">
-            <a href="{{ url_for('admin') }}" class="upload-btn me-2">
-                <i class="fas fa-arrow-left me-2"></i>Back to Orders
+        <div class="d-flex justify-content-end mb-3">
+            <a href="{{ url_for('admin') }}" class="upload-btn me-2" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                <i class="fas fa-arrow-left me-1"></i>Back to Orders
             </a>
-            <a href="{{ url_for('download_all_images', order_id=order.id) }}" class="upload-btn">
-                <i class="fas fa-download me-2"></i>Download All Files
+            <a href="{{ url_for('download_all_images', order_id=order.id) }}" class="upload-btn" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                <i class="fas fa-download me-1"></i>Download All Files
             </a>
         </div>
 
         <div class="size-inputs mb-4">
-            <div class="preview-content">
-                <div class="row">
+            <div class="preview-content p-4">
+                <div class="row g-4">
                     <div class="col-md-8">
-                        <h5 class="text-primary mb-4">Order Information</h5>
+                        <h5 class="text-primary mb-3" style="font-size: 1rem;">Order Information</h5>
                         <div class="d-flex flex-column gap-3">
                             <div class="input-with-unit">
-                                <label>Order Number</label>
-                                <div class="fw-bold">{{ order.order_number }}</div>
+                                <label style="font-size: 0.85rem;">Order Number</label>
+                                <div class="fw-bold" style="font-size: 0.95rem;">{{ order.order_number }}</div>
                             </div>
                             <div class="input-with-unit">
-                                <label>Customer Email</label>
-                                <div class="fw-bold">{{ order.email }}</div>
+                                <label style="font-size: 0.85rem;">Customer Email</label>
+                                <div class="fw-bold" style="font-size: 0.95rem;">{{ order.email }}</div>
                             </div>
                             <div class="input-with-unit">
-                                <label>Order Date</label>
-                                <div class="fw-bold">{{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</div>
+                                <label style="font-size: 0.85rem;">Order Date</label>
+                                <div class="fw-bold" style="font-size: 0.95rem;">{{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</div>
                             </div>
                             <div class="input-with-unit">
-                                <label>Total Cost</label>
-                                <div class="fw-bold text-success">${{ "%.2f"|format(order.total_cost) }}</div>
+                                <label style="font-size: 0.85rem;">Total Cost</label>
+                                <div class="fw-bold text-success" style="font-size: 0.95rem;">${{ "%.2f"|format(order.total_cost) }}</div>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <h5 class="text-primary mb-4">Order Status</h5>
+                        <h5 class="text-primary mb-3" style="font-size: 1rem;">Order Status</h5>
                         <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}" class="d-flex flex-column gap-3">
                             <div class="input-with-unit">
-                                <select name="status" class="form-select">
+                                <select name="status" class="form-select" style="font-size: 0.9rem; padding: 0.5rem;">
                                     <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
                                     <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
                                     <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
                                 </select>
                             </div>
-                            <button type="submit" class="submit-btn w-100">
-                                <i class="fas fa-check me-2"></i>Update Status
+                            <button type="submit" class="submit-btn w-100" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                                <i class="fas fa-check me-1"></i>Update Status
                             </button>
                         </form>
                     </div>
@@ -60,7 +60,7 @@
             </div>
         </div>
 
-        <h4 class="text-primary mb-4">Order Items</h4>
+        <h4 class="text-primary mb-3" style="font-size: 1.1rem;">Order Items</h4>
         <div class="images-grid">
             {% for item in order.items %}
             <div class="size-inputs">
@@ -71,25 +71,25 @@
                              alt="Preview of {{ item.file_key }}"
                              onclick="showFullSizePreview(this.src)">
                     </div>
-                    <div class="controls-section">
-                        <div class="input-with-unit">
-                            <label>Dimensions</label>
-                            <div class="fw-bold">{{ item.width_inches }}" × {{ item.height_inches }}"</div>
+                    <div class="controls-section mt-3">
+                        <div class="input-with-unit mb-2">
+                            <label style="font-size: 0.85rem;">Dimensions</label>
+                            <div class="fw-bold" style="font-size: 0.95rem;">{{ item.width_inches }}" × {{ item.height_inches }}"</div>
+                        </div>
+                        <div class="input-with-unit mb-2">
+                            <label style="font-size: 0.85rem;">Quantity</label>
+                            <div class="fw-bold" style="font-size: 0.95rem;">{{ item.quantity }}</div>
                         </div>
                         <div class="input-with-unit">
-                            <label>Quantity</label>
-                            <div class="fw-bold">{{ item.quantity }}</div>
-                        </div>
-                        <div class="input-with-unit">
-                            <label>Cost</label>
-                            <div class="fw-bold text-success">${{ "%.2f"|format(item.cost) }}</div>
+                            <label style="font-size: 0.85rem;">Cost</label>
+                            <div class="fw-bold text-success" style="font-size: 0.95rem;">${{ "%.2f"|format(item.cost) }}</div>
                         </div>
                     </div>
                 </div>
                 <div class="cost-display">
                     <a href="{{ url_for('download_order_image', order_id=order.id, filename=item.file_key) }}"
-                       class="submit-btn w-100">
-                        <i class="fas fa-download me-2"></i>Download File
+                       class="submit-btn w-100" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                        <i class="fas fa-download me-1"></i>Download File
                     </a>
                 </div>
             </div>
