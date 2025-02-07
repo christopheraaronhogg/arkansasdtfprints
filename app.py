@@ -87,9 +87,6 @@ def upload_file():
     if not files:
         return jsonify({'error': 'No files selected'}), 400
 
-    # Create a new session for this request
-    session = db.create_scoped_session()
-
     try:
         # Create order
         order = Order(
@@ -98,7 +95,7 @@ def upload_file():
             total_cost=total_cost,
             status='pending'
         )
-        session.add(order)
+        db.session.add(order)
 
         # Process each file
         for file, details in zip(files, order_details):
@@ -121,12 +118,12 @@ def upload_file():
                     quantity=int(details['quantity']),
                     cost=float(details['cost'])
                 )
-                session.add(item)
+                db.session.add(item)
 
         try:
-            session.commit()
+            db.session.commit()
         except Exception as db_error:
-            session.rollback()
+            db.session.rollback()
             logging.error(f"Database error: {str(db_error)}")
             return jsonify({
                 'error': 'Database error occurred. Please try again.'
@@ -144,13 +141,11 @@ def upload_file():
         }), 200
 
     except Exception as e:
-        session.rollback()
+        db.session.rollback()
         logging.error(f"Error processing upload: {str(e)}")
         return jsonify({
             'error': 'Error processing your order. Please try again.'
         }), 500
-    finally:
-        session.close()
 
 @app.route('/admin')
 def admin():
