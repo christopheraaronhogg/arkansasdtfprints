@@ -2,59 +2,78 @@
 
 {% block content %}
 <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1><i class="fas fa-clipboard-list me-2"></i>DTF Print Orders</h1>
-        <div class="btn-group">
-            <button class="btn btn-outline-secondary">
-                <i class="fas fa-filter me-1"></i>Filter
-            </button>
-            <button class="btn btn-outline-secondary">
-                <i class="fas fa-download me-1"></i>Export
-            </button>
+    <div class="admin-header mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="display-5 fw-bold text-primary">
+                <i class="fas fa-clipboard-list me-3"></i>DTF Print Orders
+            </h1>
+            <div class="btn-group">
+                <button class="btn btn-outline-primary">
+                    <i class="fas fa-filter me-2"></i>Filter
+                </button>
+                <button class="btn btn-outline-primary">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+            </div>
         </div>
+        <p class="text-muted mt-2">Manage and track all DTF printing orders</p>
     </div>
 
-    <div class="card bg-dark shadow-sm mb-4">
+    {% if orders %}
+    <div class="card bg-dark border-0 shadow-lg mb-4">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover mb-0">
+                <table class="table table-hover align-middle mb-0">
                     <thead>
-                        <tr class="bg-dark">
-                            <th class="px-4">Order #</th>
-                            <th>Date</th>
-                            <th>Customer</th>
-                            <th class="text-center">Items</th>
-                            <th class="text-end">Total</th>
-                            <th class="text-center">Status</th>
-                            <th class="text-end px-4">Actions</th>
+                        <tr class="bg-dark text-primary">
+                            <th class="px-4 py-3">Order #</th>
+                            <th class="py-3">Date</th>
+                            <th class="py-3">Customer</th>
+                            <th class="text-center py-3">Items</th>
+                            <th class="text-end py-3">Total</th>
+                            <th class="text-center py-3">Status</th>
+                            <th class="text-end px-4 py-3">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for order in orders %}
-                        <tr class="align-middle">
-                            <td class="px-4 fw-bold text-primary">{{ order.order_number }}</td>
-                            <td>{{ order.created_at.strftime('%b %d, %Y %H:%M') }}</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-user-circle text-secondary me-2"></i>
-                                    {{ order.email }}
+                        <tr class="border-bottom border-secondary">
+                            <td class="px-4 py-3">
+                                <span class="fw-bold text-primary">{{ order.order_number }}</span>
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex flex-column">
+                                    <span>{{ order.created_at.strftime('%b %d, %Y') }}</span>
+                                    <small class="text-muted">{{ order.created_at.strftime('%I:%M %p') }}</small>
                                 </div>
                             </td>
-                            <td class="text-center">
-                                <span class="badge bg-secondary">
-                                    {{ order.items|length }} file(s)
+                            <td class="py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="user-avatar me-2">
+                                        <i class="fas fa-user-circle fa-2x text-secondary"></i>
+                                    </div>
+                                    <div class="d-flex flex-column">
+                                        <span>{{ order.email }}</span>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="text-center py-3">
+                                <span class="badge bg-secondary px-3 py-2">
+                                    {{ order.items|length }} file{% if order.items|length != 1 %}s{% endif %}
                                 </span>
                             </td>
-                            <td class="text-end fw-bold">${{ "%.2f"|format(order.total_cost) }}</td>
-                            <td class="text-center">
-                                <span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' if order.status == 'pending' else 'info' }}">
+                            <td class="text-end py-3">
+                                <span class="fw-bold text-success">${{ "%.2f"|format(order.total_cost) }}</span>
+                            </td>
+                            <td class="text-center py-3">
+                                <span class="badge bg-{{ 'success' if order.status == 'completed' else 'warning' if order.status == 'pending' else 'info' }} px-3 py-2">
                                     {{ order.status|title }}
                                 </span>
                             </td>
-                            <td class="text-end px-4">
+                            <td class="text-end px-4 py-3">
                                 <a href="{{ url_for('view_order', order_id=order.id) }}" 
-                                   class="btn btn-sm btn-primary">
-                                    <i class="fas fa-eye me-1"></i> View Details
+                                   class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye me-2"></i>View Details
                                 </a>
                             </td>
                         </tr>
@@ -64,12 +83,16 @@
             </div>
         </div>
     </div>
-
-    {% if not orders %}
-    <div class="text-center py-5">
-        <i class="fas fa-inbox fa-3x text-secondary mb-3"></i>
-        <h3>No Orders Yet</h3>
-        <p class="text-muted">New orders will appear here once customers place them.</p>
+    {% else %}
+    <div class="empty-state text-center py-5">
+        <div class="empty-state-icon mb-4">
+            <i class="fas fa-inbox fa-4x text-secondary"></i>
+        </div>
+        <h3 class="mb-3">No Orders Yet</h3>
+        <p class="text-muted mb-4">New orders will appear here once customers place them.</p>
+        <a href="{{ url_for('index') }}" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>Return to Homepage
+        </a>
     </div>
     {% endif %}
 </div>
