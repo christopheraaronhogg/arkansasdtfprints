@@ -10,6 +10,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail as SGMail
 
 logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
     pass
@@ -24,14 +25,16 @@ db.init_app(app)
 mail.init_app(app)
 
 # Ensure upload folder exists
-os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+upload_folder = app.config['UPLOAD_FOLDER']
+os.makedirs(upload_folder, exist_ok=True)
+logger.info(f"Upload folder initialized at: {upload_folder}")
 
 from models import Order, OrderItem
 from utils import allowed_file, generate_order_number, calculate_cost, get_image_dimensions, validate_image
 
 with app.app_context():
     db.create_all()
-    logging.info("Database tables created successfully")
+    logger.info("Database tables created successfully")
 
 def send_order_emails(order):
     # Customer email
@@ -54,9 +57,10 @@ def send_order_emails(order):
         sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
         sg.send(customer_email)
         sg.send(production_email)
+        logger.info(f"Order confirmation emails sent successfully for order: {order.order_number}")
         return True
     except Exception as e:
-        logging.error(f"Error sending emails: {str(e)}")
+        logger.error(f"Error sending emails: {str(e)}")
         return False
 
 @app.route('/')
@@ -79,6 +83,7 @@ def upload_file():
         order_details = json.loads(request.form.get('orderDetails', '[]'))
         total_cost = float(request.form.get('totalCost', 0))
     except (json.JSONDecodeError, ValueError) as e:
+        logger.error(f"Invalid order details format: {str(e)}")
         return jsonify({'error': 'Invalid order details format'}), 400
 
     if not email:
@@ -96,17 +101,26 @@ def upload_file():
             status='pending'
         )
         db.session.add(order)
+        logger.info(f"Created new order: {order.order_number}")
 
         # Process each file
         for file, details in zip(files, order_details):
             if file and allowed_file(file.filename):
                 filename = secure_filename(file.filename)
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                file.save(filepath)
+
+                logger.info(f"Saving file {filename} for order {order.order_number}")
+                try:
+                    file.save(filepath)
+                    logger.info(f"File saved successfully: {filepath}")
+                except Exception as save_error:
+                    logger.error(f"Error saving file {filename}: {str(save_error)}")
+                    raise
 
                 # Validate image
                 is_valid, error_message = validate_image(filepath)
                 if not is_valid:
+                    logger.error(f"Image validation failed for {filename}: {error_message}")
                     return jsonify({'error': error_message}), 400
 
                 # Create order item
@@ -119,12 +133,14 @@ def upload_file():
                     cost=float(details['cost'])
                 )
                 db.session.add(item)
+                logger.info(f"Added order item for file {filename}")
 
         try:
             db.session.commit()
+            logger.info(f"Order {order.order_number} committed to database successfully")
         except Exception as db_error:
             db.session.rollback()
-            logging.error(f"Database error: {str(db_error)}")
+            logger.error(f"Database error: {str(db_error)}")
             return jsonify({
                 'error': 'Database error occurred. Please try again.'
             }), 500
@@ -132,7 +148,7 @@ def upload_file():
         # Send emails
         if not send_order_emails(order):
             # Log email failure but don't return error to user since order was saved
-            logging.warning(f"Failed to send emails for order {order.order_number}")
+            logger.warning(f"Failed to send emails for order {order.order_number}")
 
         return jsonify({
             'message': 'Order submitted successfully',
@@ -142,7 +158,7 @@ def upload_file():
 
     except Exception as e:
         db.session.rollback()
-        logging.error(f"Error processing upload: {str(e)}")
+        logger.error(f"Error processing upload: {str(e)}")
         return jsonify({
             'error': 'Error processing your order. Please try again.'
         }), 500
@@ -167,9 +183,15 @@ def update_order_status(order_id):
 @app.route('/admin/order/<int:order_id>/image/<path:filename>')
 def get_order_image(order_id, filename):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(filepath):
+        logger.error(f"Image file not found: {filepath}")
+        return "Image not found", 404
     return send_file(filepath)
 
 @app.route('/admin/order/<int:order_id>/download/<path:filename>')
 def download_order_image(order_id, filename):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+    if not os.path.exists(filepath):
+        logger.error(f"Image file not found for download: {filepath}")
+        return "Image not found", 404
     return send_file(filepath, as_attachment=True)
