@@ -1,6 +1,7 @@
 import os
 import logging
 import json
+import base64 # Added import for base64 encoding
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
@@ -206,3 +207,29 @@ def download_order_image(order_id, filename):
         mimetype='image/png',
         headers={'Content-Disposition': f'attachment; filename={filename}'}
     )
+
+
+class ObjectStorage: # Assumed class structure for ObjectStorage
+    def __init__(self, namespace="my-app-storage"):  # Added namespace for clarity.  Adjust as needed.
+        self.namespace = namespace
+        self.db = {} # in-memory DB for demonstration. Replace with your actual DB interaction
+
+    def upload_file(self, file_data, filename):
+        """Upload a file to object storage"""
+        try:
+            # Convert binary data to base64 before storing
+            key = f"{self.namespace}:{filename}"
+            binary_data = file_data.read()
+            base64_data = base64.b64encode(binary_data).decode('utf-8')
+            self.db[key] = base64_data #Store in in-memory DB. Replace with your actual DB
+            return True
+        except Exception as e:
+            logger.error(f"Error uploading file to object storage: {e}")
+            return False
+
+    def get_file(self, filename):
+        key = f"{self.namespace}:{filename}"
+        if key in self.db:
+            base64_data = self.db[key]
+            return base64.b64decode(base64_data) #Decode from base64
+        return None

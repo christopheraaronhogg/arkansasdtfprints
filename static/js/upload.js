@@ -1,16 +1,41 @@
 // Function to manage loading state
 const LoadingManager = {
-    show() {
+    show(message = 'Uploading files...', progress = 0) {
         const spinner = document.createElement('div');
         spinner.id = 'uploadSpinner';
         spinner.innerHTML = `
             <div class="loading-overlay">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
+                <div class="upload-progress">
+                    <div class="progress" style="width: 300px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                             role="progressbar" 
+                             style="width: ${progress}%" 
+                             aria-valuenow="${progress}" 
+                             aria-valuemin="0" 
+                             aria-valuemax="100">
+                            ${progress}%
+                        </div>
+                    </div>
+                    <p class="mt-2">${message}</p>
                 </div>
-                <p class="mt-2">Processing your order...</p>
             </div>`;
         document.body.appendChild(spinner);
+    },
+
+    updateProgress(progress, message) {
+        const overlay = document.getElementById('uploadSpinner');
+        if (overlay) {
+            const progressBar = overlay.querySelector('.progress-bar');
+            const messageText = overlay.querySelector('p');
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+                progressBar.setAttribute('aria-valuenow', progress);
+                progressBar.textContent = `${progress}%`;
+            }
+            if (messageText) {
+                messageText.textContent = message;
+            }
+        }
     },
 
     hide() {
@@ -295,7 +320,7 @@ const PrintUI = {
     },
 
     async handleSubmit() {
-        LoadingManager.show();
+        LoadingManager.show('Preparing files for upload...', 0);
         const formData = new FormData(this.form);
         const orderDetails = [];
 
@@ -318,17 +343,21 @@ const PrintUI = {
         formData.append('totalCost', PrintCalculator.getTotalCost());
 
         try {
+            LoadingManager.updateProgress(30, 'Uploading files to server...');
             const origin = window.location.origin;
             const response = await fetch(`${origin}/upload`, {
                 method: 'POST',
                 body: formData
             });
 
+            LoadingManager.updateProgress(60, 'Processing your order...');
             const data = await response.json();
 
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to submit order');
             }
+
+            LoadingManager.updateProgress(100, 'Order submitted successfully!');
 
             // Show success message and handle redirect
             this.showAlert(data.message || 'Order successfully submitted! Check your email for confirmation.', 'success');

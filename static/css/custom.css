@@ -139,6 +139,17 @@ h1 {
     padding: 20px;
     background: white;
     border-radius: var(--radius-md);
+    width: auto;
+    height: auto;
+    min-width: 300px;
+    min-height: 300px;
+    background-image: 
+        linear-gradient(45deg, #ddd 25%, transparent 25%),
+        linear-gradient(-45deg, #ddd 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ddd 75%),
+        linear-gradient(-45deg, transparent 75%, #ddd 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }
 
 .modal-image {
@@ -154,6 +165,7 @@ h1 {
     color: var(--text-primary);
     font-size: 2rem;
     cursor: pointer;
+    z-index: 1010;
 }
 
 /* Order Submit Section */
@@ -388,84 +400,6 @@ h1 {
     }
 }
 
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    position: relative;
-    max-width: 90%;
-    max-height: 90vh;
-    padding: 20px;
-    background: white;
-    border-radius: var(--radius-md);
-    width: auto;
-    height: auto;
-    min-width: 300px;
-    min-height: 300px;
-    background-image: 
-        linear-gradient(45deg, #ddd 25%, transparent 25%),
-        linear-gradient(-45deg, #ddd 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #ddd 75%),
-        linear-gradient(-45deg, transparent 75%, #ddd 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-}
-
-.modal-image {
-    max-width: 100%;
-    max-height: 80vh;
-    object-fit: contain;
-}
-
-.close-modal {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    color: var(--text-primary);
-    font-size: 2rem;
-    cursor: pointer;
-    z-index: 1010;
-}
-
-.images-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-    margin: 2rem 0;
-}
-
-
-.cost-display {
-    border-top: 1px solid var(--border-color);
-    padding: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--surface-color);
-}
-
-.cost-value {
-    font-weight: 600;
-    color: var(--primary-color);
-    font-size: 1.1rem;
-}
-
-@media (max-width: 768px) {
-    .images-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
 /* Success Page Styles */
 .success-container {
     min-height: calc(100vh - 200px);
@@ -561,12 +495,30 @@ h1 {
     color: white;
 }
 
-.loading-overlay .spinner-border {
-    width: 3rem;
-    height: 3rem;
+.upload-progress {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.progress {
+    height: 20px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: var(--primary-color);
+    color: white;
+    font-size: 0.85rem;
+    line-height: 20px;
+    font-weight: 600;
 }
 
 .loading-overlay p {
     margin-top: 1rem;
     font-size: 1.1rem;
+    color: white;
 }
