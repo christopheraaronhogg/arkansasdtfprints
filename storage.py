@@ -1,4 +1,5 @@
 import os
+import base64
 from replit import db
 
 class ObjectStorage:
@@ -11,9 +12,11 @@ class ObjectStorage:
     def upload_file(self, file_data, filename):
         """Upload a file to object storage"""
         try:
-            # Store the file data in the database under our namespace
+            # Convert binary data to base64 before storing
             key = f"{self.namespace}:{filename}"
-            db[key] = file_data.read()
+            binary_data = file_data.read()
+            base64_data = base64.b64encode(binary_data).decode('utf-8')
+            db[key] = base64_data
             return True
         except Exception as e:
             print(f"Error uploading file to object storage: {e}")
@@ -23,7 +26,8 @@ class ObjectStorage:
         """Get a file from object storage"""
         try:
             key = f"{self.namespace}:{filename}"
-            return db[key]
+            base64_data = db[key]
+            return base64.b64decode(base64_data.encode('utf-8'))
         except Exception as e:
             print(f"Error retrieving file from object storage: {e}")
             return None

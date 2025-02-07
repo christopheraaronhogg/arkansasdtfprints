@@ -1,3 +1,26 @@
+// Function to manage loading state
+const LoadingManager = {
+    show() {
+        const spinner = document.createElement('div');
+        spinner.id = 'uploadSpinner';
+        spinner.innerHTML = `
+            <div class="loading-overlay">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Processing your order...</p>
+            </div>`;
+        document.body.appendChild(spinner);
+    },
+
+    hide() {
+        const spinner = document.getElementById('uploadSpinner');
+        if (spinner) {
+            spinner.remove();
+        }
+    }
+};
+
 // STATE & CORE LOGIC
 const PrintCalculator = (() => {
     const state = {
@@ -272,6 +295,7 @@ const PrintUI = {
     },
 
     async handleSubmit() {
+        LoadingManager.show();
         const formData = new FormData(this.form);
         const orderDetails = [];
 
@@ -324,6 +348,8 @@ const PrintUI = {
         } catch (error) {
             console.error('Submission error:', error);
             this.showAlert(error.message || 'Failed to submit order. Please try again.', 'error');
+        } finally {
+            LoadingManager.hide();
         }
     },
 
