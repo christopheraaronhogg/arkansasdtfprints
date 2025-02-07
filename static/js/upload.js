@@ -355,10 +355,12 @@ const PrintUI = {
                 });
 
                 LoadingManager.updateProgress(60, 'Processing your order...');
+
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Failed to submit order');
+                    const errorMessage = data.details || data.error || 'Failed to submit order';
+                    throw new Error(errorMessage);
                 }
 
                 LoadingManager.updateProgress(100, 'Order submitted successfully!');

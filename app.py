@@ -22,6 +22,7 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 mail = Mail()
 
+# Initialize storage with proper error handling
 try:
     storage = ObjectStorage()
     logger.info("Successfully initialized ObjectStorage")
@@ -88,103 +89,113 @@ def success():
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
-    if 'file' not in request.files:
-        logger.error("No file provided in request")
-        return jsonify({'error': 'No file provided'}), 400
-
-    files = request.files.getlist('file')
-    email = request.form.get('email')
-
     try:
-        order_details = json.loads(request.form.get('orderDetails', '[]'))
-        total_cost = float(request.form.get('totalCost', 0))
-    except (json.JSONDecodeError, ValueError) as e:
-        logger.error(f"Invalid order details format: {str(e)}")
-        return jsonify({'error': 'Invalid order details format'}), 400
+        if 'file' not in request.files:
+            logger.error("No file provided in request")
+            return jsonify({'error': 'No file provided', 'details': 'Please select at least one file to upload'}), 400
 
-    if not email:
-        return jsonify({'error': 'Email is required'}), 400
+        files = request.files.getlist('file')
+        email = request.form.get('email')
 
-    if not files:
-        return jsonify({'error': 'No files selected'}), 400
-
-    max_retries = 3
-    retry_count = 0
-
-    while retry_count < max_retries:
         try:
-            # Create order
-            order = Order(
-                order_number=generate_order_number(),
-                email=email,
-                total_cost=total_cost,
-                status='pending'
-            )
-            db.session.add(order)
-            logger.info(f"Created new order: {order.order_number}")
+            order_details = json.loads(request.form.get('orderDetails', '[]'))
+            total_cost = float(request.form.get('totalCost', 0))
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Invalid order details format: {str(e)}")
+            return jsonify({'error': 'Invalid order details', 'details': 'Order details are not properly formatted'}), 400
 
-            # Process each file
-            for file, details in zip(files, order_details):
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
+        if not email:
+            return jsonify({'error': 'Missing email', 'details': 'Email address is required'}), 400
 
-                    # Store file in memory for validation
-                    file_data = BytesIO(file.read())
-                    file_data.seek(0)  # Reset pointer for validation
+        if not files:
+            return jsonify({'error': 'No files', 'details': 'No files were selected'}), 400
 
-                    # Validate image
-                    is_valid, error_message = validate_image(file_data)
-                    if not is_valid:
-                        logger.error(f"Image validation failed for {filename}: {error_message}")
-                        return jsonify({'error': error_message}), 400
+        max_retries = 3
+        retry_count = 0
 
-                    # Reset pointer for storage
-                    file_data.seek(0)
-
-                    # Upload to object storage with explicit error handling
-                    logger.info(f"Uploading file {filename} to object storage")
-                    if not storage.upload_file(file_data, filename):
-                        raise Exception(f"Failed to upload file {filename} to object storage")
-
-                    # Create order item
-                    item = OrderItem(
-                        order=order,
-                        file_key=filename,
-                        width_inches=float(details['width']),
-                        height_inches=float(details['height']),
-                        quantity=int(details['quantity']),
-                        cost=float(details['cost'])
-                    )
-                    db.session.add(item)
-                    logger.info(f"Added order item for file {filename}")
-
+        while retry_count < max_retries:
             try:
+                # Create order
+                order = Order(
+                    order_number=generate_order_number(),
+                    email=email,
+                    total_cost=total_cost,
+                    status='pending'
+                )
+                db.session.add(order)
+                logger.info(f"Created new order: {order.order_number}")
+
+                # Process each file
+                for file, details in zip(files, order_details):
+                    if file and allowed_file(file.filename):
+                        filename = secure_filename(file.filename)
+
+                        # Store file in memory for validation
+                        file_data = BytesIO(file.read())
+                        file_data.seek(0)  # Reset pointer for validation
+
+                        # Validate image
+                        is_valid, error_message = validate_image(file_data)
+                        if not is_valid:
+                            logger.error(f"Image validation failed for {filename}: {error_message}")
+                            return jsonify({
+                                'error': 'Invalid image',
+                                'details': error_message
+                            }), 400
+
+                        # Reset pointer for storage
+                        file_data.seek(0)
+
+                        # Upload to object storage with explicit error handling
+                        logger.info(f"Uploading file {filename} to object storage")
+                        if not storage.upload_file(file_data, filename):
+                            raise Exception(f"Failed to upload file {filename} to object storage")
+
+                        # Create order item
+                        item = OrderItem(
+                            order=order,
+                            file_key=filename,
+                            width_inches=float(details['width']),
+                            height_inches=float(details['height']),
+                            quantity=int(details['quantity']),
+                            cost=float(details['cost'])
+                        )
+                        db.session.add(item)
+                        logger.info(f"Added order item for file {filename}")
+
                 db.session.commit()
                 logger.info(f"Order {order.order_number} committed to database successfully")
-                break  # Exit retry loop on success
-            except Exception as db_error:
+
+                # Send emails
+                if not send_order_emails(order):
+                    logger.warning(f"Failed to send emails for order {order.order_number}")
+                    # Continue anyway as this is not critical
+
+                return jsonify({
+                    'success': True,
+                    'message': 'Order submitted successfully',
+                    'order': order.to_dict(),
+                    'redirect': url_for('success')
+                }), 200
+
+            except Exception as e:
                 db.session.rollback()
                 retry_count += 1
-                if retry_count == max_retries:
-                    logger.error(f"Database error after {max_retries} retries: {str(db_error)}")
-                    return jsonify({'error': 'Database error occurred. Please try again.'}), 500
-                logger.warning(f"Database error (attempt {retry_count}): {str(db_error)}")
-                continue
+                error_msg = str(e)
+                logger.error(f"Error (attempt {retry_count}): {error_msg}")
 
-            # Send emails
-            if not send_order_emails(order):
-                logger.warning(f"Failed to send emails for order {order.order_number}")
+                if retry_count >= max_retries:
+                    return jsonify({
+                        'error': 'Operation failed',
+                        'details': 'Failed to process your order after multiple attempts. Please try again.'
+                    }), 500
 
-            return jsonify({
-                'message': 'Order submitted successfully',
-                'order': order.to_dict(),
-                'redirect': url_for('success')
-            }), 200
-
-        except Exception as e:
-            db.session.rollback()
-            logger.error(f"Error processing upload: {str(e)}")
-            return jsonify({'error': str(e)}), 500
+    except Exception as e:
+        logger.error(f"Unexpected error: {str(e)}")
+        return jsonify({
+            'error': 'Server error',
+            'details': 'An unexpected error occurred. Please try again.'
+        }), 500
 
 @app.route('/admin')
 def admin():
