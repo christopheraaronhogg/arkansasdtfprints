@@ -342,44 +342,67 @@ const PrintUI = {
         formData.append('orderDetails', JSON.stringify(orderDetails));
         formData.append('totalCost', PrintCalculator.getTotalCost());
 
-        try {
-            LoadingManager.updateProgress(30, 'Uploading files to server...');
-            const origin = window.location.origin;
-            const response = await fetch(`${origin}/upload`, {
-                method: 'POST',
-                body: formData
-            });
+        let retryCount = 0;
+        const maxRetries = 3;
 
-            LoadingManager.updateProgress(60, 'Processing your order...');
-            const data = await response.json();
+        while (retryCount < maxRetries) {
+            try {
+                LoadingManager.updateProgress(30, `Uploading files to server... (Attempt ${retryCount + 1})`);
+                const origin = window.location.origin;
+                const response = await fetch(`${origin}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
 
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to submit order');
+                LoadingManager.updateProgress(60, 'Processing your order...');
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to submit order');
+                }
+
+                LoadingManager.updateProgress(100, 'Order submitted successfully!');
+
+                // Show success message and handle redirect
+                this.showAlert(data.message || 'Order successfully submitted! Check your email for confirmation.', 'success');
+
+                // If there's a redirect URL, navigate to it after a short delay
+                if (data.redirect) {
+                    setTimeout(() => {
+                        window.location.href = data.redirect;
+                    }, 1000);
+                } else {
+                    // If no redirect, just reset the form
+                    this.form.reset();
+                    document.getElementById('images-container').innerHTML = '';
+                    this.totalDisplay.textContent = 'Total: $0.00';
+                }
+                break; // Exit retry loop on success
+
+            } catch (error) {
+                retryCount++;
+                console.error('Submission error:', error);
+
+                if (retryCount === maxRetries) {
+                    this.showAlert(
+                        error.message || 'Failed to submit order after multiple attempts. Please try again later.',
+                        'error'
+                    );
+                    break;
+                }
+
+                // Show retry message
+                LoadingManager.updateProgress(
+                    30,
+                    `Upload failed. Retrying... (Attempt ${retryCount + 1}/${maxRetries})`
+                );
+
+                // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, 2000));
             }
-
-            LoadingManager.updateProgress(100, 'Order submitted successfully!');
-
-            // Show success message and handle redirect
-            this.showAlert(data.message || 'Order successfully submitted! Check your email for confirmation.', 'success');
-
-            // If there's a redirect URL, navigate to it after a short delay
-            if (data.redirect) {
-                setTimeout(() => {
-                    window.location.href = data.redirect;
-                }, 1000);
-            } else {
-                // If no redirect, just reset the form
-                this.form.reset();
-                document.getElementById('images-container').innerHTML = '';
-                this.totalDisplay.textContent = 'Total: $0.00';
-            }
-
-        } catch (error) {
-            console.error('Submission error:', error);
-            this.showAlert(error.message || 'Failed to submit order. Please try again.', 'error');
-        } finally {
-            LoadingManager.hide();
         }
+
+        LoadingManager.hide();
     },
 
     showAlert(message, type = 'error') {

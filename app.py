@@ -1,7 +1,7 @@
 import os
 import logging
 import json
-import base64 # Added import for base64 encoding
+import base64
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
@@ -11,6 +11,8 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail as SGMail
 from storage import ObjectStorage
 from io import BytesIO
+from sqlalchemy import create_engine
+from sqlalchemy.pool import QueuePool
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -24,6 +26,15 @@ storage = ObjectStorage()
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
+
+# Configure SQLAlchemy engine with proper pooling
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_pre_ping": True,  # Enable connection testing
+    "pool_recycle": 300,    # Recycle connections every 5 minutes
+    "pool_timeout": 30,     # Wait up to 30 seconds for a connection
+    "pool_size": 5,         # Maximum number of permanent connections
+    "max_overflow": 10      # Maximum number of additional connections
+}
 
 db.init_app(app)
 mail.init_app(app)
@@ -91,79 +102,88 @@ def upload_file():
     if not files:
         return jsonify({'error': 'No files selected'}), 400
 
-    try:
-        # Create order
-        order = Order(
-            order_number=generate_order_number(),
-            email=email,
-            total_cost=total_cost,
-            status='pending'
-        )
-        db.session.add(order)
-        logger.info(f"Created new order: {order.order_number}")
+    max_retries = 3
+    retry_count = 0
 
-        # Process each file
-        for file, details in zip(files, order_details):
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-
-                # Store file in memory for validation
-                file_data = BytesIO(file.read())
-                file_data.seek(0)  # Reset pointer for validation
-
-                # Validate image
-                is_valid, error_message = validate_image(file_data)
-                if not is_valid:
-                    logger.error(f"Image validation failed for {filename}: {error_message}")
-                    return jsonify({'error': error_message}), 400
-
-                # Reset pointer for storage
-                file_data.seek(0)
-
-                # Upload to object storage
-                logger.info(f"Uploading file {filename} to object storage")
-                if not storage.upload_file(file_data, filename):
-                    raise Exception(f"Failed to upload file {filename} to object storage")
-                logger.info(f"File uploaded successfully: {filename}")
-
-                # Create order item
-                item = OrderItem(
-                    order=order,
-                    file_key=filename,
-                    width_inches=float(details['width']),
-                    height_inches=float(details['height']),
-                    quantity=int(details['quantity']),
-                    cost=float(details['cost'])
-                )
-                db.session.add(item)
-                logger.info(f"Added order item for file {filename}")
-
+    while retry_count < max_retries:
         try:
-            db.session.commit()
-            logger.info(f"Order {order.order_number} committed to database successfully")
-        except Exception as db_error:
-            db.session.rollback()
-            logger.error(f"Database error: {str(db_error)}")
+            # Create order
+            order = Order(
+                order_number=generate_order_number(),
+                email=email,
+                total_cost=total_cost,
+                status='pending'
+            )
+            db.session.add(order)
+            logger.info(f"Created new order: {order.order_number}")
+
+            # Process each file
+            for file, details in zip(files, order_details):
+                if file and allowed_file(file.filename):
+                    filename = secure_filename(file.filename)
+
+                    # Store file in memory for validation
+                    file_data = BytesIO(file.read())
+                    file_data.seek(0)  # Reset pointer for validation
+
+                    # Validate image
+                    is_valid, error_message = validate_image(file_data)
+                    if not is_valid:
+                        logger.error(f"Image validation failed for {filename}: {error_message}")
+                        return jsonify({'error': error_message}), 400
+
+                    # Reset pointer for storage
+                    file_data.seek(0)
+
+                    # Upload to object storage
+                    logger.info(f"Uploading file {filename} to object storage")
+                    if not storage.upload_file(file_data, filename):
+                        raise Exception(f"Failed to upload file {filename} to object storage")
+                    logger.info(f"File uploaded successfully: {filename}")
+
+                    # Create order item
+                    item = OrderItem(
+                        order=order,
+                        file_key=filename,
+                        width_inches=float(details['width']),
+                        height_inches=float(details['height']),
+                        quantity=int(details['quantity']),
+                        cost=float(details['cost'])
+                    )
+                    db.session.add(item)
+                    logger.info(f"Added order item for file {filename}")
+
+            try:
+                db.session.commit()
+                logger.info(f"Order {order.order_number} committed to database successfully")
+                break  # Exit retry loop on success
+            except Exception as db_error:
+                db.session.rollback()
+                retry_count += 1
+                if retry_count == max_retries:
+                    logger.error(f"Database error after {max_retries} retries: {str(db_error)}")
+                    return jsonify({
+                        'error': 'Database error occurred. Please try again.'
+                    }), 500
+                logger.warning(f"Database error (attempt {retry_count}): {str(db_error)}")
+                continue
+
+            # Send emails
+            if not send_order_emails(order):
+                logger.warning(f"Failed to send emails for order {order.order_number}")
+
             return jsonify({
-                'error': 'Database error occurred. Please try again.'
+                'message': 'Order submitted successfully',
+                'order': order.to_dict(),
+                'redirect': url_for('success')
+            }), 200
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error processing upload: {str(e)}")
+            return jsonify({
+                'error': str(e) or 'Error processing your order. Please try again.'
             }), 500
-
-        # Send emails
-        if not send_order_emails(order):
-            logger.warning(f"Failed to send emails for order {order.order_number}")
-
-        return jsonify({
-            'message': 'Order submitted successfully',
-            'order': order.to_dict(),
-            'redirect': url_for('success')
-        }), 200
-
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error processing upload: {str(e)}")
-        return jsonify({
-            'error': 'Error processing your order. Please try again.'
-        }), 500
 
 @app.route('/admin')
 def admin():
