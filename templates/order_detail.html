@@ -53,7 +53,7 @@
     <h4 class="mb-3">Order Items</h4>
     <div class="images-grid">
         {% for item in order.items %}
-        <div class="size-inputs">
+        <div class="size-inputs" data-image-id="{{ loop.index }}">
             <div class="preview-content">
                 <div class="preview-section">
                     <img src="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
@@ -66,7 +66,7 @@
                         <label>Width</label>
                         <input type="number" 
                                value="{{ item.width_inches }}"
-                               class="width-input" 
+                               class="form-control width-input" 
                                readonly>
                         <span class="unit">in</span>
                     </div>
@@ -74,7 +74,7 @@
                         <label>Height</label>
                         <input type="number" 
                                value="{{ item.height_inches }}"
-                               class="height-input" 
+                               class="form-control height-input" 
                                readonly>
                         <span class="unit">in</span>
                     </div>
@@ -82,17 +82,17 @@
                         <label>Quantity</label>
                         <input type="number" 
                                value="{{ item.quantity }}"
-                               class="quantity-input"
+                               class="form-control quantity-input"
                                readonly>
                     </div>
                 </div>
             </div>
             <div class="cost-display">
-                <span>Cost:</span>
+                <span>Cost: </span>
                 <span class="cost-value">${{ "%.2f"|format(item.cost) }}</span>
             </div>
             <div class="p-3 border-top">
-                <div class="d-grid gap-2">
+                <div class="d-grid">
                     <a href="{{ url_for('download_order_image', order_id=order.id, filename=item.file_key) }}"
                        class="btn btn-primary">
                         <i class="fas fa-download me-2"></i>Download File
