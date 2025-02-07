@@ -106,16 +106,30 @@ def upload_file():
                 )
                 db.session.add(item)
 
-        db.session.commit()
+        try:
+            db.session.commit()
+        except Exception as db_error:
+            db.session.rollback()
+            logging.error(f"Database error: {str(db_error)}")
+            return jsonify({
+                'error': 'Database error occurred. Please try again.'
+            }), 500
 
         # Send emails
-        send_order_emails(order)
+        if not send_order_emails(order):
+            # Log email failure but don't return error to user since order was saved
+            logging.warning(f"Failed to send emails for order {order.order_number}")
 
-        return jsonify(order.to_dict()), 200
+        return jsonify({
+            'message': 'Order submitted successfully',
+            'order': order.to_dict()
+        }), 200
 
     except Exception as e:
         logging.error(f"Error processing upload: {str(e)}")
-        return jsonify({'error': 'Error processing upload'}), 500
+        return jsonify({
+            'error': 'Error processing your order. Please try again.'
+        }), 500
 
 @app.route('/admin')
 def admin():

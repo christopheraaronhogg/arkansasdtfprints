@@ -280,7 +280,7 @@ const PrintUI = {
             const id = container.dataset.imageId;
             const imageState = PrintCalculator.getImageState(id);
             if (imageState) {
-                formData.append('files[]', imageState.file);
+                formData.append('file', imageState.file);
                 orderDetails.push({
                     width: imageState.current.width,
                     height: imageState.current.height,
@@ -294,27 +294,20 @@ const PrintUI = {
         formData.append('totalCost', PrintCalculator.getTotalCost());
 
         try {
-            // Get the current URL's origin to build the absolute URL
             const origin = window.location.origin;
             const response = await fetch(`${origin}/upload`, {
                 method: 'POST',
                 body: formData
             });
 
-            if (!response.ok) {
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('application/json')) {
-                    const data = await response.json();
-                    throw new Error(data.error || 'Failed to submit order');
-                } else {
-                    throw new Error(`Server error: ${response.status}`);
-                }
-            }
-
             const data = await response.json();
 
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to submit order');
+            }
+
             // Show success message and reset form
-            this.showAlert('Order successfully submitted! Check your email for confirmation.', 'success');
+            this.showAlert(data.message || 'Order successfully submitted! Check your email for confirmation.', 'success');
             this.form.reset();
             document.getElementById('images-container').innerHTML = '';
             this.totalDisplay.textContent = 'Total: $0.00';
@@ -330,8 +323,14 @@ const PrintUI = {
         alertDiv.className = `alert alert-${type}`;
         alertDiv.textContent = message;
 
+        // Remove any existing alerts
+        const existingAlerts = document.querySelectorAll('.alert');
+        existingAlerts.forEach(alert => alert.remove());
+
+        // Insert the new alert at the top of the form
         this.form.insertAdjacentElement('beforebegin', alertDiv);
 
+        // Remove the alert after 5 seconds
         setTimeout(() => alertDiv.remove(), 5000);
     }
 };
