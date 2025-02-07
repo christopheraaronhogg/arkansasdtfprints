@@ -5,7 +5,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = '/tmp/uploads'
-    MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
+    MAX_CONTENT_LENGTH = 32 * 1024 * 1024  # 32MB max file size
     ALLOWED_EXTENSIONS = {'png'}
 
     # Email configuration

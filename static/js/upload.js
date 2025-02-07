@@ -37,7 +37,7 @@ const PrintCalculator = (() => {
                 get cost() {
                     return calculateCost(
                         this.current.width,
-                        this.current.height, 
+                        this.current.height,
                         this.quantity
                     );
                 }
@@ -267,7 +267,7 @@ const PrintUI = {
     },
 
     updateTotalDisplay() {
-        this.totalDisplay.textContent = 
+        this.totalDisplay.textContent =
             `Total: $${PrintCalculator.getTotalCost().toFixed(2)}`;
     },
 
@@ -294,16 +294,24 @@ const PrintUI = {
         formData.append('totalCost', PrintCalculator.getTotalCost());
 
         try {
-            const response = await fetch('/upload', {
+            // Get the current URL's origin to build the absolute URL
+            const origin = window.location.origin;
+            const response = await fetch(`${origin}/upload`, {
                 method: 'POST',
                 body: formData
             });
 
-            const data = await response.json();
-
-            if (data.error) {
-                throw new Error(data.error);
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to submit order');
+                } else {
+                    throw new Error(`Server error: ${response.status}`);
+                }
             }
+
+            const data = await response.json();
 
             // Show success message and reset form
             this.showAlert('Order successfully submitted! Check your email for confirmation.', 'success');
@@ -312,7 +320,8 @@ const PrintUI = {
             this.totalDisplay.textContent = 'Total: $0.00';
 
         } catch (error) {
-            this.showAlert(error.message, 'error');
+            console.error('Submission error:', error);
+            this.showAlert(error.message || 'Failed to submit order. Please try again.', 'error');
         }
     },
 
