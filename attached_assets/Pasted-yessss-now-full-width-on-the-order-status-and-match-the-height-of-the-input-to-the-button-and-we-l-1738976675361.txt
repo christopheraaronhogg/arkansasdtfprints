@@ -1,0 +1,115 @@
+yessss! now full width on the order status, and match the height of the input to the button and we'll SEND IT
+Request for o1 pro mode
+Finished reasoning
+Below is a final tweak that makes the Order Status container span the full width, and ensures the dropdown (select) is the same height as the Update button. We’ll rely on consistent padding (rather than fixed heights) so it remains flexible while matching heights in a row.
+
+1) HTML
+Simply give your status card a full width (w-100) and ensure the form is using d-flex align-items-center so everything lines up. For example:
+
+html
+Copy
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+  <!-- Page Header -->
+  <header class="d-flex align-items-center justify-content-between mb-4">
+    ...
+  </header>
+
+  <!-- Order Information -->
+  <h5 class="section-subtitle mb-3">
+    <i class="fas fa-info-circle me-2"></i>Order Information
+  </h5>
+  <div class="info-cards-grid">
+    <!-- 4 Info Cards -->
+    ...
+  </div>
+
+  <!-- Order Status (now full width) -->
+  <h5 class="section-subtitle mt-4 mb-2">
+    <i class="fas fa-tasks me-2"></i>Order Status
+  </h5>
+  <div class="status-card w-100">
+    <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}"
+          class="d-flex align-items-center gap-2 m-0">
+      <select name="status" class="form-select status-select">
+        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
+        <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
+      </select>
+      <button type="submit" class="submit-btn">
+        <i class="fas fa-check me-1"></i>Update Status
+      </button>
+    </form>
+  </div>
+
+  <!-- Order Items -->
+  <h4 class="section-heading mt-5 mb-3">Order Items</h4>
+  <div class="images-grid">
+    ...
+  </div>
+</div>
+
+<!-- Modal, scripts, etc. -->
+{% endblock %}
+The key points here:
+
+.status-card w-100 → The status container is now full width.
+.d-flex align-items-center gap-2 on the form → Ensures the select and button line up and have minimal spacing.
+2) CSS Adjustments
+In your CSS, give the select and button matching vertical padding so they’re the same height. For example:
+
+css
+Copy
+/****************************************
+   Status Card Full-Width
+****************************************/
+.status-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+/****************************************
+   Matching Select & Button Heights
+****************************************/
+/* Adjust padding to match the .submit-btn. 
+   If your .submit-btn uses 0.5rem vertical padding, do the same here. */
+.status-select.form-select {
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;  
+  border-radius: var(--radius-sm);
+}
+
+/* Example .submit-btn (matches vertical padding) */
+.submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--primary-color);
+  color: #fff;
+  padding: 0.5rem 1rem;  
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease;
+  text-decoration: none;
+  cursor: pointer;
+}
+.submit-btn:hover {
+  background: var(--primary-dark);
+}
+How It Works
+.status-card w-100: The entire block is now full width in its container.
+.d-flex align-items-center on the form: Ensures the select and button align vertically and are in one row.
+Consistent Padding (0.5rem 1rem): This ensures the select and button are identical in height. If you prefer bigger or smaller, adjust that padding consistently in both.
+With this setup:
+
+The Order Status bar stretches across the same width as the “Order Information” heading and card grid.
+The select box is exactly as tall as the button, giving a clean, uniform look.
+Everything else stays as it was, so your info cards and item cards remain consistent. Enjoy!

@@ -62,9 +62,9 @@
     <h5 class="section-subtitle mt-4 mb-2">
         <i class="fas fa-tasks me-2"></i>Order Status
     </h5>
-    <div class="status-card">
+    <div class="status-card w-100">
         <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}"
-              class="d-flex flex-wrap align-items-center gap-2">
+              class="d-flex align-items-center gap-2 m-0">
             <select name="status" class="form-select status-select">
                 <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
@@ -206,19 +206,45 @@ body {
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     padding: 1rem;
-    max-width: 400px;
+    width: 100%; /* Added w-100 */
 }
 
 /* Status Select Styling */
-.status-select {
-    min-width: 180px;
-    padding: 0.45rem 1rem;
+.status-select.form-select {
+    padding: 0.5rem 1rem;  /* Match button padding */
     font-size: 0.9rem;
     border-radius: var(--radius-sm);
     border-color: var(--border-color);
+    min-width: 180px;
 }
 
-/* Item Grid */
+/* Buttons */
+.upload-btn,
+.submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--primary-color);
+    color: #fff;
+    padding: 0.5rem 1rem;  /* Match select padding */
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.upload-btn:hover,
+.submit-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Images Grid */
 .images-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -248,38 +274,11 @@ body {
     transform: scale(1.02);
 }
 
-/* Download Button */
+/* Cost Display */
 .cost-display {
     border-top: 1px solid var(--border-color);
     padding: 1rem;
     background: var(--surface-color);
-}
-
-/* Buttons */
-.upload-btn,
-.submit-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: var(--primary-color);
-    color: #fff;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    justify-content: center;
-}
-
-.upload-btn:hover,
-.submit-btn:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-    color: #fff;
-    text-decoration: none;
 }
 
 /* Modal */
