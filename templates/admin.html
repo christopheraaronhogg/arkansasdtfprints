@@ -82,10 +82,20 @@
 
             <!-- Status and Actions -->
             <div class="order-actions">
-                <span class="badge bg-{% if order.status == 'completed' %}success
-                {% elif order.status == 'pending' %}warning
-                {% elif order.status == 'processing' %}secondary
-                {% else %}info{% endif %}">
+                <!-- Status Badge Dropdown Template -->
+                <template id="statusDropdownTemplate">
+                    <div class="status-dropdown">
+                        <div class="dropdown-option" data-status="pending">Pending</div>
+                        <div class="dropdown-option" data-status="processing">Processing</div>
+                        <div class="dropdown-option" data-status="completed">Completed</div>
+                    </div>
+                </template>
+
+                <!-- Order Status Badge -->
+                <span class="status-badge" 
+                      onclick="toggleStatusDropdown(this)" 
+                      data-order-id="{{ order.id }}"
+                      data-status="{{ order.status }}">
                     {{ order.status|title }}
                 </span>
                 <div class="order-cost">${{ "%.2f"|format(order.total_cost) }}</div>
@@ -269,6 +279,72 @@
     font-size: 2rem;
     cursor: pointer;
     z-index: 1001;
+}
+
+/* Status badge styles */
+.status-badge {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+/* Status-specific colors */
+.status-badge[data-status="pending"] {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.status-badge[data-status="processing"] {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.status-badge[data-status="completed"] {
+    background-color: #22c55e;
+    color: white;
+}
+
+.status-badge:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Dropdown styling */
+.status-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    z-index: 100;
+    min-width: 150px;
+    display: none;
+}
+
+.status-dropdown.active {
+    display: block;
+}
+
+.dropdown-option {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdown-option:hover {
+    background-color: var(--background-color);
+}
+
+.dropdown-option:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
 }
 
 ::root {
@@ -584,7 +660,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .upload-btn:hover {
     opacity: 0.9;
 }
-
 </style>
 
 <script>
@@ -709,5 +784,64 @@ document.addEventListener('click', function(event) {
         previewModal.style.display = 'none';
     }
 });
+
+let activeDropdown = null;
+
+function toggleStatusDropdown(badge) {
+    // Close any open dropdown
+    if (activeDropdown) {
+        activeDropdown.remove();
+        activeDropdown = null;
+    }
+
+    // Create new dropdown
+    const template = document.getElementById('statusDropdownTemplate');
+    const dropdown = template.content.cloneNode(true).querySelector('.status-dropdown');
+
+    // Position dropdown
+    badge.appendChild(dropdown);
+    dropdown.classList.add('active');
+    activeDropdown = dropdown;
+
+    // Add click handlers to options
+    dropdown.querySelectorAll('.dropdown-option').forEach(option => {
+        option.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const newStatus = option.dataset.status;
+            const orderId = badge.dataset.orderId;
+
+            try {
+                const response = await fetch(`/admin/order/${orderId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `status=${newStatus}`
+                });
+
+                if (response.ok) {
+                    // Update badge status and color
+                    badge.dataset.status = newStatus;
+                    badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+                    dropdown.remove();
+                    activeDropdown = null;
+                } else {
+                    console.error('Failed to update status');
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        });
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function closeDropdown(e) {
+        if (!badge.contains(e.target) && activeDropdown) {
+            activeDropdown.remove();
+            activeDropdown = null;
+            document.removeEventListener('click', closeDropdown);
+        }
+    });
+}
 </script>
 {% endblock %}
