@@ -58,14 +58,6 @@ with app.app_context():
 def send_order_emails(order):
     """Send order confirmation emails to customer and production team"""
     try:
-        if not app.config['SENDGRID_API_KEY']:
-            logger.error("SendGrid API key is not configured")
-            return False
-
-        if not app.config['MAIL_DEFAULT_SENDER']:
-            logger.error("SendGrid sender email is not configured")
-            return False
-
         # Customer email
         customer_email = SGMail(
             from_email=app.config['MAIL_DEFAULT_SENDER'],
@@ -84,29 +76,24 @@ def send_order_emails(order):
 
         try:
             sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
-
             # Send customer email
             response = sg.send(customer_email)
             if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send customer email for order {order.order_number}. "
-                           f"Status code: {response.status_code}")
+                logger.error(f"Failed to send customer email for order {order.order_number}. Status code: {response.status_code}")
                 return False
             logger.info(f"Customer email sent successfully for order {order.order_number}")
 
             # Send production team email
             response = sg.send(production_email)
             if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send production team email for order {order.order_number}. "
-                           f"Status code: {response.status_code}")
+                logger.error(f"Failed to send production team email for order {order.order_number}. Status code: {response.status_code}")
                 return False
             logger.info(f"Production team email sent successfully for order {order.order_number}")
 
             return True
-
         except Exception as e:
             logger.error(f"SendGrid API error for order {order.order_number}: {str(e)}")
             return False
-
     except Exception as e:
         logger.error(f"Error preparing emails for order {order.order_number}: {str(e)}")
         return False
