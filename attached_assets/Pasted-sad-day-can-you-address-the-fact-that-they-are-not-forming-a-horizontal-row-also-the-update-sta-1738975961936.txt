@@ -1,0 +1,263 @@
+sad day :(
+
+can you address the fact that they are not forming a horizontal row? also the update status part is ugly? also the customer email needs to wrap if it has too. currently hanging out of the card.
+Request for o1 pro mode
+Finished reasoning
+Below is a clean, minimal example that forces four “info cards” to line up horizontally on large screens (wrapping on smaller) and places the status updater in a simple card below them. It also prevents long emails from overflowing. If you’re still seeing them stack vertically, it likely means there is old/conflicting CSS you need to remove or override. Make sure to replace any leftover .order-info or .order-information rules that force vertical stacking.
+
+1) Updated HTML
+html
+Copy
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+
+  <!-- Page Header -->
+  <header class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h1 class="page-title"><i class="fas fa-file-invoice me-2"></i>Order Details</h1>
+      <p class="subtitle mb-0">View and manage order information</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="{{ url_for('admin') }}" class="upload-btn">
+        <i class="fas fa-arrow-left me-1"></i>Back to Orders
+      </a>
+      <a href="{{ url_for('download_all_images', order_id=order.id) }}" class="upload-btn">
+        <i class="fas fa-download me-1"></i>Download All Files
+      </a>
+    </div>
+  </header>
+
+  <!-- Order Information heading -->
+  <h5 class="section-subtitle mb-3">
+    <i class="fas fa-info-circle me-2"></i>Order Information
+  </h5>
+
+  <!-- 4 info cards in a horizontal row (wrap on smaller screens) -->
+  <div class="d-flex flex-wrap gap-3 info-cards-row">
+    <!-- Card: Order Number -->
+    <div class="info-card">
+      <div class="card-icon"><i class="fas fa-hashtag"></i></div>
+      <div class="info-label">Order Number</div>
+      <div class="info-value">{{ order.order_number }}</div>
+    </div>
+
+    <!-- Card: Customer Email -->
+    <div class="info-card">
+      <div class="card-icon"><i class="fas fa-envelope"></i></div>
+      <div class="info-label">Customer Email</div>
+      <div class="info-value">{{ order.email }}</div>
+    </div>
+
+    <!-- Card: Order Date -->
+    <div class="info-card">
+      <div class="card-icon"><i class="fas fa-calendar-alt"></i></div>
+      <div class="info-label">Order Date</div>
+      <div class="info-value">
+        {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}
+      </div>
+    </div>
+
+    <!-- Card: Total Cost -->
+    <div class="info-card">
+      <div class="card-icon text-success"><i class="fas fa-dollar-sign"></i></div>
+      <div class="info-label">Total Cost</div>
+      <div class="info-value text-success">
+        ${{ "%.2f"|format(order.total_cost) }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Status below -->
+  <h5 class="section-subtitle mt-5 mb-3">
+    <i class="fas fa-tasks me-2"></i>Order Status
+  </h5>
+  <div class="status-card d-flex align-items-center p-3 gap-3">
+    <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}"
+          class="d-flex flex-wrap align-items-center gap-2 mb-0">
+      <select name="status" class="form-select">
+        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
+        <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
+      </select>
+      <button type="submit" class="submit-btn">
+        <i class="fas fa-check me-1"></i>Update Status
+      </button>
+    </form>
+  </div>
+
+  <!-- Order Items -->
+  <h4 class="section-heading mt-5 mb-4">Order Items</h4>
+  <div class="images-grid">
+    {% for item in order.items %}
+    <div class="size-inputs">
+      <div class="preview-content p-4">
+        <div class="preview-section mb-4">
+          <img src="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
+               class="preview-image"
+               alt="Preview of {{ item.file_key }}"
+               onclick="showFullSizePreview(this.src)">
+        </div>
+        <div class="controls-section">
+          <div class="mb-3">
+            <label class="info-label">Dimensions</label>
+            <div class="info-value">{{ item.format_dimensions() }}</div>
+          </div>
+          <div class="mb-3">
+            <label class="info-label">Quantity</label>
+            <div class="info-value">{{ item.quantity }}</div>
+          </div>
+          <div>
+            <label class="info-label">Cost</label>
+            <div class="info-value text-success">
+              ${{ "%.2f"|format(item.cost) }}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="cost-display">
+        <a href="{{ url_for('download_order_image', order_id=order.id, filename=item.file_key) }}"
+           class="submit-btn w-100">
+          <i class="fas fa-download me-1"></i>Download File
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Full Size Preview Modal -->
+<div id="previewModal" class="modal">
+  <span class="close-modal">&times;</span>
+  <img id="modalImage" class="modal-image" src="" alt="Full size preview">
+</div>
+
+<script>
+function showFullSizePreview(src) {
+  const modal = document.getElementById('previewModal');
+  const modalImg = document.getElementById('modalImage');
+  modal.style.display = 'flex';
+  modalImg.src = src;
+
+  modal.onclick = function(e) {
+    if (e.target === modal || e.target.className === 'close-modal') {
+      modal.style.display = 'none';
+    }
+  };
+}
+</script>
+{% endblock %}
+2) Essential CSS
+Below are key rules to ensure the four info cards line up horizontally, the email can wrap, and the status form looks better. Remove or override any old .order-info or .order-information rules that might force vertical stacking!
+
+css
+Copy
+/************************************
+  Info Cards Row
+************************************/
+/* Flex container for the 4 boxes. 
+   .d-flex, .flex-wrap, and .gap-3 come from Bootstrap utility classes. */
+.info-cards-row {
+  /* You can add justify-content: space-between; or center, etc. if needed. */
+}
+
+/* Each box is 200x200 on large screens. 
+   Adjust if you want them bigger or smaller. */
+.info-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 200px;
+  text-align: center;
+  padding: 1rem;
+  transition: transform 0.2s ease;
+}
+
+/* On hover, a slight lift */
+.info-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Icon at top */
+.card-icon {
+  font-size: 1.8rem;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+.card-icon.text-success {
+  color: var(--success-color);
+}
+
+/* Labels & values in each card.
+   Force wrapping on emails with overflow-wrap. */
+.info-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+}
+.info-value {
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: normal;            /* allow multiple lines */
+  overflow-wrap: break-word;      /* break long lines if needed */
+  word-wrap: break-word;          /* older fallback */
+}
+
+/************************************
+  Status Card
+************************************/
+.status-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  /* Just a single row below the info cards for the form. 
+     Already .d-flex, .align-items-center, .gap-3 via markup. */
+}
+
+/************************************
+  Responsive
+************************************/
+/* On smaller screens (<992px), let them wrap 2 per row. */
+@media (max-width: 992px) {
+  .info-card {
+    width: calc(50% - 1rem);
+    height: 220px; /* keep them somewhat square-ish */
+  }
+}
+
+/* On very small screens (<576px), stack them 1 per row. 
+   Let them expand in height as needed. */
+@media (max-width: 576px) {
+  .info-card {
+    width: 100%;
+    height: auto;
+  }
+}
+Important:
+
+If you still see them stacking vertically on large screens, ensure there’s no extra container or CSS from previous attempts that is overriding display: flex; or forcing width: 100% on each card.
+The lines:
+css
+Copy
+white-space: normal;
+overflow-wrap: break-word;
+word-wrap: break-word;
+ensure long emails don’t overflow their card.
+Wrapping Up
+With this setup:
+
+You get four square-like cards in a single row on desktops.
+They gracefully wrap to 2×2 or full-width on mobile.
+Email will wrap onto multiple lines.
+The Order Status is in a small “card” row beneath, so it’s no longer “ugly.”
+Make sure to remove old styling (like .order-info { display:block }) that forces vertical stacking.
+This should get you the horizontal, square info-card layout you want, plus a cleaner status updater section. Enjoy!

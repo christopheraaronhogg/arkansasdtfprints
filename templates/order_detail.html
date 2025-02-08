@@ -24,7 +24,7 @@
     </h5>
 
     <!-- Four Info Cards in a row (wrap on smaller screens) -->
-    <div class="d-flex flex-wrap gap-3 info-cards-row">
+    <div class="info-cards-row">
         <!-- 1: Order Number -->
         <div class="info-card">
             <div class="card-icon"><i class="fas fa-hashtag"></i></div>
@@ -36,7 +36,7 @@
         <div class="info-card">
             <div class="card-icon"><i class="fas fa-envelope"></i></div>
             <div class="info-label">Customer Email</div>
-            <div class="info-value">{{ order.email }}</div>
+            <div class="info-value text-break">{{ order.email }}</div>
         </div>
 
         <!-- 3: Order Date -->
@@ -58,14 +58,14 @@
         </div>
     </div>
 
-    <!-- Order Status row -->
+    <!-- Order Status section -->
     <h5 class="section-subtitle mt-5 mb-3">
         <i class="fas fa-tasks me-2"></i>Order Status
     </h5>
-    <div class="status-row d-flex flex-wrap align-items-center gap-3">
+    <div class="status-card">
         <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}"
-              class="d-flex flex-wrap gap-3">
-            <select name="status" class="form-select">
+              class="d-flex flex-wrap align-items-center gap-3 mb-0">
+            <select name="status" class="form-select status-select">
                 <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
                 <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
                 <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
@@ -145,9 +145,13 @@ body {
     background-color: var(--background-color);
 }
 
-/* Container for the 4 boxes: .info-cards-row is a flex container */
+/* Container for the 4 boxes */
 .info-cards-row {
-    justify-content: start;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+    margin-bottom: 1rem;
 }
 
 /* Each info card */
@@ -165,6 +169,7 @@ body {
     height: 200px;
     padding: 1rem;
     transition: transform 0.2s ease;
+    flex: 0 0 200px; /* Don't grow, don't shrink, stay at 200px */
 }
 
 /* Slight hover effect */
@@ -177,81 +182,67 @@ body {
 .card-icon {
     font-size: 1.8rem;
     color: var(--primary-color);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.card-icon.text-success {
+    color: var(--success-color);
 }
 
 /* Labels & Values in each box */
 .info-label {
     font-size: 0.8rem;
     color: var(--text-secondary);
+    margin-bottom: 0.25rem;
 }
 
 .info-value {
     font-size: 1rem;
     font-weight: 600;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    padding: 0 0.5rem;
 }
 
-/* If the icon is "text-success," it overrides color to green */
-.card-icon.text-success {
-    color: var(--success-color);
-}
-
-/* The status row can be a simple container */
-.status-row {
-    margin-bottom: 1rem;
-}
-
-/* Item cards */
-.size-inputs {
+/* Status Card styling */
+.status-card {
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
-    overflow: hidden;
-    transition: transform 0.2s ease;
+    padding: 1.5rem;
+    max-width: 500px;
+    margin: 0 auto;
 }
 
-.size-inputs:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
+.status-select {
+    min-width: 200px;
 }
 
-/* Preview Content & Image */
-.preview-section {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--background-color);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    min-height: 200px;
+/* Make sure on smaller screens they stack properly */
+@media (max-width: 992px) {
+    .info-cards-row {
+        justify-content: center;
+    }
+    .info-card {
+        flex: 0 0 calc(50% - 1rem);
+        margin: 0.5rem;
+    }
 }
 
-.preview-image {
-    max-width: 100%;
-    max-height: 250px;
-    object-fit: cover;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-
-.preview-image:hover {
-    transform: scale(1.02);
-}
-
-/* Controls Section */
-.controls-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-/* Cost Display */
-.cost-display {
-    border-top: 1px solid var(--border-color);
-    padding: 1rem;
-    background: var(--surface-color);
+@media (max-width: 576px) {
+    .info-card {
+        flex: 0 0 100%;
+        margin: 0.5rem 0;
+    }
+    .status-card form {
+        flex-direction: column;
+    }
+    .status-select,
+    .submit-btn {
+        width: 100%;
+    }
 }
 
 /* Button Styles */
@@ -279,7 +270,7 @@ body {
     text-decoration: none;
 }
 
-/* Modal */
+/* Modal Styles */
 .modal {
     display: none;
     position: fixed;
@@ -309,20 +300,43 @@ body {
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* Make sure on smaller screens they stack properly */
-@media (max-width: 992px) {
-    .info-card {
-        width: calc(50% - 1rem);
-        height: 200px;
-    }
+/* Images Grid */
+.images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1rem;
 }
 
-@media (max-width: 576px) {
-    .info-card {
-        width: 100%;
-        height: auto;
-        padding: 2rem 1rem;
-    }
+/* Preview Content & Image */
+.preview-section {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--background-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    min-height: 200px;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.preview-image:hover {
+    transform: scale(1.02);
+}
+
+/* Cost Display section */
+.cost-display {
+    border-top: 1px solid var(--border-color);
+    padding: 1rem;
+    background: var(--surface-color);
 }
 </style>
 
