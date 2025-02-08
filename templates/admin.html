@@ -287,14 +287,13 @@
 /* Status badge styles */
 .status-badge {
     position: relative;  /* anchor for absolutely positioned dropdown */
-    z-index: 1000;
+    z-index: 2;         /* higher than .order-item's 1 */
     display: inline-block;
     padding: 0.4rem 0.8rem;
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
 }
 
 /* Status-specific colors */
@@ -315,7 +314,6 @@
 
 .status-badge:hover {
     opacity: 0.9;
-    transform: translateY(-1px);
 }
 
 /* Dropdown styling */
@@ -328,7 +326,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
-    z-index: 9999; /* Much higher z-index to ensure it's above everything */
+    z-index: 9999; /* higher than everything */
     min-width: 120px;
     display: none;
 }
@@ -340,7 +338,6 @@
 .dropdown-option {
     padding: 0.5rem 1rem;
     cursor: pointer;
-    transition: all 0.2s ease;
     color: var(--text-primary);
 }
 
@@ -352,11 +349,25 @@
     border-bottom: 1px solid var(--border-color);
 }
 
+/* Order item layout */
 .order-item {
     position: relative;
+    z-index: 1; /* base z-index */
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.25rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: visible;
+    transition: box-shadow 0.2s ease; /* only transition the shadow */
 }
-.order-actions {
-    position: relative;
+
+.order-item:hover {
+    z-index: 9999; /* ensure it's above others when interacting */
+    box-shadow: var(--shadow-md);
 }
 
 /*Existing styles from lines 359 to 672*/
