@@ -1,0 +1,97 @@
+Order Status Display on Admin Page
+Reasoned for 47 seconds
+Native <input type="date"> fields can be notoriously stubborn about placeholder alignment in different browsers, especially when multiple style blocks or vendor‐specific rules are competing. If you’ve already tried the usual ::-webkit-datetime-edit approach and still see the offset, here are some final troubleshooting ideas:
+
+1) Consolidate All Date Input Rules in One Place
+Right now, it looks like you have two sets of rules for <input type="date">: one near the top of your <style> block and another near the bottom. These can conflict or override each other in unexpected ways. Pick one definitive block (likely at the bottom of your CSS) and remove any duplicates above.
+
+For instance, comment out or delete the first date‐input styling you see. Keep only the second, or vice versa. That way you ensure only one set of rules applies.
+
+2) Confirm No Other Global Rules Override
+Scan your entire CSS for something like:
+
+css
+Copy
+input, .form-control {
+  line-height: something;
+  padding: something;
+}
+If it’s adding additional padding or forcing a line-height, it could cause that offset. Sometimes a general * { box-sizing: border-box } or .form-control { line-height: ... } can inadvertently push date placeholders around.
+
+3) Try a Negative Margin on the Calendar Icon
+Even with zeroed margins, Chrome may still push the placeholder text downward. You can “nudge” the icon:
+
+css
+Copy
+input[type="date"]::-webkit-calendar-picker-indicator {
+  margin-top: -2px !important; /* or -4px or whatever aligns best */
+  cursor: pointer;
+}
+Sometimes a small negative top margin is the only way to perfectly center the placeholder text and the icon in the same line.
+
+4) Add vertical-align: middle;
+Another trick is explicitly forcing the field to align the text in the middle:
+
+css
+Copy
+input[type="date"] {
+  vertical-align: middle;
+  /* plus all your other overrides */
+}
+It doesn’t always fix placeholders across all browsers, but it can help in some cases.
+
+5) Test in an Incognito Window & Other Browsers
+Caching or stale styles can play a role. Open Chrome Incognito or Firefox Private and re-check. Different browsers handle <input type="date"> differently:
+
+Chrome/Edge: Typically show an icon and use ::-webkit- vendor prefixes.
+Firefox: May show a text‐style fallback if your locale or format isn’t fully supported.
+6) Consider a Custom Datepicker Library
+As a last resort (and a common approach in production sites), you might replace <input type="date"> with an <input type="text"> plus a lightweight datepicker library (like Flatpickr or Bootstrap Datepicker). This ensures identical styling and behavior across all browsers—no fighting with weird offsets.
+
+Final Snippet Example
+Here’s a more aggressive single‐block rule set you can try at the bottom of your CSS. Make sure you remove any earlier duplicates:
+
+css
+Copy
+input[type="date"].form-control {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  vertical-align: middle;             /* Keep text/icon centered */
+  padding: 0.5rem 0.75rem; 
+  line-height: 1.4;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Zero out internal fields + fix icon offset */
+input[type="date"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  margin: 0;
+  padding: 0;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer;
+  /* If placeholder is still too low, nudge the icon up: */
+  margin-top: -2px !important;
+}
+
+/* Hide the clear (X) button in Edge/IE */
+input[type="date"]::-ms-clear,
+input[type="date"]::-ms-expand {
+  display: none;
+}
+After doing this, inspect your <input type="date"> in DevTools to confirm no older rules are still taking precedence. If done correctly, you should see the placeholder text and the icon aligned more neatly. If it’s still off, tweak margin-top: -2px to -3px or -1px until it looks right.
+
+Good luck—native date fields can be a pain, but with enough override rules, you can usually get them aligned!

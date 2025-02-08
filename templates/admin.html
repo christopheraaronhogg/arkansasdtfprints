@@ -341,11 +341,12 @@ body {
 }
 
 /* Fix date input spacing & alignment - with enhanced browser support */
-input[type="date"] {
+input[type="date"].form-control {
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
-    padding: 0.5rem 0.75rem;
+    vertical-align: middle;             /* Keep text/icon centered */
+    padding: 0.5rem 0.75rem; 
     line-height: 1.4;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -355,37 +356,27 @@ input[type="date"] {
     box-sizing: border-box;
 }
 
-/* Remove default icon spacing/margins */
-input[type="date"]::-webkit-calendar-picker-indicator {
-    margin: 0;
-    padding: 0;
-    cursor: pointer;
-}
-
-/* Zero out internal field spacing */
-input[type="date"]::-webkit-datetime-edit {
-    margin: 0;
-    padding: 0;
-}
-
-input[type="date"]::-webkit-datetime-edit-fields-wrapper {
-    padding: 0;
-}
-
+/* Zero out internal fields + fix icon offset */
+input[type="date"]::-webkit-datetime-edit,
+input[type="date"]::-webkit-datetime-edit-fields-wrapper,
 input[type="date"]::-webkit-datetime-edit-text,
 input[type="date"]::-webkit-datetime-edit-month-field,
 input[type="date"]::-webkit-datetime-edit-day-field,
 input[type="date"]::-webkit-datetime-edit-year-field {
-    padding: 0;
     margin: 0;
+    padding: 0;
 }
 
-/* Hide clear button in Edge/IE */
-input[type="date"]::-ms-clear {
-    display: none;
+input[type="date"]::-webkit-calendar-picker-indicator {
+    margin: 0 !important;
+    padding: 0 !important;
+    cursor: pointer;
+    /* If placeholder is still too low, nudge the icon up: */
+    margin-top: -2px !important;
 }
 
-/* Remove spin buttons in Edge/IE */
+/* Hide the clear (X) button in Edge/IE */
+input[type="date"]::-ms-clear,
 input[type="date"]::-ms-expand {
     display: none;
 }
