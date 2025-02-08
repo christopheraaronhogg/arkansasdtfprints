@@ -14,6 +14,7 @@ from sqlalchemy.pool import QueuePool
 from storage import ObjectStorage
 import zipfile
 from io import BytesIO
+from datetime import datetime, timedelta
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -285,13 +286,60 @@ def download_all_images(order_id):
         }
     )
 
+@app.route('/admin/bulk-status-update', methods=['POST'])
+def bulk_status_update():
+    try:
+        data = request.get_json()
+        if not data or 'order_ids' not in data or 'status' not in data:
+            return jsonify({'error': 'Invalid request data'}), 400
+
+        order_ids = data['order_ids']
+        new_status = data['status']
+
+        # Update all specified orders
+        updated = Order.query.filter(Order.id.in_(order_ids)).update(
+            {Order.status: new_status},
+            synchronize_session=False
+        )
+
+        db.session.commit()
+        logger.info(f"Bulk updated {updated} orders to status: {new_status}")
+
+        return jsonify({'success': True, 'updated': updated}), 200
+    except Exception as e:
+        logger.error(f"Error in bulk status update: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to update orders'}), 500
+
+
 @app.route('/admin/export')
 def export_orders():
     try:
         import csv
         from io import StringIO
 
-        # Create a string buffer to write CSV data
+        # Get filter parameters
+        status = request.args.get('status')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+
+        # Base query
+        query = Order.query
+
+        # Apply filters
+        if status:
+            query = query.filter(Order.status == status)
+        if start_date:
+            query = query.filter(Order.created_at >= datetime.strptime(start_date, '%Y-%m-%d'))
+        if end_date:
+            # Add one day to include the entire end date
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Order.created_at < end)
+
+        # Get filtered orders
+        orders = query.order_by(Order.created_at.desc()).all()
+
+        # Create CSV
         si = StringIO()
         writer = csv.writer(si)
 
@@ -299,7 +347,6 @@ def export_orders():
         writer.writerow(['Order Number', 'Date', 'Email', 'Status', 'Total Cost', 'Number of Items'])
 
         # Write order data
-        orders = Order.query.order_by(Order.created_at.desc()).all()
         for order in orders:
             writer.writerow([
                 order.order_number,
@@ -310,7 +357,6 @@ def export_orders():
                 len(order.items)
             ])
 
-        # Prepare the response
         output = si.getvalue()
         si.close()
 
