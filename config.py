@@ -14,13 +14,13 @@ class Config:
     MAIL_USE_TLS = True
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME')
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    MAIL_DEFAULT_SENDER = os.environ.get('SENDGRID_FROM_EMAIL')
+    MAIL_DEFAULT_SENDER = os.environ.get('SENDGRID_FROM_EMAIL', 'noreply@appareldecorating.net')
 
     # SendGrid configuration
     SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 
     # Production team email
-    PRODUCTION_TEAM_EMAIL = os.environ.get('PRODUCTION_TEAM_EMAIL', 'production@dtfprinting.com')
+    PRODUCTION_TEAM_EMAIL = os.environ.get('PRODUCTION_TEAM_EMAIL', 'production@appareldecorating.net')
 
     # DTF Printing costs
     COST_PER_SQINCH = 0.02  # Cost per square inch in USD
