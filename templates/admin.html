@@ -58,8 +58,8 @@
 </div>
 
 <!-- Filter Modal -->
-<div id="filterModal" class="modal" style="display: none;">
-    <div class="modal-content" style="max-width: 500px;">
+<div id="filterModal" class="modal filter-modal" style="display: none;">
+    <div class="modal-content">
         <div class="modal-header">
             <h3>Filter Orders</h3>
             <span class="close-modal" onclick="toggleFilterModal()">&times;</span>
@@ -89,12 +89,67 @@
 </div>
 
 <!-- Image Preview Modal -->
-<div id="previewModal" class="modal">
-    <span class="close-modal">&times;</span>
+<div id="previewModal" class="modal preview-modal">
+    <span class="close-modal" onclick="closePreviewModal()">&times;</span>
     <img id="modalImage" class="modal-image" src="" alt="Full size preview">
 </div>
 
 <style>
+/* Base styles */
+:root {
+    --primary-color: #3b82f6;
+    --primary-dark: #2563eb;
+    --secondary-color: #64748b;
+    --background-color: #f8fafc;
+    --surface-color: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #e2e8f0;
+    --success-color: #22c55e;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Header styles */
+.page-title {
+    color: var(--primary-color);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* Button styles */
+.upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--primary-color);
+    color: #fff;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.upload-btn:hover {
+    background: var(--primary-dark);
+}
+
+/* Order list styles */
 .order-list {
     display: flex;
     flex-direction: column;
@@ -105,9 +160,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: white;
+    background: var(--surface-color);
     padding: 1rem;
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     border: 1px solid var(--border-color);
 }
 
@@ -118,6 +173,7 @@
 .order-number {
     color: var(--primary-color);
     font-size: 1rem;
+    margin: 0;
 }
 
 .order-meta {
@@ -179,8 +235,8 @@
     padding: 0.4rem 0.8rem;
     border-radius: var(--radius-sm);
     font-size: 0.85rem;
-    transition: background 0.2s;
     text-decoration: none;
+    transition: background 0.2s;
 }
 
 .details-btn:hover {
@@ -189,12 +245,37 @@
     text-decoration: none;
 }
 
-/* Filter Modal Styles */
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.filter-modal {
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.preview-modal {
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
 .modal-content {
     background: white;
     padding: 1.5rem;
     border-radius: var(--radius-md);
     position: relative;
+    max-width: 500px;
+    width: 100%;
 }
 
 .modal-header {
@@ -220,6 +301,15 @@
     gap: 0.5rem;
 }
 
+.close-modal {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+}
+
 .form-label {
     display: block;
     margin-bottom: 0.5rem;
@@ -227,7 +317,8 @@
     color: var(--text-secondary);
 }
 
-.form-select, .form-control {
+.form-select,
+.form-control {
     width: 100%;
     padding: 0.5rem;
     border: 1px solid var(--border-color);
@@ -250,24 +341,29 @@
     opacity: 0.9;
 }
 
-.modal {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+.modal-image {
+    max-width: 90%;
+    max-height: 80vh;
+    object-fit: contain;
 }
 
-.close-modal {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    cursor: pointer;
-    font-size: 1.5rem;
+/* Responsive styles */
+@media (max-width: 768px) {
+    .order-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .order-details,
+    .order-images,
+    .order-actions {
+        width: 100%;
+    }
+
+    .order-actions {
+        justify-content: flex-start;
+    }
 }
 </style>
 
@@ -277,12 +373,10 @@ function showFullSizePreview(src) {
     const modalImg = document.getElementById('modalImage');
     modal.style.display = 'flex';
     modalImg.src = src;
+}
 
-    modal.onclick = function(e) {
-        if (e.target === modal || e.target.className === 'close-modal') {
-            modal.style.display = 'none';
-        }
-    };
+function closePreviewModal() {
+    document.getElementById('previewModal').style.display = 'none';
 }
 
 function toggleFilterModal() {
@@ -328,5 +422,18 @@ function clearFilters() {
 
     toggleFilterModal();
 }
+
+// Close modals when clicking outside
+document.addEventListener('click', function(event) {
+    const filterModal = document.getElementById('filterModal');
+    const previewModal = document.getElementById('previewModal');
+
+    if (event.target === filterModal) {
+        filterModal.style.display = 'none';
+    }
+    if (event.target === previewModal) {
+        previewModal.style.display = 'none';
+    }
+});
 </script>
 {% endblock %}
