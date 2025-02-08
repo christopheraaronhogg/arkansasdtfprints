@@ -277,6 +277,85 @@ body {
     box-shadow: var(--shadow-md);
 }
 
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    color: var(--text-primary);
+}
+
+.modal-body {
+    margin-bottom: 1.5rem;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.close-modal {
+    cursor: pointer;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+}
+
+
+/* Form Controls */
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.form-select,
+.form-control {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.btn-secondary {
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-secondary:hover {
+    opacity: 0.9;
+}
+
+/* Fix date input spacing & alignment */
+.form-control[type="date"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    padding: 0.5rem 0.75rem;
+    line-height: 1.4;
+    height: auto;
+}
+
+.form-control[type="date"]::-webkit-calendar-picker-indicator {
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+}
+
 /* Responsive Layout */
 @media (max-width: 768px) {
     .order-item {
