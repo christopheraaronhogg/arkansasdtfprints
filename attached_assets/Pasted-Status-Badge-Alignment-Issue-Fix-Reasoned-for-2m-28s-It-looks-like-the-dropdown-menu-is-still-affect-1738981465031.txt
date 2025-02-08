@@ -1,0 +1,165 @@
+Status Badge Alignment Issue Fix
+Reasoned for 2m 28s
+It looks like the dropdown menu is still affecting the layout of its parent element, causing the status text (and the rest of the row) to shift or overflow. The main fix is to ensure:
+
+The dropdown is absolutely positioned inside a position: relative container, so it doesn’t push other elements around.
+There’s no overflow restriction (e.g. overflow: hidden) on the parent that might crop the dropdown.
+You’re not forcing a fixed width on the parent’s .order-actions or similar that gets squished.
+Below is a quick checklist and sample tweaks to address the issue:
+
+1) Make the Dropdown Absolutely Positioned & Independent
+Currently, you have:
+
+css
+Copy
+.status-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.5rem;
+  background: white;
+  /* etc. */
+}
+This is correct for an overlapping dropdown. Just confirm:
+
+The immediate parent (usually .status-badge or .order-item) has position: relative; so the dropdown anchors to that spot.
+No parent container has overflow: hidden; that would clip the dropdown.
+2) Remove or Loosen the width: 30% on .order-actions
+You have:
+
+css
+Copy
+.order-actions {
+  width: 30%;
+  display: flex;
+  /* etc. */
+}
+If your status badge + cost + “Details” button grows wider than 30%, it’ll get squished or push the dropdown awkwardly. Try removing the fixed width or switching to something more flexible like:
+
+css
+Copy
+.order-actions {
+  margin-left: auto;  /* push it right */
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  /* no fixed width or use max-width if needed */
+  /* width: auto; */
+}
+This way, the row can expand naturally to fit your status badge and dropdown.
+
+3) Ensure .order-item or .order-actions Has overflow: visible;
+If you still see the dropdown getting cut off or messing up the row, make sure:
+
+css
+Copy
+.order-item, 
+.order-actions {
+  overflow: visible; /* so the absolute dropdown can extend freely */
+}
+By default, overflow: visible is normal in a flex container, but if some older rule is forcing overflow: hidden, the dropdown can’t appear on top properly.
+
+4) Confirm Z‐Index Layers
+You have:
+
+css
+Copy
+.status-badge {
+  z-index: 1000;
+  position: relative;
+}
+.status-dropdown {
+  z-index: 1001; 
+  position: absolute;
+}
+That’s usually fine. Just ensure nothing else (like the .order-item or .order-actions) sets a higher z-index with position: relative;. The dropdown’s container needs the highest stacking context for it to appear on top.
+
+Example Final Snippet
+Here’s a lightly adjusted snippet focusing on these points:
+
+css
+Copy
+/* Let order-item expand horizontally without fixed widths */
+.order-item {
+  position: relative; /* For the absolute dropdown context */
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: visible; /* Ensure no clipping */
+}
+
+/* Let the actions area grow or shrink naturally */
+.order-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  overflow: visible; /* Ensure dropdown can expand */
+  /* remove width: 30% */
+}
+
+/* Badge is relative so the dropdown can anchor inside it */
+.status-badge {
+  position: relative;
+  z-index: 1000;
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Dropdown absolutely positioned below the badge */
+.status-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.5rem;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  z-index: 1001;
+  min-width: 120px;
+  display: none; /* Hidden until .active */
+}
+
+.status-dropdown.active {
+  display: block;
+}
+
+.dropdown-option {
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dropdown-option:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+.dropdown-option:hover {
+  background-color: var(--background-color);
+}
+
+/* Optional: If we want to ensure images don’t shrink. */
+.order-images {
+  flex: 2 1 auto; /* or remove if it’s causing weird shrink. */
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  overflow: visible;
+}
+With these changes:
+
+The status dropdown is absolutely positioned, doesn’t push the row down.
+The badge remains the same size even if you change the text or background color.
+.order-actions is no longer locked to 30% width, so your badges, cost, and button can grow if needed.
+overflow: visible; ensures the dropdown won’t get clipped.
+This should fix the problem of colored statuses messing up the layout—now the dropdown just floats over the row instead of pushing or squishing anything.

@@ -163,6 +163,7 @@
     box-shadow: var(--shadow-sm);
     transition: all 0.2s ease;
     position: relative; /* Added for proper stacking context */
+    overflow: visible;
 }
 
 /* Left section: checkbox and order details */
@@ -194,6 +195,7 @@
     gap: 1rem;
     margin-left: auto;
     flex-shrink: 0;
+    overflow: visible;
 }
 
 .img-container {
@@ -354,7 +356,7 @@
     position: relative;
 }
 
-::root {
+:::root {
     --primary-color: #3b82f6;
     --primary-dark: #2563eb;
     --primary-light: #60a5fa;
