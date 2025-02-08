@@ -1337,6 +1337,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyjwt"
+version = "2.10.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e7/46/bd74733ff231675599650d3e47f361794b22ef3e3770998dda30d3b63726/pyjwt-2.10.1.tar.gz", hash = "sha256:3cc5772eb20009233caf06e9d8a0577824723b44e6648ee0a2aedb6cf9381953", size = 87785 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/61/ad/689f02752eeec26aed679477e80e632ef1b682313be70793d798c1d5fc8f/PyJWT-2.10.1-py3-none-any.whl", hash = "sha256:dcdd193e30abefd5debf142f9adfcdd2b58004e644f25406ffaebd50bd98dacb", size = 22997 },
+]
+
+[[package]]
 name = "pyseto"
 version = "1.8.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1454,6 +1463,7 @@ dependencies = [
     { name = "sendgrid" },
     { name = "sqlalchemy" },
     { name = "trafilatura" },
+    { name = "twilio" },
     { name = "werkzeug" },
 ]
 
@@ -1474,6 +1484,7 @@ requires-dist = [
     { name = "sendgrid", specifier = ">=6.11.0" },
     { name = "sqlalchemy", specifier = ">=2.0.38" },
     { name = "trafilatura", specifier = ">=2.0.0" },
+    { name = "twilio", specifier = ">=9.4.4" },
     { name = "werkzeug", specifier = ">=3.1.3" },
 ]
 
@@ -1636,6 +1647,21 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/06/25/e3ebeefdebfdfae8c4a4396f5a6ea51fc6fa0831d63ce338e5090a8003dc/trafilatura-2.0.0.tar.gz", hash = "sha256:ceb7094a6ecc97e72fea73c7dba36714c5c5b577b6470e4520dca893706d6247", size = 253404 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8a/b6/097367f180b6383a3581ca1b86fcae284e52075fa941d1232df35293363c/trafilatura-2.0.0-py3-none-any.whl", hash = "sha256:77eb5d1e993747f6f20938e1de2d840020719735690c840b9a1024803a4cd51d", size = 132557 },
+]
+
+[[package]]
+name = "twilio"
+version = "9.4.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "aiohttp-retry" },
+    { name = "pyjwt" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/6d/0f/1ea92192bd16001dde01074b656002b755fde466de57acbc5176e109c12a/twilio-9.4.4.tar.gz", hash = "sha256:60dc5fbae13df9aa83b16025c6f953831c50fd2cb65d53d940bc2289f65211a2", size = 988134 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/19/f6/2e77510ae3b713f3dc463eaf9fc311b7e6f788b036389dd254f13c68389f/twilio-9.4.4-py2.py3-none-any.whl", hash = "sha256:eea20c4d58ca7dd32d9763dbf4de19acba2eb8b543a761ea79efd455c94cfadf", size = 1875738 },
 ]
 
 [[package]]

@@ -20,4 +20,5 @@ dependencies = [
     "replit-object-storage>=1.0.2",
     "flask-login>=0.6.3",
     "flask-wtf>=1.2.2",
+    "twilio>=9.4.4",
 ]
