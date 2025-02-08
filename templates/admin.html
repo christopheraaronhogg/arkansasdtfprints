@@ -84,11 +84,11 @@
             </div>
             <div class="mb-3">
                 <label class="form-label">Date Range</label>
-                <div class="d-flex gap-3">
-                    <div class="input-group">
+                <div class="date-range-container">
+                    <div class="date-input-wrapper">
                         <input type="date" id="startDate" class="form-control date-input">
                     </div>
-                    <div class="input-group">
+                    <div class="date-input-wrapper">
                         <input type="date" id="endDate" class="form-control date-input">
                     </div>
                 </div>
@@ -402,6 +402,45 @@ body {
     .order-actions {
         justify-content: flex-start;
     }
+}
+
+/* Date Range Container */
+.date-range-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;  /* Increased spacing between inputs */
+}
+
+.date-input-wrapper {
+    flex: 1;
+}
+
+/* Date Input Styling */
+.date-input {
+    height: 38px;  /* Fixed height to match other inputs */
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    width: 100%;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    background-color: var(--surface-color);
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Calendar Icon Adjustments */
+.date-input::-webkit-calendar-picker-indicator {
+    opacity: 0.7;
+    cursor: pointer;
+    margin: 0;
+    padding-right: 0.5rem;
+}
+
+/* Container spacing adjustments */
+.modal-body .mb-3:last-child {
+    margin-bottom: 0;
 }
 </style>
 
