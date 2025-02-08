@@ -82,22 +82,19 @@
 
             <!-- Status and Actions -->
             <div class="order-actions">
-                <!-- Status Badge Dropdown Template -->
-                <template id="statusDropdownTemplate">
+                <!-- Status Badge -->
+                <div class="status-badge" 
+                     onclick="toggleStatusDropdown(this)" 
+                     data-order-id="{{ order.id }}"
+                     data-status="{{ order.status }}">
+                    {{ order.status|title }}
+                    <!-- Dropdown Menu -->
                     <div class="status-dropdown">
                         <div class="dropdown-option" data-status="pending">Pending</div>
                         <div class="dropdown-option" data-status="processing">Processing</div>
                         <div class="dropdown-option" data-status="completed">Completed</div>
                     </div>
-                </template>
-
-                <!-- Order Status Badge -->
-                <span class="status-badge" 
-                      onclick="toggleStatusDropdown(this)" 
-                      data-order-id="{{ order.id }}"
-                      data-status="{{ order.status }}">
-                    {{ order.status|title }}
-                </span>
+                </div>
                 <div class="order-cost">${{ "%.2f"|format(order.total_cost) }}</div>
                 <a href="{{ url_for('view_order', order_id=order.id) }}" class="details-btn">
                     <i class="fas fa-eye me-1"></i>Details
@@ -316,6 +313,7 @@
 
 /* Dropdown styling */
 .status-dropdown {
+    display: none;
     position: absolute;
     top: 100%;
     left: 0;
@@ -326,7 +324,6 @@
     box-shadow: var(--shadow-md);
     z-index: 100;
     min-width: 150px;
-    display: none;
 }
 
 .status-dropdown.active {
@@ -337,6 +334,7 @@
     padding: 0.5rem 1rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    color: var(--text-primary);
 }
 
 .dropdown-option:hover {
@@ -347,7 +345,7 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-::root {
+:::root {
     --primary-color: #3b82f6;
     --primary-dark: #2563eb;
     --primary-light: #60a5fa;
@@ -785,27 +783,22 @@ document.addEventListener('click', function(event) {
     }
 });
 
-let activeDropdown = null;
 
 function toggleStatusDropdown(badge) {
-    // Close any open dropdown
-    if (activeDropdown) {
-        activeDropdown.remove();
-        activeDropdown = null;
-    }
+    // Close any open dropdowns first
+    document.querySelectorAll('.status-dropdown.active').forEach(dropdown => {
+        if (dropdown !== badge.querySelector('.status-dropdown')) {
+            dropdown.classList.remove('active');
+        }
+    });
 
-    // Create new dropdown
-    const template = document.getElementById('statusDropdownTemplate');
-    const dropdown = template.content.cloneNode(true).querySelector('.status-dropdown');
-
-    // Position dropdown
-    badge.appendChild(dropdown);
-    dropdown.classList.add('active');
-    activeDropdown = dropdown;
+    // Toggle current dropdown
+    const dropdown = badge.querySelector('.status-dropdown');
+    dropdown.classList.toggle('active');
 
     // Add click handlers to options
     dropdown.querySelectorAll('.dropdown-option').forEach(option => {
-        option.addEventListener('click', async (e) => {
+        option.onclick = async (e) => {
             e.stopPropagation();
             const newStatus = option.dataset.status;
             const orderId = badge.dataset.orderId;
@@ -823,25 +816,44 @@ function toggleStatusDropdown(badge) {
                     // Update badge status and color
                     badge.dataset.status = newStatus;
                     badge.textContent = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-                    dropdown.remove();
-                    activeDropdown = null;
+
+                    // Add the dropdown back after updating text
+                    const dropdownHTML = `
+                        <div class="status-dropdown">
+                            <div class="dropdown-option" data-status="pending">Pending</div>
+                            <div class="dropdown-option" data-status="processing">Processing</div>
+                            <div class="dropdown-option" data-status="completed">Completed</div>
+                        </div>
+                    `;
+                    badge.innerHTML = badge.textContent + dropdownHTML;
+
+                    // Hide dropdown
+                    badge.querySelector('.status-dropdown').classList.remove('active');
                 } else {
                     console.error('Failed to update status');
                 }
             } catch (error) {
                 console.error('Error updating status:', error);
             }
-        });
+        };
     });
 
     // Close dropdown when clicking outside
     document.addEventListener('click', function closeDropdown(e) {
-        if (!badge.contains(e.target) && activeDropdown) {
-            activeDropdown.remove();
-            activeDropdown = null;
+        if (!badge.contains(e.target)) {
+            dropdown.classList.remove('active');
             document.removeEventListener('click', closeDropdown);
         }
     });
 }
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.status-badge')) {
+        document.querySelectorAll('.status-dropdown.active').forEach(dropdown => {
+            dropdown.classList.remove('active');
+        });
+    }
+});
 </script>
 {% endblock %}
