@@ -288,6 +288,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
+    z-index: 50; /* Increased z-index for better layering */
 }
 
 /* Status-specific colors */
@@ -322,7 +323,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
-    z-index: 100;
+    z-index: 100; /* Increased z-index for better layering */
     min-width: 150px;
 }
 
@@ -345,7 +346,7 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-:::root {
+:root {
     --primary-color: #3b82f6;
     --primary-dark: #2563eb;
     --primary-light: #60a5fa;
