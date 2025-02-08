@@ -1,3 +1,10 @@
+Showing Order Status on Admin Page
+Reasoned for 1m 3s
+Below is an updated snippet of your admin page that explicitly displays the order status in a badge—including “Processing”—and allows you to filter by “Pending,” “Processing,” or “Completed.” This way, you’ll see the status on each row and also have the option to filter by all three states.
+
+1) Updated HTML Markup
+html
+Copy
 {% extends "base.html" %}
 
 {% block content %}
@@ -44,6 +51,7 @@
 
             <!-- Right: Status, Cost, and Button -->
             <div class="order-actions">
+                <!-- Show status as a badge, with different colors for each status -->
                 <span class="badge bg-{% if order.status == 'completed' %}
                     success
                 {% elif order.status == 'pending' %}
@@ -55,7 +63,9 @@
                 {% endif %}">
                     {{ order.status|title }}
                 </span>
-                <div class="order-cost">${{ "%.2f"|format(order.total_cost) }}</div>
+                <div class="order-cost">
+                    ${{ "%.2f"|format(order.total_cost) }}
+                </div>
                 <a href="{{ url_for('view_order', order_id=order.id) }}" class="details-btn">
                     <i class="fas fa-eye me-1"></i>Details
                 </a>
@@ -103,200 +113,6 @@
     <img id="modalImage" class="modal-image" src="" alt="Full size preview">
 </div>
 
-<style>
-/* Base styles */
-:root {
-    --primary-color: #3b82f6;
-    --primary-dark: #2563eb;
-    --primary-light: #60a5fa;
-    --secondary-color: #64748b;
-    --background-color: #f1f5f9;
-    --surface-color: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border-color: #d1d5db;
-    --success-color: #22c55e;
-    --warning-color: #f59e0b;
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-    --shadow-hover: 0 8px 12px rgba(0, 0, 0, 0.1);
-    --radius-sm: 6px;
-    --radius-md: 8px;
-}
-
-body {
-    background-color: var(--background-color);
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem;
-}
-
-/* Order List */
-.order-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.order-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: var(--surface-color);
-    padding: 1.25rem;
-    border-radius: var(--radius-md);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease;
-}
-
-.order-item:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-}
-
-/* Order Details */
-.order-details {
-    width: 30%;
-}
-
-.order-number {
-    color: var(--primary-color);
-    font-size: 1rem;
-    margin: 0;
-}
-
-.order-meta {
-    font-size: 0.85rem;
-}
-
-/* Image Grid */
-.order-images {
-    display: flex;
-    gap: 0.75rem;
-    width: 40%;
-    justify-content: center;
-}
-
-.img-container {
-    width: 70px;
-    height: 70px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    cursor: pointer;
-    box-shadow: var(--shadow-sm);
-}
-
-.img-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.2s;
-}
-
-.img-container:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.img-container img:hover {
-    transform: scale(1.05);
-}
-
-/* Order Actions */
-.order-actions {
-    width: 30%;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    justify-content: flex-end;
-}
-
-.order-cost {
-    color: var(--success-color);
-    font-weight: 600;
-    font-size: 1.1rem;
-}
-
-/* Status Badge */
-.badge {
-    font-size: 0.8rem;
-    padding: 0.4rem 0.8rem;
-    border-radius: var(--radius-sm);
-}
-
-.bg-warning {
-    background-color: var(--warning-color) !important;
-    color: white;
-}
-
-/* Buttons */
-.details-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    background: var(--primary-color);
-    color: white;
-    padding: 0.4rem 0.8rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-    text-decoration: none;
-    transition: all 0.2s ease;
-}
-
-.details-btn:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-    color: white;
-    text-decoration: none;
-}
-
-/* Filter Modal */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    justify-content: center;
-    align-items: center;
-}
-
-.modal-content {
-    background: var(--surface-color);
-    padding: 1.5rem;
-    border-radius: var(--radius-md);
-    max-width: 500px;
-    width: 100%;
-    box-shadow: var(--shadow-md);
-}
-
-/* Responsive Layout */
-@media (max-width: 768px) {
-    .order-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-
-    .order-details,
-    .order-images,
-    .order-actions {
-        width: 100%;
-    }
-
-    .order-actions {
-        justify-content: flex-start;
-    }
-}
-</style>
-
 <script>
 function showFullSizePreview(src) {
     const modal = document.getElementById('previewModal');
@@ -311,7 +127,7 @@ function closePreviewModal() {
 
 function toggleFilterModal() {
     const modal = document.getElementById('filterModal');
-    modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+    modal.style.display = (modal.style.display === 'none') ? 'flex' : 'none';
 }
 
 function applyFilters() {
@@ -367,3 +183,22 @@ document.addEventListener('click', function(event) {
 });
 </script>
 {% endblock %}
+Changes to Note
+<span class="badge bg-...">
+
+Now supports three statuses: pending, processing, and completed.
+Uses Bootstrap contextual classes: bg-warning, bg-secondary, bg-success, etc.
+Filter Dropdown
+
+Added Processing to the <select>:
+html
+Copy
+<option value="processing">Processing</option>
+Badge Colors
+
+For demonstration:
+Pending → bg-warning (yellow)
+Processing → bg-secondary (gray)
+Completed → bg-success (green)
+Anything else → bg-info (blue)
+This ensures you see a clear, color-coded status for each order on the admin page, and you can filter by any of those three statuses if desired. Enjoy!
