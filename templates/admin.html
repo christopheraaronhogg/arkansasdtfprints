@@ -162,6 +162,8 @@
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     transition: all 0.2s ease;
+    position: relative; /* Added for proper stacking context */
+    z-index: 1; /* Added for proper stacking context */
 }
 
 /* Left section: checkbox and order details */
@@ -193,6 +195,8 @@
     gap: 1rem;
     margin-left: auto;
     flex-shrink: 0;
+    position: relative; /* Added for proper stacking context */
+    z-index: 2; /* Added for proper stacking context */
 }
 
 .img-container {
@@ -288,7 +292,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
-    z-index: 50; /* Increased z-index for better layering */
+    z-index: 1000; /* Much higher z-index */
 }
 
 /* Status-specific colors */
@@ -323,7 +327,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
-    z-index: 100; /* Increased z-index for better layering */
+    z-index: 1001; /* Higher than status badge */
     min-width: 150px;
 }
 
@@ -346,7 +350,14 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-:root {
+.order-item {
+    position: relative;
+}
+.order-actions {
+    position: relative;
+}
+
+::root {
     --primary-color: #3b82f6;
     --primary-dark: #2563eb;
     --primary-light: #60a5fa;
