@@ -164,6 +164,7 @@
     transition: all 0.2s ease;
     position: relative; /* Added for proper stacking context */
     overflow: visible;
+    z-index: 1;
 }
 
 /* Left section: checkbox and order details */
@@ -173,9 +174,10 @@
 }
 
 .order-details {
-    flex: 1;
+    flex: 1;             /* grow as needed */
     min-width: 200px;
     max-width: 300px;
+    width: auto !important;
 }
 
 /* Center section: images */
@@ -190,12 +192,13 @@
 
 /* Right section: status, price, details button */
 .order-actions {
+    margin-left: auto;   /* push to the far right */
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-left: auto;
     flex-shrink: 0;
     overflow: visible;
+    width: auto !important;
 }
 
 .img-container {
@@ -283,6 +286,8 @@
 
 /* Status badge styles */
 .status-badge {
+    position: relative;  /* anchor for absolutely positioned dropdown */
+    z-index: 1000;
     display: inline-block;
     padding: 0.4rem 0.8rem;
     border-radius: var(--radius-sm);
@@ -290,8 +295,6 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    position: relative;
-    z-index: 1000; /* Much higher z-index */
 }
 
 /* Status-specific colors */
@@ -317,7 +320,6 @@
 
 /* Dropdown styling */
 .status-dropdown {
-    display: none;
     position: absolute;
     top: 100%;
     left: 0;
@@ -326,8 +328,9 @@
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     box-shadow: var(--shadow-md);
-    z-index: 1001; /* Higher than status badge */
-    min-width: 150px;
+    z-index: 9999; /* Much higher z-index to ensure it's above everything */
+    min-width: 120px;
+    display: none;
 }
 
 .status-dropdown.active {
@@ -356,7 +359,8 @@
     position: relative;
 }
 
-:::root {
+/*Existing styles from lines 359 to 672*/
+:root {
     --primary-color: #3b82f6;
     --primary-dark: #2563eb;
     --primary-light: #60a5fa;
@@ -392,13 +396,10 @@ body {
 }
 
 .order-details {
-    width: 30%;
-}
-
-.order-number {
     color: var(--primary-color);
     font-size: 1rem;
     margin: 0;
+    width: auto !important;
 }
 
 .order-meta {
@@ -407,7 +408,7 @@ body {
 
 
 .order-actions {
-    width: 30%;
+    width: auto !important;
     display: flex;
     align-items: center;
     gap: 1rem;
