@@ -73,6 +73,7 @@
             <div class="order-images">
                 {% for item in order.items %}
                 <div class="img-container">
+                    <div class="img-count-badge">{{ item.quantity }}x</div>
                     <img src="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
                          alt="Preview of {{ item.file_key }}"
                          onclick="showFullSizePreview(this.src)">
@@ -113,6 +114,25 @@
 
 <style>
 /* Existing styles remain unchanged */
+
+/* Add image count badge */
+.img-container {
+    position: relative;
+}
+
+.img-count-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: var(--primary-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 2;
+    box-shadow: var(--shadow-sm);
+}
 
 /* New styles for filter bar and bulk actions */
 .filter-bar {
