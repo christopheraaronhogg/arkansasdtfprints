@@ -116,7 +116,27 @@
 </div>
 
 <style>
-/* CSS Variables - inherited from admin.html */
+:root {
+    --primary-color: #3b82f6;
+    --primary-dark: #2563eb;
+    --primary-light: #60a5fa;
+    --secondary-color: #64748b;
+    --background-color: #f1f5f9;
+    --surface-color: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #d1d5db;
+    --success-color: #22c55e;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+    --shadow-hover: 0 8px 12px rgba(0, 0, 0, 0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+}
+
+body {
+    background-color: var(--background-color);
+}
 
 /* Order Details Area */
 .order-details-area {
@@ -124,12 +144,14 @@
     border-radius: var(--radius-md);
     padding: 1.5rem;
     box-shadow: var(--shadow-md);
+    border: none;
 }
 
 .order-info {
     background: var(--surface-color);
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
 }
 
 /* Section Headings */
@@ -166,13 +188,27 @@
     margin-top: 1rem;
 }
 
+.size-inputs {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.size-inputs:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+
 /* Preview Content & Image */
 .preview-section {
     width: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #f8fafc;
+    background: var(--background-color);
     border-radius: var(--radius-sm);
     overflow: hidden;
     min-height: 200px;
@@ -202,6 +238,61 @@
     border-top: 1px solid var(--border-color);
     padding: 1rem;
     background: var(--surface-color);
+}
+
+/* Button Styles */
+.upload-btn, .submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--primary-color);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    justify-content: center;
+}
+
+.upload-btn:hover, .submit-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    color: #fff;
+    text-decoration: none;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-image {
+    max-width: 90%;
+    max-height: 80vh;
+    object-fit: contain;
+}
+
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* Responsive */

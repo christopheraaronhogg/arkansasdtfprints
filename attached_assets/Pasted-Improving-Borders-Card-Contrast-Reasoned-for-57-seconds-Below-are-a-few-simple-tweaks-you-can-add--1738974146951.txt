@@ -1,0 +1,104 @@
+Improving Borders & Card Contrast
+Reasoned for 57 seconds
+Below are a few simple tweaks you can add to your CSS to remove the heavy border around the “Order Information” section and give more contrast to your item cards. This approach:
+
+Removes the visible border around the main info area (but keeps the rounded corners and drop shadow).
+Adds a subtle border and a slightly stronger drop shadow to item cards, so they stand out more.
+Adjusts the background color a bit so the cards pop against it.
+Feel free to pick and choose which changes you want.
+
+1) Remove the heavy border from the “Order Information” box
+In your CSS, find the .order-details-area (or .order-info) rule and remove or override any border while keeping the drop shadow. For instance:
+
+css
+Copy
+.order-details-area,
+.order-info {
+  background: var(--surface-color); /* White */
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);     /* Keeps the subtle shadow */
+  border: none;                     /* Remove any default border */
+}
+This ensures it looks like a card rather than a box with a hard border.
+
+2) Increase contrast on the item cards
+Your “Order Items” each sit within .size-inputs. Right now, they may not stand out enough, so we can add:
+
+A slightly darker border (or any color you like).
+A mild shadow that lifts them from the background.
+Example:
+
+css
+Copy
+.size-inputs {
+  background: #fff;
+  border: 1px solid #d1d5db; /* A subtle gray border */
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm); /* or var(--shadow-md) if you want more depth */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease;
+}
+
+/* Optionally give a slight hover effect */
+.size-inputs:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+This helps each item “card” pop against the page background.
+
+3) Consider a slightly different background behind everything
+If your background is already very light (e.g., #f8fafc), you could slightly darken it so the white cards stand out more. For instance:
+
+css
+Copy
+body {
+  background-color: #f1f5f9; /* a step darker than #f8fafc */
+}
+The difference is subtle but helps item cards and the main order info box appear more defined.
+
+Putting it all together
+Below is a condensed example snippet integrating the changes. Adapt it to match your existing variables and classes:
+
+css
+Copy
+/* Remove border from order info, keep shape & shadow */
+.order-details-area, 
+.order-info {
+  background: var(--surface-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  border: none;
+}
+
+/* Make item cards more pronounced */
+.size-inputs {
+  background: #fff;
+  border: 1px solid #d1d5db; /* slightly darker than var(--border-color) */
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease;
+}
+
+.size-inputs:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Optionally tweak the global background for extra contrast */
+body {
+  background-color: #f1f5f9; /* Instead of #f8fafc */
+}
+With these changes, your Order Information panel will look more like a card without a heavy border, and each item card will have enough contrast and shadow to stand out nicely. Adjust the colors, shadows, or hover effects to perfectly match your brand’s style.
+
+
+
+
+
+
