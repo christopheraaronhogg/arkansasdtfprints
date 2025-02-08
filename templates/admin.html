@@ -174,9 +174,9 @@
 }
 
 .order-details {
-    flex: 1;             /* grow as needed */
-    min-width: 200px;
-    max-width: 300px;
+    color: var(--text-primary);  /* Changed from primary-color to text-primary for black text */
+    font-size: 1rem;
+    margin: 0;
     width: auto !important;
 }
 
@@ -370,6 +370,11 @@
     box-shadow: var(--shadow-md);
 }
 
+/* New class for when dropdown is active */
+.order-item.dropdown-active {
+    z-index: 9999; /* Keep this row above others while dropdown is open */
+}
+
 /*Existing styles from lines 359 to 672*/
 :root {
     --primary-color: #3b82f6;
@@ -378,7 +383,7 @@
     --secondary-color: #64748b;
     --background-color: #f1f5f9;
     --surface-color: #ffffff;
-    --text-primary: #1e293b;
+    --text-primary: #1e293b; /* Black text color */
     --text-secondary: #64748b;
     --border-color: #d1d5db;
     --success-color: #22c55e;
@@ -407,7 +412,7 @@ body {
 }
 
 .order-details {
-    color: var(--primary-color);
+    color: var(--text-primary);
     font-size: 1rem;
     margin: 0;
     width: auto !important;
@@ -808,16 +813,23 @@ document.addEventListener('click', function(event) {
 
 
 function toggleStatusDropdown(badge) {
-    // Close any open dropdowns first
+    // Get the parent order item
+    const row = badge.closest('.order-item');
+
+    // Close any open dropdowns first and remove active classes
     document.querySelectorAll('.status-dropdown.active').forEach(dropdown => {
         if (dropdown !== badge.querySelector('.status-dropdown')) {
             dropdown.classList.remove('active');
+            dropdown.closest('.order-item').classList.remove('dropdown-active');
         }
     });
 
     // Toggle current dropdown
     const dropdown = badge.querySelector('.status-dropdown');
     dropdown.classList.toggle('active');
+
+    // Toggle active class on the row
+    row.classList.toggle('dropdown-active', dropdown.classList.contains('active'));
 
     // Add click handlers to options
     dropdown.querySelectorAll('.dropdown-option').forEach(option => {
@@ -850,8 +862,9 @@ function toggleStatusDropdown(badge) {
                     `;
                     badge.innerHTML = badge.textContent + dropdownHTML;
 
-                    // Hide dropdown
+                    // Remove active classes
                     badge.querySelector('.status-dropdown').classList.remove('active');
+                    row.classList.remove('dropdown-active');
                 } else {
                     console.error('Failed to update status');
                 }
@@ -865,6 +878,7 @@ function toggleStatusDropdown(badge) {
     document.addEventListener('click', function closeDropdown(e) {
         if (!badge.contains(e.target)) {
             dropdown.classList.remove('active');
+            row.classList.remove('dropdown-active');
             document.removeEventListener('click', closeDropdown);
         }
     });
@@ -875,6 +889,7 @@ document.addEventListener('click', function(e) {
     if (!e.target.closest('.status-badge')) {
         document.querySelectorAll('.status-dropdown.active').forEach(dropdown => {
             dropdown.classList.remove('active');
+            dropdown.closest('.order-item').classList.remove('dropdown-active');
         });
     }
 });

@@ -1,0 +1,74 @@
+
+
+
+
+
+
+You said:
+it looks pretty good while im mousing over the dropdown but if i mouse over like the next order, it falls to the back again :/
+Request for o1 pro mode
+Finished reasoning
+When you move the mouse off the row with the open dropdown (and onto the next row), the next row’s hover effect can jump in front. Essentially, the new row gains a higher z‐index (or transforms) and overshadows the dropdown above it.
+
+The Easiest Fix: Keep the Parent Row “On Top” While Dropdown Is Open
+Rather than relying on hover alone, do this:
+
+Add a class like .dropdown-active to the row (.order-item) whenever its dropdown is open.
+Give that row a high z-index, so it remains on top even if the user’s cursor drifts away onto the next row.
+Steps in Code
+1) Mark the Row “Active” in JS
+When you open the dropdown:
+
+js
+Copy
+function toggleStatusDropdown(badge) {
+  // Close other dropdowns, etc. ...
+  const dropdown = badge.querySelector('.status-dropdown');
+  dropdown.classList.toggle('active');
+
+  // Get the row (parent .order-item)
+  const row = badge.closest('.order-item');
+  
+  // Toggle an "active" class on the row itself
+  if (dropdown.classList.contains('active')) {
+    row.classList.add('dropdown-active');
+  } else {
+    row.classList.remove('dropdown-active');
+  }
+
+  // ...the rest of your existing logic...
+}
+When you click an option or it closes, remove the .dropdown-active from the row:
+
+js
+Copy
+option.onclick = async (e) => {
+  // ... after you finish updating the status ...
+  dropdown.classList.remove('active');
+  row.classList.remove('dropdown-active');
+  // etc...
+};
+Or if you detect a click outside, also remove .dropdown-active from that row.
+
+2) Give .dropdown-active a Higher Z‐Index in CSS
+Something like:
+
+css
+Copy
+/* A normal row might have z-index: 1 on hover, but we want it always behind an active row. */
+.order-item {
+  position: relative;
+  z-index: 1; /* baseline */
+}
+
+/* If the row’s dropdown is open, keep that row on top. */
+.order-item.dropdown-active {
+  z-index: 9999; /* well above any hovered row below */
+}
+The key is that when the dropdown is open, that row keeps a high z‐index the entire time. So even if you hover the next row, the open dropdown remains in front. Once you close it (click outside or select an option), you remove .dropdown-active, letting the row revert to a lower z‐index.
+
+Why This Works
+By default, each row might transform or z-index up on hover. That’s great for subtle hover effects.
+But if you rely on hover to keep the row on top, it fails as soon as the mouse leaves. The row below can overshadow your open dropdown.
+Instead, the “dropdown-active” class ensures the row with the open dropdown stays above everything else until the dropdown is explicitly closed.
+This approach resolves the problem of the dropdown being hidden the moment you hover another row. It’s a common pattern when dealing with custom dropdowns inside stacked cards or rows.
