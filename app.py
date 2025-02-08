@@ -284,3 +284,44 @@ def download_all_images(order_id):
             'Content-Disposition': f'attachment; filename=order_{order.order_number}_files.zip'
         }
     )
+
+@app.route('/admin/export')
+def export_orders():
+    try:
+        import csv
+        from io import StringIO
+
+        # Create a string buffer to write CSV data
+        si = StringIO()
+        writer = csv.writer(si)
+
+        # Write headers
+        writer.writerow(['Order Number', 'Date', 'Email', 'Status', 'Total Cost', 'Number of Items'])
+
+        # Write order data
+        orders = Order.query.order_by(Order.created_at.desc()).all()
+        for order in orders:
+            writer.writerow([
+                order.order_number,
+                order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                order.email,
+                order.status,
+                f"${order.total_cost:.2f}",
+                len(order.items)
+            ])
+
+        # Prepare the response
+        output = si.getvalue()
+        si.close()
+
+        return Response(
+            output,
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': 'attachment; filename=dtf_orders.csv',
+                'Content-Type': 'text/csv'
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error exporting orders: {str(e)}")
+        return jsonify({'error': 'Failed to export orders'}), 500
