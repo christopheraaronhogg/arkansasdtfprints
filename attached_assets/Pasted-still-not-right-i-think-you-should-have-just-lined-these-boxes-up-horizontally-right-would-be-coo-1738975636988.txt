@@ -1,3 +1,13 @@
+still not right, i think you should have just lined these boxes up horizontally, right? would be cool like you got 4 boxes, squarelike for each ordernumbeer/customer email/order date/total cost and then just a status updater down below?
+Request for o1 pro mode
+Finished reasoning
+Below is a concise approach that places exactly four “square-ish” cards side by side for the core order info (order number, email, date, total), and then a separate row underneath for the status update. On smaller screens they’ll wrap into fewer columns, but on desktops you’ll see them nicely lined up horizontally.
+
+Feel free to adjust widths, heights, icon sizes, or spacing to get the perfect look for your site.
+
+1) Example HTML
+html
+Copy
 {% extends "base.html" %}
 
 {% block content %}
@@ -82,12 +92,14 @@
         {% for item in order.items %}
         <div class="size-inputs">
             <div class="preview-content p-4">
+                <!-- Image Preview -->
                 <div class="preview-section mb-4">
                     <img src="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
                          class="preview-image"
                          alt="Preview of {{ item.file_key }}"
                          onclick="showFullSizePreview(this.src)">
                 </div>
+                <!-- Item Details -->
                 <div class="controls-section">
                     <div class="mb-3">
                         <label class="info-label">Dimensions</label>
@@ -122,210 +134,6 @@
     <img id="modalImage" class="modal-image" src="" alt="Full size preview">
 </div>
 
-<style>
-:root {
-    --primary-color: #3b82f6;
-    --primary-dark: #2563eb;
-    --primary-light: #60a5fa;
-    --secondary-color: #64748b;
-    --background-color: #f1f5f9;
-    --surface-color: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border-color: #d1d5db;
-    --success-color: #22c55e;
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-    --shadow-hover: 0 8px 12px rgba(0, 0, 0, 0.1);
-    --radius-sm: 6px;
-    --radius-md: 8px;
-}
-
-body {
-    background-color: var(--background-color);
-}
-
-/* Container for the 4 boxes: .info-cards-row is a flex container */
-.info-cards-row {
-    justify-content: start;
-}
-
-/* Each info card */
-.info-card {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    width: 200px;
-    height: 200px;
-    padding: 1rem;
-    transition: transform 0.2s ease;
-}
-
-/* Slight hover effect */
-.info-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-/* Icon at the top of each box */
-.card-icon {
-    font-size: 1.8rem;
-    color: var(--primary-color);
-    margin-bottom: 0.5rem;
-}
-
-/* Labels & Values in each box */
-.info-label {
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-}
-
-.info-value {
-    font-size: 1rem;
-    font-weight: 600;
-}
-
-/* If the icon is "text-success," it overrides color to green */
-.card-icon.text-success {
-    color: var(--success-color);
-}
-
-/* The status row can be a simple container */
-.status-row {
-    margin-bottom: 1rem;
-}
-
-/* Item cards */
-.size-inputs {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-    transition: transform 0.2s ease;
-}
-
-.size-inputs:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-hover);
-}
-
-/* Preview Content & Image */
-.preview-section {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--background-color);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    min-height: 200px;
-}
-
-.preview-image {
-    max-width: 100%;
-    max-height: 250px;
-    object-fit: cover;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-
-.preview-image:hover {
-    transform: scale(1.02);
-}
-
-/* Controls Section */
-.controls-section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-/* Cost Display */
-.cost-display {
-    border-top: 1px solid var(--border-color);
-    padding: 1rem;
-    background: var(--surface-color);
-}
-
-/* Button Styles */
-.upload-btn, .submit-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: var(--primary-color);
-    color: #fff;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-    font-weight: 500;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-decoration: none;
-    justify-content: center;
-}
-
-.upload-btn:hover, .submit-btn:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px);
-    color: #fff;
-    text-decoration: none;
-}
-
-/* Modal */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-image {
-    max-width: 90%;
-    max-height: 80vh;
-    object-fit: contain;
-}
-
-.close-modal {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    color: #fff;
-    font-size: 2rem;
-    cursor: pointer;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Make sure on smaller screens they stack properly */
-@media (max-width: 992px) {
-    .info-card {
-        width: calc(50% - 1rem);
-        height: 200px;
-    }
-}
-
-@media (max-width: 576px) {
-    .info-card {
-        width: 100%;
-        height: auto;
-        padding: 2rem 1rem;
-    }
-}
-</style>
-
 <script>
 function showFullSizePreview(src) {
     const modal = document.getElementById('previewModal');
@@ -341,3 +149,91 @@ function showFullSizePreview(src) {
 }
 </script>
 {% endblock %}
+2) Suggested CSS
+Here’s a lightweight set of styles to make each info card “square-ish” when there’s enough screen width. We use a fixed width or min-height approach so they look more uniform:
+
+css
+Copy
+/* Container for the 4 boxes: .info-cards-row is a flex container */
+.info-cards-row {
+  justify-content: start; /* or space-around, center, etc. */
+}
+
+/* Each info card */
+.info-card {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center; /* center content vertically */
+  text-align: center;
+  width: 200px;       /* fixed width for a square-like shape */
+  height: 200px;      /* match width to get squares */
+  padding: 1rem;
+  transition: transform 0.2s ease;
+}
+
+/* Slight hover effect */
+.info-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Icon at the top of each box */
+.card-icon {
+  font-size: 1.8rem;
+  color: var(--primary-color);
+  margin-bottom: 0.5rem;
+}
+
+/* Labels & Values in each box */
+.info-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.info-value {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+/* If the icon is "text-success," it overrides color to green */
+.card-icon.text-success {
+  color: var(--success-color);
+}
+
+/* The status row can be a simple container or a small card.
+   For now, we just keep it horizontally aligned. */
+.status-row {
+  margin-bottom: 1rem;
+}
+
+/* Make sure on smaller screens they stack properly */
+@media (max-width: 992px) {
+  .info-card {
+    width: calc(50% - 1rem);
+    height: 200px; /* Keep them "square-ish" even with 50% width */
+  }
+}
+@media (max-width: 576px) {
+  .info-card {
+    width: 100%;
+    height: auto; /* Let it expand for small phone screens */
+  }
+}
+Notes & Tweaks
+Fixed 200×200:
+
+On larger screens, each .info-card is a 200×200px square. That’s enough for an icon + two lines of text.
+If you want bigger squares, change width: 220px; height: 220px;.
+Responsive Wrapping:
+
+At around 992px (Bootstrap’s lg breakpoint), we make each card 50% - 1rem so two fit per row.
+At the smallest breakpoint (max-width: 576px), each card is full width (stacked).
+Adjust breakpoints and widths to taste.
+Status:
+
+We placed “Order Status” in a separate heading/row below the info cards. It’s simpler and helps keep the top row purely for those 4 squares.
+With these adjustments, you’ll have four horizontally aligned “square” cards for the main order info on desktop, then the status update appears below them, all in a nice, consistent layout.
