@@ -144,12 +144,11 @@
     border-color: var(--primary-color);
 }
 
-/* Adjust order item layout for checkbox */
+/* Adjust order item layout for proper alignment */
 .order-item {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    gap: 2rem;
     padding: 1.25rem;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
@@ -158,12 +157,35 @@
     transition: all 0.2s ease;
 }
 
-/* Prevent image squishing */
+/* Left section: checkbox and order details */
+.order-select {
+    flex-shrink: 0;
+    padding-right: 0;
+}
+
+.order-details {
+    flex: 1;
+    min-width: 200px;
+    max-width: 300px;
+}
+
+/* Center section: images */
 .order-images {
     display: flex;
     gap: 0.75rem;
-    width: auto;
+    justify-content: center;
+    flex: 2;
     flex-wrap: wrap;
+    padding: 0 1rem;
+}
+
+/* Right section: status, price, details button */
+.order-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-left: auto;
+    flex-shrink: 0;
 }
 
 .img-container {
@@ -194,18 +216,39 @@
     transform: scale(1.05);
 }
 
-
+/* Responsive adjustments */
 @media (max-width: 768px) {
     .order-item {
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.5rem;
+        gap: 1rem;
     }
 
-    .order-images, .order-actions {
-        grid-column: 1 / -1;
+    .order-details,
+    .order-images,
+    .order-actions {
+        width: 100%;
+    }
+
+    .order-images {
+        justify-content: flex-start;
+        padding: 0;
+    }
+
+    .order-actions {
+        justify-content: flex-start;
     }
 }
+
+/* Prevent image squishing */
+.order-images {
+    display: flex;
+    gap: 0.75rem;
+    width: auto;
+    flex-wrap: wrap;
+}
+
+
 /*Added styles for preview modal*/
 .preview-modal {
     z-index: 1000;
@@ -228,7 +271,7 @@
     z-index: 1001;
 }
 
-:root {
+::root {
     --primary-color: #3b82f6;
     --primary-dark: #2563eb;
     --primary-light: #60a5fa;
