@@ -8,9 +8,9 @@
             <p class="subtitle mb-0">View and manage your print orders</p>
         </div>
         <div class="d-flex gap-2">
-            <button class="upload-btn" onclick="toggleFilterModal()">
+            <a href="#" class="upload-btn" onclick="toggleFilterModal(); return false;">
                 <i class="fas fa-filter me-1"></i>Filter
-            </button>
+            </a>
             <a href="{{ url_for('export_orders') }}" class="upload-btn">
                 <i class="fas fa-download me-1"></i>Export
             </a>
