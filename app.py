@@ -76,26 +76,33 @@ def send_order_emails(order):
 
         try:
             sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
-            # Send customer email
+
+            # Send customer email with detailed logging
+            logger.info(f"Attempting to send customer email for order {order.order_number}")
             response = sg.send(customer_email)
             if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send customer email for order {order.order_number}. Status code: {response.status_code}")
+                logger.error(f"Failed to send customer email. Status code: {response.status_code}, Body: {response.body}, Headers: {response.headers}")
                 return False
-            logger.info(f"Customer email sent successfully for order {order.order_number}")
+            logger.info(f"Successfully sent customer email for order {order.order_number}")
 
-            # Send production team email
+            # Send production team email with detailed logging
+            logger.info(f"Attempting to send production team email for order {order.order_number}")
             response = sg.send(production_email)
             if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send production team email for order {order.order_number}. Status code: {response.status_code}")
+                logger.error(f"Failed to send production team email. Status code: {response.status_code}, Body: {response.body}, Headers: {response.headers}")
                 return False
-            logger.info(f"Production team email sent successfully for order {order.order_number}")
+            logger.info(f"Successfully sent production team email for order {order.order_number}")
 
             return True
+
         except Exception as e:
-            logger.error(f"SendGrid API error for order {order.order_number}: {str(e)}")
+            logger.error(f"SendGrid API error: {str(e)}")
+            if hasattr(e, 'body'):
+                logger.error(f"SendGrid API error details: {e.body}")
             return False
+
     except Exception as e:
-        logger.error(f"Error preparing emails for order {order.order_number}: {str(e)}")
+        logger.error(f"Error preparing emails: {str(e)}")
         return False
 
 @app.route('/')
