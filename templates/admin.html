@@ -18,10 +18,9 @@
     <div class="filter-bar mb-4">
         <div class="d-flex align-items-center gap-3">
             <select id="statusFilter" class="form-select" style="width: auto;">
-                <option value="">All Statuses</option>
-                <option value="pending">Pending</option>
-                <option value="processing">Processing</option>
-                <option value="completed">Completed</option>
+                <option value="open">Open Orders</option>
+                <option value="closed">Closed Orders</option>
+                <option value="">All Orders</option>
             </select>
             <input type="date" id="startDate" class="form-control" style="width: auto;" placeholder="Start Date">
             <input type="date" id="endDate" class="form-control" style="width: auto;" placeholder="End Date">
@@ -113,25 +112,6 @@
 </div>
 
 <style>
-:root {
-    --primary-color: #333333;
-    --primary-dark: #1a1a1a;
-    --primary-light: #666666;
-    --secondary-color: #64748b;
-    --background-color: #f1f5f9;
-    --surface-color: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
-    --border-color: #d1d5db;
-    --success-color: #22c55e;
-    --warning-color: #f59e0b;
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-    --shadow-hover: 0 8px 12px rgba(0, 0, 0, 0.1);
-    --radius-sm: 6px;
-    --radius-md: 8px;
-}
-
 /* Status badge styles - updated */
 .status-badge {
     position: relative;
@@ -234,6 +214,25 @@
 
 
 /* Rest of the styles remain unchanged */
+:root {
+    --primary-color: #333333;
+    --primary-dark: #1a1a1a;
+    --primary-light: #666666;
+    --secondary-color: #64748b;
+    --background-color: #f1f5f9;
+    --surface-color: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #d1d5db;
+    --success-color: #22c55e;
+    --warning-color: #f59e0b;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+    --shadow-hover: 0 8px 12px rgba(0, 0, 0, 0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+}
+
 body {
     background-color: var(--background-color);
 }
@@ -727,9 +726,9 @@ async function updateSelectedStatus() {
     }
 }
 
-// Real-time filtering
+// Update filtering logic for new status options
 function applyFilters() {
-    const status = document.getElementById('statusFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
@@ -737,8 +736,14 @@ function applyFilters() {
     orders.forEach(order => {
         let show = true;
 
-        if (status && order.dataset.status !== status) {
-            show = false;
+        // New status filtering logic
+        if (statusFilter) {
+            const orderStatus = order.dataset.status;
+            if (statusFilter === 'open') {
+                show = ['pending', 'processing'].includes(orderStatus);
+            } else if (statusFilter === 'closed') {
+                show = orderStatus === 'completed';
+            }
         }
 
         if (startDate || endDate) {
@@ -755,14 +760,19 @@ function applyFilters() {
 }
 
 function updateExportUrl() {
-    const status = document.getElementById('statusFilter').value;
+    const statusFilter = document.getElementById('statusFilter').value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
     let url = '/admin/export';
     const params = new URLSearchParams();
 
-    if (status) params.append('status', status);
+    if (statusFilter === 'open') {
+        params.append('status', 'open');
+    } else if (statusFilter === 'closed') {
+        params.append('status', 'closed');
+    }
+
     if (startDate) params.append('start_date', startDate);
     if (endDate) params.append('end_date', endDate);
 
@@ -771,7 +781,7 @@ function updateExportUrl() {
 }
 
 function clearFilters() {
-    document.getElementById('statusFilter').value = '';
+    document.getElementById('statusFilter').value = 'open'; // Set default to open
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
     applyFilters();
@@ -779,6 +789,10 @@ function clearFilters() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
+    // Set initial status filter to 'open'
+    document.getElementById('statusFilter').value = 'open';
+    applyFilters();
+
     // Add change event listeners for filters
     ['statusFilter', 'startDate', 'endDate'].forEach(id => {
         document.getElementById(id).addEventListener('change', applyFilters);
