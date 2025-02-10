@@ -59,7 +59,7 @@ body {
 
 /* Admin page styles */
 .admin-container {
-    background-color: var(--background-color);
+    background-color: #f5f5f5;  /* Pure grayscale */
 }
 
 .admin-card {
@@ -69,12 +69,37 @@ body {
 }
 
 .admin-header {
-    background-color: var(--background-color);
+    background-color: #f5f5f5;  /* Pure grayscale */
     border-bottom: 1px solid var(--border-color);
 }
 
 .admin-content {
     background-color: var(--surface-color);
+}
+
+/* Filter bar styles */
+.filter-bar {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    padding: 1rem;
+    background: var(--surface-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+}
+
+.filter-bar select,
+.filter-bar input[type="date"] {
+    height: 38px;  /* Consistent height */
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-color);
+}
+
+.filter-bar select {
+    min-width: 150px;  /* Increased width for status dropdown */
+    padding-right: 2rem;  /* Space for icon */
 }
 
 /* Status badges */
