@@ -370,7 +370,7 @@ h1 {
     box-shadow: 0 0 0 0.2rem rgba(51, 51, 51, 0.25);
 }
 
-/* Order submit section mobile improvements */
+/* Order submit section styling */
 .order-submit-section {
     display: flex;
     align-items: center;
@@ -387,27 +387,31 @@ h1 {
     flex: 1;
 }
 
-.email-input i {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-secondary);
-}
-
-.email-input input {
-    width: 100%;
-    height: 48px;
-    padding: 8px 12px 8px 2.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-}
-
 .total-display {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--primary-color);
+    white-space: nowrap;
+}
+
+.submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0 1.5rem;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.submit-btn:hover {
+    background: var(--primary-dark);
 }
 
 @media (max-width: 768px) {
@@ -423,11 +427,9 @@ h1 {
         margin-bottom: 1rem;
     }
 
-    /* Total and submit button container */
-    .order-submit-section .button-row {
+    .button-row {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 1rem;
         width: 100%;
     }
@@ -435,11 +437,10 @@ h1 {
     .total-display {
         font-size: 1.25rem;
         margin: 0;
-        white-space: nowrap;
     }
 
     .submit-btn {
-        min-width: 120px;
+        flex: 1;
         justify-content: center;
         margin: 0;
     }
@@ -831,23 +832,4 @@ h1 {
         text-align: center;
         margin-top: 0.5rem;
     }
-}
-
-.submit-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 0 1.5rem;
-    height: 48px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.submit-btn:hover {
-    background: var(--primary-dark);
 }
