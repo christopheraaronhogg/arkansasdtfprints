@@ -4,7 +4,7 @@
     --primary-dark: #1a1a1a;
     --primary-light: #666666;
     --secondary-color: #888888;
-    --background-color: #ffffff;
+    --background-color: #f8f9fa;  /* Changed to light grey */
     --surface-color: #ffffff;
     --text-primary: #333333;
     --text-secondary: #666666;
@@ -37,13 +37,13 @@ body {
 }
 
 .navbar {
-    background-color: #f8f9fa !important;
+    background-color: #ffffff !important;  /* Pure white */
     border-bottom: 1px solid var(--border-color);
-    padding: 0.5rem 0;
+    padding: 0.25rem 0;  /* Reduced padding */
 }
 
 .navbar-brand img {
-    height: 60px;  /* Increased from 40px */
+    height: 60px;
     width: auto;
 }
 
@@ -65,7 +65,7 @@ body {
 
 /* Admin page styles */
 .admin-container {
-    background-color: #f8f9fa;  /* Changed from blue tint to light gray */
+    background-color: var(--background-color);  /* Changed from blue tint to light gray */
 }
 
 .admin-card {
@@ -75,7 +75,7 @@ body {
 }
 
 .admin-header {
-    background-color: #f8f9fa;  /* Changed from blue tint to light gray */
+    background-color: var(--background-color);  /* Changed from blue tint to light gray */
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -154,7 +154,6 @@ h1 {
     box-shadow: var(--shadow-md);
     margin-bottom: 2rem;
 }
-
 
 .upload-btn {
     display: inline-flex;
