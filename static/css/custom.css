@@ -1,16 +1,19 @@
 /* == CSS Variables == */
 :root {
-    --primary-color: #3b82f6;
-    --primary-dark: #2563eb;
-    --primary-light: #60a5fa;
-    --secondary-color: #64748b;
-    --background-color: #f8fafc;
+    --primary-color: #000000;
+    --primary-dark: #333333;
+    --primary-light: #666666;
+    --secondary-color: #ffffff;
+    --background-color: #ffffff;
     --surface-color: #ffffff;
-    --text-primary: #1e293b;
-    --text-secondary: #64748b;
+    --text-primary: #000000;
+    --text-secondary: #666666;
     --border-color: #e2e8f0;
     --success-color: #22c55e;
+    --warning-color: #f59e0b;
     --error-color: #ef4444;
+    --info-color: #3b82f6;
+    --pending-color: #6366f1;
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     --radius-sm: 6px;
@@ -31,6 +34,52 @@ body {
     color: var(--text-primary);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+}
+
+.navbar {
+    background-color: var(--primary-color) !important;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.navbar-brand img {
+    height: 40px;
+    width: auto;
+}
+
+/* Status badges */
+.badge {
+    padding: 0.35em 0.65em;
+    font-size: 0.85em;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+}
+
+.badge-pending {
+    background-color: var(--pending-color);
+    color: white;
+}
+
+.badge-processing {
+    background-color: var(--info-color);
+    color: white;
+}
+
+.badge-completed {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.badge-cancelled {
+    background-color: var(--error-color);
+    color: white;
+}
+
+/* Cards and containers */
+.card {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .container {
