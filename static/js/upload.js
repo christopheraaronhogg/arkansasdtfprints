@@ -104,9 +104,18 @@ const PrintCalculator = (() => {
             // Update the specified dimension
             imageState.current[dimension] = Math.max(0.1, parseFloat(newValue.toFixed(2)));
 
-            // Update the other dimension to maintain aspect ratio
+            // Update the other dimension based on aspect ratio
             const otherDimension = dimension === 'width' ? 'height' : 'width';
-            const otherValue = imageState.current[dimension] / imageState.original.aspect;
+            let otherValue;
+
+            if (dimension === 'width') {
+                // If width changed, calculate new height
+                otherValue = newValue / imageState.original.aspect;
+            } else {
+                // If height changed, calculate new width
+                otherValue = newValue * imageState.original.aspect;
+            }
+
             imageState.current[otherDimension] = Math.max(0.1, parseFloat(otherValue.toFixed(2)));
         },
 
