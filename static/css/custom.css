@@ -4,7 +4,7 @@
     --primary-dark: #1a1a1a;
     --primary-light: #666666;
     --secondary-color: #888888;
-    --background-color: #f8f9fa;  /* Updated admin background */
+    --background-color: #f8f9fa;
     --surface-color: #ffffff;
     --text-primary: #333333;
     --text-secondary: #666666;
@@ -12,13 +12,21 @@
     --success-color: #22c55e;
     --warning-color: #f59e0b;
     --error-color: #ef4444;
-    --info-color: #333333;  /* Changed from blue to dark gray */
-    --pending-color: #666666;  /* Changed from blue to gray */
+    --info-color: #333333;
+    --pending-color: #666666;
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
+}
+
+/* Force background color for admin pages */
+body.admin-page,
+.admin-container,
+.admin-header,
+.admin-content-wrapper {
+    background-color: #f8f9fa !important;
 }
 
 /* Base styles */
@@ -31,19 +39,19 @@ body {
 }
 
 .navbar {
-    background-color: #ffffff !important;  /* Pure white */
+    background-color: var(--surface-color) !important;
     border-bottom: 1px solid var(--border-color);
-    padding: 0.25rem 0;  /* Reduced padding */
+    padding: 0.25rem 0;
 }
 
 .navbar-brand img {
-    height: 70px;  /* Increased from 60px */
+    height: 70px;
     width: auto;
 }
 
 /* Admin page styles */
 .admin-container {
-    background-color: var(--background-color);  /* Using updated background color */
+    background-color: var(--background-color);
 }
 
 .admin-card {
@@ -53,7 +61,7 @@ body {
 }
 
 .admin-header {
-    background-color: var(--background-color);  /* Using updated background color */
+    background-color: var(--background-color);
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -74,7 +82,7 @@ body {
 
 .filter-bar select,
 .filter-bar input[type="date"] {
-    height: 38px;  /* Consistent height */
+    height: 38px;
     padding: 0.375rem 0.75rem;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
@@ -82,19 +90,24 @@ body {
 }
 
 .filter-bar select {
-    min-width: 150px;  /* Increased width for status dropdown */
-    padding-right: 2rem;  /* Space for icon */
+    min-width: 180px;  /* Increased width for status dropdown */
+    padding-right: 2.5rem;  /* More space for icon */
 }
 
 /* Buttons */
-.btn-primary {
-    background-color: var(--primary-color) !important;  /* Using dark gray instead of blue */
-    border-color: var(--primary-color) !important;
+.btn-primary,
+.btn-action,
+.status-update-btn {
+    background-color: #333333 !important;
+    border-color: #333333 !important;
+    color: white !important;
 }
 
-.btn-primary:hover {
-    background-color: var(--primary-dark) !important;
-    border-color: var(--primary-dark) !important;
+.btn-primary:hover,
+.btn-action:hover,
+.status-update-btn:hover {
+    background-color: #1a1a1a !important;
+    border-color: #1a1a1a !important;
 }
 
 /* Status badges */
@@ -103,7 +116,7 @@ body {
     font-size: 0.85em;
     font-weight: 600;
     border-radius: var(--radius-sm);
-    white-space: nowrap;  /* Prevent wrapping */
+    white-space: nowrap;
 }
 
 /* Upload Area */
@@ -119,7 +132,7 @@ body {
 
 .upload-area:hover, .upload-area.dragover {
     border-color: var(--primary-color);
-    background: #f5f5f5;  /* Changed from blue tint to light gray */
+    background: #f5f5f5;
 }
 
 /* Cards and containers */
