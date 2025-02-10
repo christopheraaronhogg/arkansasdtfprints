@@ -423,24 +423,25 @@ h1 {
         margin-bottom: 1rem;
     }
 
-    /* Container for total and submit button */
-    .order-submit-section > div:last-child {
+    /* Total and submit button container */
+    .order-submit-section .button-row {
         display: flex;
         align-items: center;
+        justify-content: space-between;
         gap: 1rem;
         width: 100%;
     }
 
     .total-display {
-        flex: 1;
         font-size: 1.25rem;
-        text-align: left;
         margin: 0;
+        white-space: nowrap;
     }
 
     .submit-btn {
         min-width: 120px;
         justify-content: center;
+        margin: 0;
     }
 }
 
