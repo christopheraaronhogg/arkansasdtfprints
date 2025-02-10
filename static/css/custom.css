@@ -21,7 +21,75 @@
     --radius-lg: 12px;
 }
 
-/* Keep all existing styles but update color references */
+/* Force all buttons and interactive elements to use our color scheme */
+.btn-link,
+.nav-link,
+a:not(.btn-primary):not(.btn-secondary) {
+    color: var(--primary-color);
+}
+
+.btn-link:hover,
+.nav-link:hover,
+a:not(.btn-primary):not(.btn-secondary):hover {
+    color: var(--primary-dark);
+}
+
+/* Keep processing status blue but change other status colors */
+.status-badge[data-status="processing"] {
+    background-color: #3b82f6;  /* Keep this blue for processing status */
+    color: white;
+}
+
+.status-badge[data-status="pending"] {
+    background-color: var(--pending-color);
+    color: white;
+}
+
+.status-badge[data-status="completed"] {
+    background-color: var(--success-color);
+    color: white;
+}
+
+/* Force all primary buttons to use our color scheme */
+.btn-primary,
+.upload-btn,
+.details-btn,
+.status-update-btn,
+button.btn-primary,
+.btn.btn-primary,
+.admin-page .btn-primary,
+a.btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Force hover states */
+.btn-primary:hover,
+.upload-btn:hover,
+.details-btn:hover,
+.status-update-btn:hover,
+button.btn-primary:hover,
+.btn.btn-primary:hover,
+.admin-page .btn-primary:hover,
+a.btn-primary:hover {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+    color: white !important;
+}
+
+/* Force focus states */
+.btn-primary:focus,
+.upload-btn:focus,
+.details-btn:focus,
+.status-update-btn:focus,
+button.btn-primary:focus,
+.btn.btn-primary:focus,
+.admin-page .btn-primary:focus,
+a.btn-primary:focus {
+    box-shadow: 0 0 0 0.25rem rgba(51, 51, 51, 0.25) !important;
+}
+
 .card-icon {
     color: var(--primary-color);
 }
@@ -32,47 +100,11 @@
     box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
 }
 
-/* Keep processing status blue but change other status colors */
-.status-badge[data-status="processing"] {
-    background-color: #3b82f6;  /* Keep this blue for processing status */
-    color: white;
-}
-
 .quantity-badge {
     background: var(--primary-color);
     color: white;
 }
 
-/* Base button styles - consolidated and standardized */
-.btn-primary,
-.upload-btn,
-.details-btn,
-.status-update-btn,
-button.btn-primary,
-.btn.btn-primary,
-.admin-page .btn-primary,
-a.btn-primary {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: white;
-    transition: all 0.2s ease-in-out;
-}
-
-/* Hover states */
-.btn-primary:hover,
-.upload-btn:hover,
-.details-btn:hover,
-.status-update-btn:hover,
-button.btn-primary:hover,
-.btn.btn-primary:hover,
-.admin-page .btn-primary:hover,
-a.btn-primary:hover {
-    background-color: var(--primary-dark);
-    border-color: var(--primary-dark);
-    color: white;
-}
-
-/* Force background color for admin pages */
 body.admin-page,
 .admin-container,
 .admin-header,
@@ -80,7 +112,6 @@ body.admin-page,
     background-color: #f8f9fa !important;
 }
 
-/* Base styles */
 body {
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     background-color: var(--background-color);
@@ -100,7 +131,6 @@ body {
     width: auto;
 }
 
-/* Admin page styles */
 .admin-container {
     background-color: var(--background-color);
 }
@@ -120,7 +150,6 @@ body {
     background-color: var(--surface-color);
 }
 
-/* Filter bar styles */
 .filter-bar {
     display: flex;
     gap: 1rem;
@@ -145,7 +174,6 @@ body {
     padding-right: 2.5rem;  /* More space for icon */
 }
 
-/* Force heading colors */
 h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6,
 .admin-page h1,
@@ -157,7 +185,6 @@ h1, h2, h3, h4, h5, h6,
     color: var(--primary-color) !important;
 }
 
-/* Status badges */
 .badge {
     padding: 0.35em 0.65em;
     font-size: 0.85em;
@@ -166,7 +193,6 @@ h1, h2, h3, h4, h5, h6,
     white-space: nowrap;
 }
 
-/* Upload Area */
 .upload-area {
     background: var(--surface-color);
     border: 2px dashed var(--border-color);
@@ -182,7 +208,6 @@ h1, h2, h3, h4, h5, h6,
     background: #f5f5f5;
 }
 
-/* Cards and containers */
 .card {
     background-color: var(--surface-color);
     border: 1px solid var(--border-color);
@@ -196,7 +221,6 @@ h1, h2, h3, h4, h5, h6,
     padding: 2rem;
 }
 
-/* Header */
 header {
     text-align: center;
     margin-bottom: 3rem;
@@ -253,7 +277,6 @@ h1 {
     display: none;
 }
 
-/* Preview and Modal */
 .modal {
     display: none;
     position: fixed;
@@ -296,14 +319,9 @@ h1 {
     z-index: 1010;
 }
 
-/* Status badges - Keep processing status blue */
+
 .status-badge[data-status="pending"] {
     background-color: var(--warning-color);
-    color: white;
-}
-
-.status-badge[data-status="processing"] {
-    background-color: #3b82f6;  /* Keep this blue for processing status */
     color: white;
 }
 
@@ -312,7 +330,6 @@ h1 {
     color: white;
 }
 
-/* Form focus states */
 .form-select:focus,
 .form-control:focus {
     border-color: var(--primary-color);
@@ -320,7 +337,6 @@ h1 {
     outline: none;
 }
 
-/* Details button */
 .details-btn {
     display: inline-flex;
     align-items: center;
@@ -340,7 +356,6 @@ h1 {
     text-decoration: none;
 }
 
-/* Buttons that need to be explicitly gray */
 .btn-secondary {
     background: var(--secondary-color);
     color: white;
@@ -356,7 +371,6 @@ h1 {
     opacity: 0.9;
 }
 
-/* Remove any remaining Bootstrap influences */
 .btn-primary:not(:disabled):not(.disabled):active,
 .btn-primary:not(:disabled):not(.disabled).active,
 .show > .btn-primary.dropdown-toggle {
@@ -369,7 +383,6 @@ h1 {
     box-shadow: 0 0 0 0.2rem rgba(51, 51, 51, 0.25);
 }
 
-/* Order Submit Section */
 .order-submit-section {
     display: flex;
     align-items: center;
@@ -428,7 +441,6 @@ h1 {
     background: var(--primary-dark);
 }
 
-/* Responsive Design */
 @media (max-width: 768px) {
     .container {
         padding: 1rem;
@@ -492,7 +504,6 @@ h1 {
     object-fit: cover;
 }
 
-/* Preview content styles */
 .preview-content {
     display: flex;
     flex-direction: column;
@@ -532,7 +543,6 @@ h1 {
     gap: 0.75rem;
 }
 
-/* Input Controls */
 .input-with-unit {
     position: relative;
 }
@@ -563,7 +573,6 @@ h1 {
     opacity: 0.8;
 }
 
-/* Images Grid */
 .images-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -578,7 +587,6 @@ h1 {
     box-shadow: var(--shadow-md);
 }
 
-/* Cost Display */
 .cost-display {
     border-top: 1px solid var(--border-color);
     padding: 1rem;
@@ -594,14 +602,12 @@ h1 {
     font-size: 1.1rem;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .images-grid {
         grid-template-columns: 1fr;
     }
 }
 
-/* Success Page Styles */
 .success-container {
     min-height: calc(100vh - 200px);
     display: flex;
@@ -680,7 +686,6 @@ h1 {
     color: white;
 }
 
-/* Loading Overlay */
 .loading-overlay {
     position: fixed;
     top: 0;
