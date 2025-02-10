@@ -9,7 +9,7 @@
         </div>
         <div class="d-flex gap-2">
             <a href="{{ url_for('export_orders') }}" id="exportBtn" class="upload-btn">
-                <i class="fas fa-download me-1"></i>Export
+                <i class="fas fa-download me-1" style="color: white !important;"></i>Export
             </a>
         </div>
     </header>
@@ -26,7 +26,7 @@
             <input type="date" id="startDate" class="form-control" style="width: auto;" placeholder="Start Date">
             <input type="date" id="endDate" class="form-control" style="width: auto;" placeholder="End Date">
             <button class="upload-btn" onclick="clearFilters()">
-                <i class="fas fa-times me-1"></i>Clear
+                <i class="fas fa-times me-1" style="color: white !important;"></i>Clear
             </button>
         </div>
     </div>
@@ -41,7 +41,7 @@
                 <option value="completed">Completed</option>
             </select>
             <button onclick="updateSelectedStatus()" class="upload-btn">
-                <i class="fas fa-check me-1"></i>Update Selected
+                <i class="fas fa-check me-1" style="color: white !important;"></i>Update Selected
             </button>
             <div class="ms-auto">
                 <span id="selectedCount" class="text-muted">0 selected</span>
@@ -98,7 +98,7 @@
                 </div>
                 <div class="order-cost">${{ "%.2f"|format(order.total_cost) }}</div>
                 <a href="{{ url_for('view_order', order_id=order.id) }}" class="details-btn">
-                    <i class="fas fa-eye me-1"></i>Details
+                    <i class="fas fa-eye me-1" style="color: white !important;"></i>Details
                 </a>
             </div>
         </div>
@@ -114,6 +114,63 @@
 
 <style>
 /* Existing styles remain unchanged */
+
+/* Status badge styles - updated */
+.status-badge {
+    position: relative;
+    z-index: 2;
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Status-specific colors - only processing remains blue */
+.status-badge[data-status="pending"] {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.status-badge[data-status="processing"] {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.status-badge[data-status="completed"] {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.status-badge:hover {
+    opacity: 0.9;
+}
+
+/* Ensure all buttons use our color scheme */
+.upload-btn,
+.details-btn,
+.btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+    transition: all 0.2s ease;
+}
+
+.upload-btn:hover,
+.details-btn:hover,
+.btn-primary:hover {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+    color: white !important;
+}
+
+/* Force white text color for icons inside buttons */
+.upload-btn i,
+.details-btn i,
+.btn-primary i {
+    color: white !important;
+}
 
 /* Add image count badge */
 .img-container {
@@ -310,38 +367,6 @@
     font-size: 2rem;
     cursor: pointer;
     z-index: 1001;
-}
-
-/* Status badge styles */
-.status-badge {
-    position: relative;  /* anchor for absolutely positioned dropdown */
-    z-index: 2;         /* higher than .order-item's 1 */
-    display: inline-block;
-    padding: 0.4rem 0.8rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-}
-
-/* Status-specific colors */
-.status-badge[data-status="pending"] {
-    background-color: #f59e0b;
-    color: white;
-}
-
-.status-badge[data-status="processing"] {
-    background-color: #3b82f6;
-    color: white;
-}
-
-.status-badge[data-status="completed"] {
-    background-color: #22c55e;
-    color: white;
-}
-
-.status-badge:hover {
-    opacity: 0.9;
 }
 
 /* Dropdown styling */
