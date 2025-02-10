@@ -4,7 +4,7 @@
     --primary-dark: #1a1a1a;
     --primary-light: #666666;
     --secondary-color: #888888;
-    --background-color: #f8f9fa;  /* Changed to light grey */
+    --background-color: #f8f9fa;  /* Updated admin background */
     --surface-color: #ffffff;
     --text-primary: #333333;
     --text-secondary: #666666;
@@ -12,8 +12,8 @@
     --success-color: #22c55e;
     --warning-color: #f59e0b;
     --error-color: #ef4444;
-    --info-color: #3b82f6;
-    --pending-color: #6366f1;
+    --info-color: #333333;  /* Changed from blue to dark gray */
+    --pending-color: #666666;  /* Changed from blue to gray */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     --radius-sm: 6px;
@@ -41,25 +41,9 @@ body {
     width: auto;
 }
 
-/* Upload Area */
-.upload-area {
-    background: var(--surface-color);
-    border: 2px dashed var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    text-align: center;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.upload-area:hover, .upload-area.dragover {
-    border-color: var(--primary-color);
-    background: #f5f5f5;  /* Changed from blue tint to light gray */
-}
-
 /* Admin page styles */
 .admin-container {
-    background-color: #f5f5f5;  /* Pure grayscale */
+    background-color: var(--background-color);  /* Using updated background color */
 }
 
 .admin-card {
@@ -69,7 +53,7 @@ body {
 }
 
 .admin-header {
-    background-color: #f5f5f5;  /* Pure grayscale */
+    background-color: var(--background-color);  /* Using updated background color */
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -102,6 +86,17 @@ body {
     padding-right: 2rem;  /* Space for icon */
 }
 
+/* Buttons */
+.btn-primary {
+    background-color: var(--primary-color) !important;  /* Using dark gray instead of blue */
+    border-color: var(--primary-color) !important;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+}
+
 /* Status badges */
 .badge {
     padding: 0.35em 0.65em;
@@ -111,14 +106,20 @@ body {
     white-space: nowrap;  /* Prevent wrapping */
 }
 
-/* Update status button */
-.status-update-btn {
-    white-space: nowrap;  /* Prevent text wrapping */
-    padding: 0.375rem 0.75rem;  /* Compact padding */
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;  /* Slightly smaller font */
+/* Upload Area */
+.upload-area {
+    background: var(--surface-color);
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.upload-area:hover, .upload-area.dragover {
+    border-color: var(--primary-color);
+    background: #f5f5f5;  /* Changed from blue tint to light gray */
 }
 
 /* Cards and containers */
