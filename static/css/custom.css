@@ -103,7 +103,13 @@ button.btn-action,
 button.status-update-btn,
 a.btn-primary,
 a.btn-action,
-a.status-update-btn {
+a.status-update-btn,
+.btn.btn-primary,
+.btn.btn-action,
+.btn.status-update-btn,
+.admin-page .btn-primary,
+.admin-page .btn-action,
+.admin-page .status-update-btn {
     background-color: #333333 !important;
     border-color: #333333 !important;
     color: white !important;
@@ -118,14 +124,26 @@ button.btn-action:hover,
 button.status-update-btn:hover,
 a.btn-primary:hover,
 a.btn-action:hover,
-a.status-update-btn:hover {
+a.status-update-btn:hover,
+.btn.btn-primary:hover,
+.btn.btn-action:hover,
+.btn.status-update-btn:hover,
+.admin-page .btn-primary:hover,
+.admin-page .btn-action:hover,
+.admin-page .status-update-btn:hover {
     background-color: #1a1a1a !important;
     border-color: #1a1a1a !important;
 }
 
 /* Force heading colors */
 h1, h2, h3, h4, h5, h6,
-.h1, .h2, .h3, .h4, .h5, .h6 {
+.h1, .h2, .h3, .h4, .h5, .h6,
+.admin-page h1,
+.admin-page h2,
+.admin-page h3,
+.admin-page h4,
+.admin-page h5,
+.admin-page h6 {
     color: #333333 !important;
 }
 
