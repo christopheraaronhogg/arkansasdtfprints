@@ -113,7 +113,24 @@
 </div>
 
 <style>
-/* Existing styles remain unchanged */
+:root {
+    --primary-color: #333333;
+    --primary-dark: #1a1a1a;
+    --primary-light: #666666;
+    --secondary-color: #64748b;
+    --background-color: #f1f5f9;
+    --surface-color: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #d1d5db;
+    --success-color: #22c55e;
+    --warning-color: #f59e0b;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+    --shadow-hover: 0 8px 12px rgba(0, 0, 0, 0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+}
 
 /* Status badge styles - updated */
 .status-badge {
@@ -191,263 +208,7 @@
     box-shadow: var(--shadow-sm);
 }
 
-/* New styles for filter bar and bulk actions */
-.filter-bar {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 1rem 1.25rem;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 2rem; /* Increased margin between filter bar and orders */
-}
-
-.bulk-actions {
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 0.75rem 1.25rem;
-    box-shadow: var(--shadow-sm);
-    margin-bottom: 2rem; /* Added more spacing here */
-}
-
-.order-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    margin-top: 1rem; /* Added extra top margin */
-}
-
-/* Add checkbox column */
-.order-select {
-    display: flex;
-    align-items: center;
-    padding-right: 1rem;
-}
-
-.form-check-input {
-    width: 1.2rem;
-    height: 1.2rem;
-    cursor: pointer;
-    border-color: var(--border-color);
-}
-
-.form-check-input:checked {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-/* Adjust order item layout for proper alignment */
-.order-item {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    padding: 1.25rem;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease;
-    position: relative; /* Added for proper stacking context */
-    overflow: visible;
-    z-index: 1;
-}
-
-/* Left section: checkbox and order details */
-.order-select {
-    flex-shrink: 0;
-    padding-right: 0;
-}
-
-.order-details {
-    color: var(--text-primary);  /* Changed from primary-color to text-primary for black text */
-    font-size: 1rem;
-    margin: 0;
-    width: auto !important;
-}
-
-/* Center section: images */
-.order-images {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-    flex: 2;
-    flex-wrap: wrap;
-    padding: 0 1rem;
-}
-
-/* Right section: status, price, details button */
-.order-actions {
-    margin-left: auto;   /* push to the far right */
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-shrink: 0;
-    overflow: visible;
-    width: auto !important;
-}
-
-.img-container {
-    width: 70px;
-    min-width: 70px;
-    height: 70px;
-    flex-shrink: 0;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.img-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: opacity 0.2s;
-}
-
-.img-container:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.img-container img:hover {
-    opacity: 0.9;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .order-item {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-
-    .order-details,
-    .order-images,
-    .order-actions {
-        width: 100%;
-    }
-
-    .order-images {
-        justify-content: flex-start;
-        padding: 0;
-    }
-
-    .order-actions {
-        justify-content: flex-start;
-    }
-}
-
-/* Prevent image squishing */
-.order-images {
-    display: flex;
-    gap: 0.75rem;
-    width: auto;
-    flex-wrap: wrap;
-}
-
-
-/*Added styles for preview modal*/
-.preview-modal {
-    z-index: 1000;
-    background: rgba(0, 0, 0, 0.8);
-}
-
-.preview-modal img {
-    max-width: 90vw;
-    max-height: 90vh;
-    object-fit: contain;
-}
-
-.close-modal {
-    position: absolute;
-    top: 20px;
-    right: 30px;
-    color: #fff;
-    font-size: 2rem;
-    cursor: pointer;
-    z-index: 1001;
-}
-
-/* Dropdown styling */
-.status-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    margin-top: 0.5rem;
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    box-shadow: var(--shadow-md);
-    z-index: 9999; /* higher than everything */
-    min-width: 120px;
-    display: none;
-}
-
-.status-dropdown.active {
-    display: block;
-}
-
-.dropdown-option {
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    color: var(--text-primary);
-}
-
-.dropdown-option:hover {
-    background-color: var(--background-color);
-}
-
-.dropdown-option:not(:last-child) {
-    border-bottom: 1px solid var(--border-color);
-}
-
-/* Order item layout */
-.order-item {
-    position: relative;
-    z-index: 1; /* base z-index */
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    padding: 1.25rem;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    overflow: visible;
-    transition: box-shadow 0.2s ease; /* only transition the shadow */
-}
-
-.order-item:hover {
-    box-shadow: var(--shadow-md);
-    /* removed transform and z-index change on hover */
-}
-
-/* New class for when dropdown is active */
-.order-item.dropdown-active {
-    z-index: 9999; /* Keep this row above others while dropdown is open */
-}
-
-/*Existing styles from lines 359 to 672*/
-:root {
-    --primary-color: #3b82f6;
-    --primary-dark: #2563eb;
-    --primary-light: #60a5fa;
-    --secondary-color: #64748b;
-    --background-color: #f1f5f9;
-    --surface-color: #ffffff;
-    --text-primary: #1e293b; /* Black text color */
-    --text-secondary: #64748b;
-    --border-color: #d1d5db;
-    --success-color: #22c55e;
-    --warning-color: #f59e0b;
-    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
-    --shadow-hover: 0 8px 12px rgba(0, 0, 0, 0.1);
-    --radius-sm: 6px;
-    --radius-md: 8px;
-}
-
+/* Rest of the styles remain unchanged */
 body {
     background-color: var(--background-color);
 }
@@ -517,7 +278,6 @@ body {
     background: var(--primary-dark);
     color: white;
     text-decoration: none;
-    /* removed transform */
 }
 
 .modal {
@@ -738,6 +498,214 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .upload-btn:hover {
     opacity: 0.9;
 }
+
+.preview-modal {
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.preview-modal img {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+}
+
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    z-index: 1001;
+}
+
+/* Dropdown styling */
+.status-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 0.5rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    z-index: 9999; 
+    min-width: 120px;
+    display: none;
+}
+
+.status-dropdown.active {
+    display: block;
+}
+
+.dropdown-option {
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+.dropdown-option:hover {
+    background-color: var(--background-color);
+}
+
+.dropdown-option:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Order item layout */
+.order-item {
+    position: relative;
+    z-index: 1; 
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.25rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    overflow: visible;
+    transition: box-shadow 0.2s ease; 
+}
+
+.order-item:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.order-item.dropdown-active {
+    z-index: 9999; 
+}
+
+.order-select {
+    display: flex;
+    align-items: center;
+    padding-right: 1rem;
+}
+
+.form-check-input {
+    width: 1.2rem;
+    height: 1.2rem;
+    cursor: pointer;
+    border-color: var(--border-color);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Adjust order item layout for proper alignment */
+.order-item {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    padding: 1.25rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    position: relative; 
+    overflow: visible;
+    z-index: 1;
+}
+
+/* Left section: checkbox and order details */
+.order-select {
+    flex-shrink: 0;
+    padding-right: 0;
+}
+
+.order-details {
+    color: var(--text-primary);  
+    font-size: 1rem;
+    margin: 0;
+    width: auto !important;
+}
+
+/* Center section: images */
+.order-images {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex: 2;
+    flex-wrap: wrap;
+    padding: 0 1rem;
+}
+
+/* Right section: status, price, details button */
+.order-actions {
+    margin-left: auto;   
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    overflow: visible;
+    width: auto !important;
+}
+
+.img-container {
+    width: 70px;
+    min-width: 70px;
+    height: 70px;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.2s;
+}
+
+.img-container:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.img-container img:hover {
+    opacity: 0.9;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .order-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .order-details,
+    .order-images,
+    .order-actions {
+        width: 100%;
+    }
+
+    .order-images {
+        justify-content: flex-start;
+        padding: 0;
+    }
+
+    .order-actions {
+        justify-content: flex-start;
+    }
+}
+
+/* Prevent image squishing */
+.order-images {
+    display: flex;
+    gap: 0.75rem;
+    width: auto;
+    flex-wrap: wrap;
+}
+
+
 </style>
 
 <script>
