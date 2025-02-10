@@ -164,14 +164,23 @@
     opacity: 0.9;
 }
 
-/* Ensure all buttons use our color scheme */
+/* Consistent button styling */
 .upload-btn,
 .details-btn,
 .btn-primary {
     background-color: var(--primary-color) !important;
     border-color: var(--primary-color) !important;
     color: white !important;
-    transition: all 0.2s ease;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    line-height: 1.5 !important;
+    border-radius: var(--radius-sm) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    transition: all 0.2s ease !important;
+    height: 38px !important;  /* Match the height of other form controls */
 }
 
 .upload-btn:hover,
@@ -484,20 +493,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     cursor: pointer;
 }
 
-.upload-btn {
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.upload-btn:hover {
-    opacity: 0.9;
-}
 
 .preview-modal {
     z-index: 1000;
@@ -704,8 +699,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     width: auto;
     flex-wrap: wrap;
 }
-
-
 </style>
 
 <script>
