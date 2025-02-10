@@ -17,11 +17,16 @@
     <!-- Filter Bar -->
     <div class="filter-bar mb-4">
         <div class="d-flex align-items-center gap-3">
-            <select id="statusFilter" class="form-select" style="width: auto;">
-                <option value="open">Open Orders</option>
-                <option value="closed">Closed Orders</option>
-                <option value="">All Orders</option>
-            </select>
+            <div class="status-toggle">
+                <div class="toggle-track">
+                    <div class="toggle-slider"></div>
+                    <div class="toggle-options">
+                        <span class="toggle-option active" data-value="open">Open</span>
+                        <span class="toggle-option" data-value="closed">Closed</span>
+                        <span class="toggle-option" data-value="">All</span>
+                    </div>
+                </div>
+            </div>
             <input type="date" id="startDate" class="form-control" style="width: auto;" placeholder="Start Date">
             <input type="date" id="endDate" class="form-control" style="width: auto;" placeholder="End Date">
             <button class="action-btn" onclick="clearFilters()">
@@ -213,7 +218,59 @@
 }
 
 
-/* Rest of the styles remain unchanged */
+/* Status toggle styling */
+.status-toggle {
+    position: relative;
+    width: 300px;
+    height: 38px;
+}
+
+.toggle-track {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.toggle-slider {
+    position: absolute;
+    width: 33.33%;
+    height: calc(100% - 2px);
+    background: var(--primary-color);
+    border-radius: calc(var(--radius-sm) - 1px);
+    top: 1px;
+    left: 0;
+    transition: transform 0.3s ease;
+}
+
+.toggle-options {
+    position: relative;
+    display: flex;
+    height: 100%;
+    z-index: 1;
+}
+
+.toggle-option {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
+    user-select: none;
+}
+
+.toggle-option.active {
+    color: white;
+}
+
+/* Rest of your existing styles... */
 :root {
     --primary-color: #333333;
     --primary-dark: #1a1a1a;
@@ -727,8 +784,9 @@ async function updateSelectedStatus() {
 }
 
 // Update filtering logic for new status options
-function applyFilters() {
-    const statusFilter = document.getElementById('statusFilter').value;
+function applyFilters(statusOverride) {
+    const status = statusOverride !== undefined ? statusOverride : 
+        document.querySelector('.toggle-option.active').dataset.value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
@@ -736,12 +794,11 @@ function applyFilters() {
     orders.forEach(order => {
         let show = true;
 
-        // New status filtering logic
-        if (statusFilter) {
+        if (status) {
             const orderStatus = order.dataset.status;
-            if (statusFilter === 'open') {
+            if (status === 'open') {
                 show = ['pending', 'processing'].includes(orderStatus);
-            } else if (statusFilter === 'closed') {
+            } else if (status === 'closed') {
                 show = orderStatus === 'completed';
             }
         }
@@ -755,21 +812,20 @@ function applyFilters() {
         order.style.display = show ? 'flex' : 'none';
     });
 
-    // Update export button URL with current filters
     updateExportUrl();
 }
 
 function updateExportUrl() {
-    const statusFilter = document.getElementById('statusFilter').value;
+    const status = document.querySelector('.toggle-option.active').dataset.value;
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
     let url = '/admin/export';
     const params = new URLSearchParams();
 
-    if (statusFilter === 'open') {
+    if (status === 'open') {
         params.append('status', 'open');
-    } else if (statusFilter === 'closed') {
+    } else if (status === 'closed') {
         params.append('status', 'closed');
     }
 
@@ -781,24 +837,30 @@ function updateExportUrl() {
 }
 
 function clearFilters() {
-    document.getElementById('statusFilter').value = 'open'; // Set default to open
+    // Reset the toggle to "Open"
+    const toggleOptions = document.querySelectorAll('.toggle-option');
+    const slider = document.querySelector('.toggle-slider');
+
+    toggleOptions.forEach(opt => opt.classList.remove('active'));
+    toggleOptions[0].classList.add('active');
+    slider.style.transform = 'translateX(0)';
+
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
-    applyFilters();
+    applyFilters('open');
 }
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Set initial status filter to 'open'
-    document.getElementById('statusFilter').value = 'open';
-    applyFilters();
+    initStatusToggle();
+    applyFilters('open'); // Set initial state to "Open"
 
-    // Add change event listeners for filters
-    ['statusFilter', 'startDate', 'endDate'].forEach(id => {
-        document.getElementById(id).addEventListener('change', applyFilters);
+    // Add change event listeners for date filters
+    ['startDate', 'endDate'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => applyFilters());
     });
 
-    // Add change event listeners for checkboxes
+    // Add event listeners for checkboxes
     document.querySelectorAll('.order-checkbox').forEach(checkbox => {
         checkbox.addEventListener('change', updateBulkActionsVisibility);
     });
@@ -906,5 +968,25 @@ document.addEventListener('click', function(e) {
         });
     }
 });
+
+function initStatusToggle() {
+    const toggleOptions = document.querySelectorAll('.toggle-option');
+    const slider = document.querySelector('.toggle-slider');
+
+    toggleOptions.forEach((option, index) => {
+        option.addEventListener('click', () => {
+            // Update active state
+            toggleOptions.forEach(opt => opt.classList.remove('active'));
+            option.classList.add('active');
+
+            // Move slider
+            slider.style.transform = `translateX(${index * 100}%)`;
+
+            // Update filters with the new value
+            const value = option.dataset.value;
+            applyFilters(value);
+        });
+    });
+}
 </script>
 {% endblock %}
