@@ -444,14 +444,15 @@ h1 {
 
     .email-input {
         width: 100%;
+        margin-bottom: 1rem;
     }
 
-    .button-row {
+    .order-submit-section .action-row {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 1rem;
         width: 100%;
+        gap: 1rem;
     }
 
     .total-display {
