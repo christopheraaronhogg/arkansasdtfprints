@@ -43,8 +43,44 @@ body {
 }
 
 .navbar-brand img {
-    height: 40px;
+    height: 60px;  /* Increased from 40px */
     width: auto;
+}
+
+/* Upload Area */
+.upload-area {
+    background: var(--surface-color);
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.upload-area:hover, .upload-area.dragover {
+    border-color: var(--primary-color);
+    background: #f5f5f5;  /* Changed from blue tint to light gray */
+}
+
+/* Admin page styles */
+.admin-container {
+    background-color: #f8f9fa;  /* Changed from blue tint to light gray */
+}
+
+.admin-card {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+}
+
+.admin-header {
+    background-color: #f8f9fa;  /* Changed from blue tint to light gray */
+    border-bottom: 1px solid var(--border-color);
+}
+
+.admin-content {
+    background-color: var(--surface-color);
 }
 
 /* Status badges */
@@ -111,7 +147,6 @@ h1 {
     font-size: 1.1rem;
 }
 
-/* Upload Area */
 .upload-section {
     background: white;
     border-radius: 1rem;
@@ -120,26 +155,6 @@ h1 {
     margin-bottom: 2rem;
 }
 
-.upload-area {
-    background: var(--surface-color);
-    border: 2px dashed var(--border-color);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    text-align: center;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.upload-area:hover, .upload-area.dragover {
-    border-color: var(--primary-color);
-    background: #f8faff;
-}
-
-.upload-area i {
-    font-size: 2.5rem;
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-}
 
 .upload-btn {
     display: inline-flex;
