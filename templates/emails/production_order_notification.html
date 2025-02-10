@@ -38,7 +38,7 @@
                 <div class="item-details">
                     <p><strong>Item {{ loop.index }}</strong></p>
                     <p>File: {{ item.file_key }}</p>
-                    <p>Dimensions: {{ item.width_inches }}" × {{ item.height_inches }}"</p>
+                    <p>Dimensions: {{ "%.2f"|format(item.width_inches) }}" × {{ "%.2f"|format(item.height_inches) }}"</p>
                     <p>Quantity: {{ item.quantity }}</p>
                     <p>Cost: ${{ "%.2f"|format(item.cost) }}</p>
                 </div>
