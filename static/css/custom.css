@@ -41,7 +41,7 @@ a:not(.btn-primary):not(.btn-secondary):hover {
 }
 
 .status-badge[data-status="pending"] {
-    background-color: var(--pending-color);
+    background-color: var(--warning-color);
     color: white;
 }
 
@@ -98,6 +98,7 @@ a.btn-primary:focus {
 .form-control:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
+    outline: none;
 }
 
 .quantity-badge {
@@ -319,23 +320,6 @@ h1 {
     z-index: 1010;
 }
 
-
-.status-badge[data-status="pending"] {
-    background-color: var(--warning-color);
-    color: white;
-}
-
-.status-badge[data-status="completed"] {
-    background-color: var(--success-color);
-    color: white;
-}
-
-.form-select:focus,
-.form-control:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
-    outline: none;
-}
 
 .details-btn {
     display: inline-flex;
@@ -683,7 +667,12 @@ h1 {
 
 .return-home:hover {
     background: var(--primary-color);
-    color: white;
+    color: white !important;
+    text-decoration: none;
+}
+
+.return-home:hover i {
+    color: white !important;
 }
 
 .loading-overlay {
