@@ -79,9 +79,14 @@ def send_order_emails(order):
 
             # Send customer email with detailed logging
             logger.info(f"Attempting to send customer email for order {order.order_number}")
+            logger.debug(f"From: {app.config['MAIL_DEFAULT_SENDER']}")
+            logger.debug(f"To: {order.email}")
+            logger.debug(f"Subject: DTF Printing Order Confirmation - {order.order_number}")
+
             response = sg.send(customer_email)
             if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send customer email. Status code: {response.status_code}, Body: {response.body}, Headers: {response.headers}")
+                logger.error(f"Failed to send customer email. Status code: {response.status_code}")
+                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
                 return False
             logger.info(f"Successfully sent customer email for order {order.order_number}")
 
@@ -89,7 +94,8 @@ def send_order_emails(order):
             logger.info(f"Attempting to send production team email for order {order.order_number}")
             response = sg.send(production_email)
             if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send production team email. Status code: {response.status_code}, Body: {response.body}, Headers: {response.headers}")
+                logger.error(f"Failed to send production team email. Status code: {response.status_code}")
+                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
                 return False
             logger.info(f"Successfully sent production team email for order {order.order_number}")
 
@@ -98,7 +104,11 @@ def send_order_emails(order):
         except Exception as e:
             logger.error(f"SendGrid API error: {str(e)}")
             if hasattr(e, 'body'):
-                logger.error(f"SendGrid API error details: {e.body}")
+                try:
+                    error_body = e.body.decode('utf-8')
+                    logger.error(f"SendGrid API error details: {error_body}")
+                except:
+                    logger.error("Could not decode error body")
             return False
 
     except Exception as e:
