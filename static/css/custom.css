@@ -94,20 +94,39 @@ body {
     padding-right: 2.5rem;  /* More space for icon */
 }
 
-/* Buttons */
+/* Force button styles */
 .btn-primary,
 .btn-action,
-.status-update-btn {
+.status-update-btn,
+button.btn-primary,
+button.btn-action,
+button.status-update-btn,
+a.btn-primary,
+a.btn-action,
+a.status-update-btn {
     background-color: #333333 !important;
     border-color: #333333 !important;
     color: white !important;
+    transition: background-color 0.2s ease-in-out !important;
 }
 
 .btn-primary:hover,
 .btn-action:hover,
-.status-update-btn:hover {
+.status-update-btn:hover,
+button.btn-primary:hover,
+button.btn-action:hover,
+button.status-update-btn:hover,
+a.btn-primary:hover,
+a.btn-action:hover,
+a.status-update-btn:hover {
     background-color: #1a1a1a !important;
     border-color: #1a1a1a !important;
+}
+
+/* Force heading colors */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    color: #333333 !important;
 }
 
 /* Status badges */
