@@ -60,7 +60,7 @@ def send_order_emails(order):
     try:
         # Customer email
         customer_email = SGMail(
-            from_email=app.config['MAIL_DEFAULT_SENDER'],
+            from_email=('info@appareldecorating.net', 'DTF Printing'),
             to_emails=order.email,
             subject=f'DTF Printing Order Confirmation - {order.order_number}',
             html_content=render_template('emails/customer_order_confirmation.html', order=order)
@@ -68,7 +68,7 @@ def send_order_emails(order):
 
         # Production team email
         production_email = SGMail(
-            from_email=app.config['MAIL_DEFAULT_SENDER'],
+            from_email=('info@appareldecorating.net', 'DTF Printing'),
             to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
             subject=f'New DTF Printing Order - {order.order_number}',
             html_content=render_template('emails/production_order_notification.html', order=order)
@@ -79,7 +79,7 @@ def send_order_emails(order):
 
             # Send customer email with detailed logging
             logger.info(f"Attempting to send customer email for order {order.order_number}")
-            logger.debug(f"From: {app.config['MAIL_DEFAULT_SENDER']}")
+            logger.debug(f"From: info@appareldecorating.net")
             logger.debug(f"To: {order.email}")
             logger.debug(f"Subject: DTF Printing Order Confirmation - {order.order_number}")
 
@@ -90,7 +90,7 @@ def send_order_emails(order):
                 return False
             logger.info(f"Successfully sent customer email for order {order.order_number}")
 
-            # Send production team email with detailed logging
+            # Send production team email
             logger.info(f"Attempting to send production team email for order {order.order_number}")
             response = sg.send(production_email)
             if response.status_code not in [200, 201, 202]:
