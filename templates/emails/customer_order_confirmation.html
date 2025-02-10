@@ -7,11 +7,11 @@
         .header { text-align: center; margin-bottom: 30px; }
         .order-details { background: #f8f9fa; padding: 20px; border-radius: 5px; }
         .footer { text-align: center; margin-top: 30px; color: #666; }
-        .item { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; }
-        .preview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 10px; margin: 15px 0; }
-        .preview-item { position: relative; width: 48px; height: 48px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; }
-        .preview-img { width: 100%; height: 100%; object-fit: cover; }
-        .quantity-badge { position: absolute; top: 2px; right: 2px; background: #3b82f6; color: white; padding: 2px 4px; border-radius: 3px; font-size: 10px; }
+        .item { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #eee; display: flex; gap: 15px; }
+        .preview-container { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
+        .preview-img { width: 100%; height: 100%; object-fit: cover; border: 1px solid #ddd; border-radius: 4px; }
+        .quantity-badge { position: absolute; top: -5px; right: -5px; background: #3b82f6; color: white; padding: 2px 4px; border-radius: 3px; font-size: 10px; }
+        .item-details { flex: 1; }
     </style>
 </head>
 <body>
@@ -28,21 +28,18 @@
             <p><strong>Total Cost:</strong> ${{ "%.2f"|format(order.total_cost) }}</p>
 
             <h3>Order Items</h3>
-            <div class="preview-grid">
-                {% for item in order.items %}
-                <div class="preview-item">
-                    <img class="preview-img" src="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key, _external=True) }}" alt="Preview of item {{ loop.index }}">
-                    <span class="quantity-badge">{{ item.quantity }}x</span>
-                </div>
-                {% endfor %}
-            </div>
-
             {% for item in order.items %}
             <div class="item">
-                <p><strong>Item {{ loop.index }}</strong></p>
-                <p>Dimensions: {{ item.width_inches }}" × {{ item.height_inches }}"</p>
-                <p>Quantity: {{ item.quantity }}</p>
-                <p>Cost: ${{ "%.2f"|format(item.cost) }}</p>
+                <div class="preview-container">
+                    <img class="preview-img" src="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key, _external=True, _scheme='https') }}" alt="Preview of item {{ loop.index }}">
+                    <span class="quantity-badge">{{ item.quantity }}x</span>
+                </div>
+                <div class="item-details">
+                    <p><strong>Item {{ loop.index }}</strong></p>
+                    <p>Dimensions: {{ item.width_inches }}" × {{ item.height_inches }}"</p>
+                    <p>Quantity: {{ item.quantity }}</p>
+                    <p>Cost: ${{ "%.2f"|format(item.cost) }}</p>
+                </div>
             </div>
             {% endfor %}
         </div>
