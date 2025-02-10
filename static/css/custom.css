@@ -717,3 +717,68 @@ h1 {
     font-size: 1.1rem;
     color: white;
 }
+
+
+/* Mobile responsive adjustments for filter bar */
+@media (max-width: 768px) {
+    .filter-bar .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .status-toggle {
+        width: 100%;
+    }
+
+    .form-control {
+        width: 100% !important;
+    }
+
+    .action-btn {
+        width: 100%;
+    }
+
+    .bulk-actions .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .bulk-actions select {
+        width: 100% !important;
+    }
+
+    #selectedCount {
+        text-align: center;
+        margin-top: 0.5rem;
+    }
+}
+
+/* Container adjustments for mobile */
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+        max-width: 100%;
+        margin: 0;
+        overflow-x: hidden;
+    }
+
+    .order-item {
+        margin: 1rem 0;
+        padding: 1rem;
+    }
+
+    .order-images {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        width: 100%;
+    }
+
+    .order-images::-webkit-scrollbar {
+        display: none;
+    }
+
+    .order-details {
+        word-break: break-word;
+    }
+}
