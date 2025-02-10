@@ -8,7 +8,7 @@
             <p class="subtitle mb-0">View and manage your print orders</p>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ url_for('export_orders') }}" id="exportBtn" class="upload-btn">
+            <a href="{{ url_for('export_orders') }}" id="exportBtn" class="action-btn">
                 <i class="fas fa-download me-1" style="color: white !important;"></i>Export
             </a>
         </div>
@@ -25,7 +25,7 @@
             </select>
             <input type="date" id="startDate" class="form-control" style="width: auto;" placeholder="Start Date">
             <input type="date" id="endDate" class="form-control" style="width: auto;" placeholder="End Date">
-            <button class="upload-btn" onclick="clearFilters()">
+            <button class="action-btn" onclick="clearFilters()">
                 <i class="fas fa-times me-1" style="color: white !important;"></i>Clear
             </button>
         </div>
@@ -40,7 +40,7 @@
                 <option value="processing">Processing</option>
                 <option value="completed">Completed</option>
             </select>
-            <button onclick="updateSelectedStatus()" class="upload-btn">
+            <button onclick="updateSelectedStatus()" class="action-btn">
                 <i class="fas fa-check me-1" style="color: white !important;"></i>Update Selected
             </button>
             <div class="ms-auto">
@@ -165,9 +165,8 @@
 }
 
 /* Consistent button styling */
-.upload-btn,
-.details-btn,
-.btn-primary {
+.action-btn,
+.details-btn {
     background-color: var(--primary-color) !important;
     border-color: var(--primary-color) !important;
     color: white !important;
@@ -180,21 +179,21 @@
     align-items: center !important;
     gap: 0.5rem !important;
     transition: all 0.2s ease !important;
-    height: 38px !important;  /* Match the height of other form controls */
+    height: 38px !important;
+    border: none;
+    cursor: pointer;
 }
 
-.upload-btn:hover,
-.details-btn:hover,
-.btn-primary:hover {
+.action-btn:hover,
+.details-btn:hover {
     background-color: var(--primary-dark) !important;
     border-color: var(--primary-dark) !important;
     color: white !important;
 }
 
 /* Force white text color for icons inside buttons */
-.upload-btn i,
-.details-btn i,
-.btn-primary i {
+.action-btn i,
+.details-btn i {
     color: white !important;
 }
 
@@ -216,6 +215,23 @@
     z-index: 2;
     box-shadow: var(--shadow-sm);
 }
+
+/* Filter bar and bulk actions styling */
+.filter-bar,
+.bulk-actions {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 1.5rem;
+}
+
+.filter-bar:hover,
+.bulk-actions:hover {
+    box-shadow: var(--shadow-md);
+}
+
 
 /* Rest of the styles remain unchanged */
 body {
@@ -461,36 +477,6 @@ body {
 
 .modal-body .mb-3:last-child {
     margin-bottom: 0;
-}
-
-/* Update filter bar styling */
-
-.form-select,
-.form-control {
-    height: 38px;
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    color: var(--text-primary);
-    background-color: var(--surface-color);
-}
-
-.form-select:focus,
-.form-control:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-    outline: none;
-}
-
-/* Ensure date inputs match other inputs */
-input[type="date"] {
-    min-width: 150px;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-    opacity: 0.7;
-    cursor: pointer;
 }
 
 
