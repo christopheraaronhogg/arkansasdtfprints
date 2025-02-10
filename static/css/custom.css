@@ -21,6 +21,28 @@
     --radius-lg: 12px;
 }
 
+/* Keep all existing styles but update color references */
+.card-icon {
+    color: var(--primary-color);
+}
+
+.form-select:focus,
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
+}
+
+/* Keep processing status blue but change other status colors */
+.status-badge[data-status="processing"] {
+    background-color: #3b82f6;  /* Keep this blue for processing status */
+    color: white;
+}
+
+.quantity-badge {
+    background: var(--primary-color);
+    color: white;
+}
+
 /* Base button styles - consolidated and standardized */
 .btn-primary,
 .upload-btn,
@@ -425,7 +447,7 @@ h1 {
     max-width: 800px;
     margin: 2rem auto;
     padding: 2rem;
-    background: var(--bs-dark); /*This line remains as is because it's not directly addressed in the edit*/
+    background: var(--bs-dark); 
     border-radius: 8px;
 }
 
@@ -450,14 +472,14 @@ h1 {
 .info-container {
     margin: 1rem 0;
     padding: 1rem;
-    background: var(--bs-dark); /*This line remains as is because it's not directly addressed in the edit*/
+    background: var(--bs-dark); 
     border-radius: 4px;
 }
 
 .feature-card {
     height: 100%;
-    background: var(--bs-dark); /*This line remains as is because it's not directly addressed in the edit*/
-    border: 1px solid var(--bs-border-color); /*This line remains as is because it's not directly addressed in the edit*/
+    background: var(--bs-dark); 
+    border: 1px solid var(--bs-border-color); 
     transition: transform 0.2s;
 }
 
