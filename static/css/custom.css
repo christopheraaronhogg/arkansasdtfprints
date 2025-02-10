@@ -1,12 +1,12 @@
 /* == CSS Variables == */
 :root {
-    --primary-color: #000000;
-    --primary-dark: #333333;
+    --primary-color: #333333;
+    --primary-dark: #1a1a1a;
     --primary-light: #666666;
-    --secondary-color: #ffffff;
+    --secondary-color: #888888;
     --background-color: #ffffff;
     --surface-color: #ffffff;
-    --text-primary: #000000;
+    --text-primary: #333333;
     --text-secondary: #666666;
     --border-color: #e2e8f0;
     --success-color: #22c55e;
@@ -37,8 +37,9 @@ body {
 }
 
 .navbar {
-    background-color: var(--primary-color) !important;
+    background-color: #f8f9fa !important;
     border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem 0;
 }
 
 .navbar-brand img {

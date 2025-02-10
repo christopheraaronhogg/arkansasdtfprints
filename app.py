@@ -329,6 +329,34 @@ def bulk_status_update():
         return jsonify({'error': 'Failed to update orders'}), 500
 
 
+@app.route('/admin/bulk-delete', methods=['POST'])
+def bulk_delete():
+    try:
+        data = request.get_json()
+        if not data or 'order_ids' not in data:
+            return jsonify({'error': 'Invalid request data'}), 400
+
+        order_ids = data['order_ids']
+
+        # Delete all specified orders and their items
+        orders = Order.query.filter(Order.id.in_(order_ids)).all()
+        deleted_count = len(orders)
+
+        for order in orders:
+            # Delete associated items first
+            for item in order.items:
+                db.session.delete(item)
+            db.session.delete(order)
+
+        db.session.commit()
+        logger.info(f"Bulk deleted {deleted_count} orders")
+
+        return jsonify({'success': True, 'deleted': deleted_count}), 200
+    except Exception as e:
+        logger.error(f"Error in bulk delete: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to delete orders'}), 500
+
 @app.route('/admin/export')
 def export_orders():
     try:

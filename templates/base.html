@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
+    <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <img src="{{ url_for('static', filename='images/ADN official logo.png') }}" alt="Apparel Decorating Network">
@@ -22,7 +22,7 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="bg-dark py-4 mt-5">
+    <footer class="bg-light py-4 mt-5">
         <div class="container text-center">
             <p class="mb-0 text-muted">&copy; 2024 Apparel Decorating Network. All rights reserved.</p>
         </div>
