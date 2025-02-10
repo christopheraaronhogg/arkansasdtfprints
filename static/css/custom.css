@@ -421,12 +421,15 @@ h1 {
     .email-input {
         width: 100%;
         margin-bottom: 0.5rem;
+        order: 1;
     }
 
     .total-display {
-        order: 1;
+        order: 0;
         text-align: center;
         width: 100%;
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
     }
 
     .submit-btn {
