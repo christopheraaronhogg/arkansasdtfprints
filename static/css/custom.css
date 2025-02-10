@@ -410,23 +410,30 @@ h1 {
     color: var(--primary-color);
 }
 
-.submit-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: var(--primary-color);
-    color: white;
-    border: none;
-    padding: 0 1.5rem;
-    height: 48px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
+@media (max-width: 768px) {
+    .order-submit-section {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+        margin: 1rem 0;
+    }
 
-.submit-btn:hover {
-    background: var(--primary-dark);
+    .email-input {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .total-display {
+        order: 1;
+        text-align: center;
+        width: 100%;
+    }
+
+    .submit-btn {
+        order: 2;
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* Container adjustments for mobile */
@@ -817,4 +824,21 @@ h1 {
     }
 }
 
-/* Container adjustments for mobile - This section is overwritten by the edited code */
+.submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 0 1.5rem;
+    height: 48px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.submit-btn:hover {
+    background: var(--primary-dark);
+}
