@@ -256,13 +256,6 @@ h1 {
     height: auto;
     min-width: 300px;
     min-height: 300px;
-    background-image: 
-        linear-gradient(45deg, #ddd 25%, transparent 25%),
-        linear-gradient(-45deg, #ddd 25%, transparent 25%),
-        linear-gradient(45deg, transparent 75%, #ddd 75%),
-        linear-gradient(-45deg, transparent 75%, #ddd 75%);
-    background-size: 20px 20px;
-    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
 }
 
 .modal-image {
@@ -279,6 +272,79 @@ h1 {
     font-size: 2rem;
     cursor: pointer;
     z-index: 1010;
+}
+
+/* Status badges - Keep processing status blue */
+.status-badge[data-status="pending"] {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.status-badge[data-status="processing"] {
+    background-color: #3b82f6;  /* Keep this blue for processing status */
+    color: white;
+}
+
+.status-badge[data-status="completed"] {
+    background-color: var(--success-color);
+    color: white;
+}
+
+/* Form focus states */
+.form-select:focus,
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
+    outline: none;
+}
+
+/* Details button */
+.details-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: var(--primary-color);
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.details-btn:hover {
+    background: var(--primary-dark);
+    color: white;
+    text-decoration: none;
+}
+
+/* Buttons that need to be explicitly gray */
+.btn-secondary {
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.btn-secondary:hover {
+    opacity: 0.9;
+}
+
+/* Remove any remaining Bootstrap influences */
+.btn-primary:not(:disabled):not(.disabled):active,
+.btn-primary:not(:disabled):not(.disabled).active,
+.show > .btn-primary.dropdown-toggle {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-primary:focus,
+.btn-primary.focus {
+    box-shadow: 0 0 0 0.2rem rgba(51, 51, 51, 0.25);
 }
 
 /* Order Submit Section */

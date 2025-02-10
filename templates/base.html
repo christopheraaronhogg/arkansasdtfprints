@@ -6,30 +6,13 @@
     <title>Apparel Decorating Network</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Critical button styles that need to override Bootstrap */
-        .btn-primary, 
-        .btn.btn-primary,
-        .status-update-btn,
-        button.btn-primary,
-        .admin-page .btn-primary,
-        .admin-page button.btn-primary {
-            background-color: #333333 !important;
-            border-color: #333333 !important;
-            color: white !important;
-        }
-
-        .btn-primary:hover,
-        .btn.btn-primary:hover,
-        .status-update-btn:hover,
-        button.btn-primary:hover,
-        .admin-page .btn-primary:hover,
-        .admin-page button.btn-primary:hover {
-            background-color: #1a1a1a !important;
-            border-color: #1a1a1a !important;
+        :root {
+            --bs-primary: #333333 !important;
+            --bs-primary-rgb: 51, 51, 51 !important;
         }
     </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
 </head>
 <body class="{% if request.endpoint in ['admin', 'view_order'] %}admin-page{% endif %}">
