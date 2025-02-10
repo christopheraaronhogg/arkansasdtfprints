@@ -420,21 +420,26 @@ h1 {
 
     .email-input {
         width: 100%;
-        margin-bottom: 0.5rem;
-        order: 1;
+        margin-bottom: 1rem;
+    }
+
+    /* Container for total and submit button */
+    .order-submit-section > div:last-child {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        width: 100%;
     }
 
     .total-display {
-        order: 0;
-        text-align: center;
-        width: 100%;
+        flex: 1;
         font-size: 1.25rem;
-        margin-bottom: 0.5rem;
+        text-align: left;
+        margin: 0;
     }
 
     .submit-btn {
-        order: 2;
-        width: 100%;
+        min-width: 120px;
         justify-content: center;
     }
 }
