@@ -21,6 +21,35 @@
     --radius-lg: 12px;
 }
 
+/* Base button styles - consolidated and standardized */
+.btn-primary,
+.upload-btn,
+.details-btn,
+.status-update-btn,
+button.btn-primary,
+.btn.btn-primary,
+.admin-page .btn-primary,
+a.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Hover states */
+.btn-primary:hover,
+.upload-btn:hover,
+.details-btn:hover,
+.status-update-btn:hover,
+button.btn-primary:hover,
+.btn.btn-primary:hover,
+.admin-page .btn-primary:hover,
+a.btn-primary:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: white;
+}
+
 /* Force background color for admin pages */
 body.admin-page,
 .admin-container,
@@ -94,47 +123,6 @@ body {
     padding-right: 2.5rem;  /* More space for icon */
 }
 
-/* Force button styles */
-.btn-primary,
-.btn-action,
-.status-update-btn,
-button.btn-primary,
-button.btn-action,
-button.status-update-btn,
-a.btn-primary,
-a.btn-action,
-a.status-update-btn,
-.btn.btn-primary,
-.btn.btn-action,
-.btn.status-update-btn,
-.admin-page .btn-primary,
-.admin-page .btn-action,
-.admin-page .status-update-btn {
-    background-color: #333333 !important;
-    border-color: #333333 !important;
-    color: white !important;
-    transition: background-color 0.2s ease-in-out !important;
-}
-
-.btn-primary:hover,
-.btn-action:hover,
-.status-update-btn:hover,
-button.btn-primary:hover,
-button.btn-action:hover,
-button.status-update-btn:hover,
-a.btn-primary:hover,
-a.btn-action:hover,
-a.status-update-btn:hover,
-.btn.btn-primary:hover,
-.btn.btn-action:hover,
-.btn.status-update-btn:hover,
-.admin-page .btn-primary:hover,
-.admin-page .btn-action:hover,
-.admin-page .status-update-btn:hover {
-    background-color: #1a1a1a !important;
-    border-color: #1a1a1a !important;
-}
-
 /* Force heading colors */
 h1, h2, h3, h4, h5, h6,
 .h1, .h2, .h3, .h4, .h5, .h6,
@@ -144,7 +132,7 @@ h1, h2, h3, h4, h5, h6,
 .admin-page h4,
 .admin-page h5,
 .admin-page h6 {
-    color: #333333 !important;
+    color: var(--primary-color) !important;
 }
 
 /* Status badges */
@@ -371,7 +359,7 @@ h1 {
     max-width: 800px;
     margin: 2rem auto;
     padding: 2rem;
-    background: var(--bs-dark);
+    background: var(--bs-dark); /*This line remains as is because it's not directly addressed in the edit*/
     border-radius: 8px;
 }
 
@@ -396,14 +384,14 @@ h1 {
 .info-container {
     margin: 1rem 0;
     padding: 1rem;
-    background: var(--bs-dark);
+    background: var(--bs-dark); /*This line remains as is because it's not directly addressed in the edit*/
     border-radius: 4px;
 }
 
 .feature-card {
     height: 100%;
-    background: var(--bs-dark);
-    border: 1px solid var(--bs-border-color);
+    background: var(--bs-dark); /*This line remains as is because it's not directly addressed in the edit*/
+    border: 1px solid var(--bs-border-color); /*This line remains as is because it's not directly addressed in the edit*/
     transition: transform 0.2s;
 }
 
