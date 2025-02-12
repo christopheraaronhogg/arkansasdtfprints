@@ -17,20 +17,20 @@ const LoadingManager = {
                     </div>
                 </div>
             `;
-            
+
             // Insert after email-submit-row
             const emailSubmitRow = document.querySelector('.email-submit-row');
             emailSubmitRow.parentNode.insertBefore(container, emailSubmitRow.nextSibling);
-            
+
             // Force a reflow before adding the show class
             container.offsetHeight;
         }
-        
+
         // Show the container with animation
         requestAnimationFrame(() => {
             container.classList.add('show');
         });
-        
+
         // Update progress
         this.updateProgress(progress, message);
     },
@@ -39,15 +39,15 @@ const LoadingManager = {
         const container = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progress-text');
-        
+
         if (container && progressBar && progressText) {
             // Round progress to nearest integer
             const roundedProgress = Math.round(progress);
-            
+
             // Update progress bar width and text
             progressBar.style.width = `${roundedProgress}%`;
             progressText.textContent = `${roundedProgress}%`;
-            
+
             // Update status message if provided
             if (message) {
                 const statusDiv = container.querySelector('.progress-status');
@@ -98,22 +98,22 @@ const PrintCalculator = (() => {
             // Convert to string with 2 decimal places for display and calculation
             const displayValue = Number(num).toFixed(2);
             console.log('Display value:', displayValue);
-            
+
             // Parse back to number and round for pricing
             const value = parseFloat(displayValue);
             const rounded = (value % 1 >= 0.5) ? Math.ceil(value) : Math.round(value);
             console.log('Rounded value:', rounded);
             return Math.max(1, rounded);
         }
-        
+
         console.log('Raw dimensions:', { width, height });
-        
+
         // Round to nearest inch with minimum of 1 inch, rounding up at .5
         const roundedWidth = roundUpAtHalf(width);
         const roundedHeight = roundUpAtHalf(height);
         const area = roundedWidth * roundedHeight;
         const cost = area * state.basePrice * quantity;
-        
+
         console.log('Cost calculation:', {
             originalWidth: width,
             originalHeight: height,
@@ -126,14 +126,14 @@ const PrintCalculator = (() => {
             quantity,
             finalCost: cost
         });
-        
+
         return cost;
     }
 
     return {
         addImage(file, img, dimensions) {
             const id = crypto.randomUUID();
-            
+
             // Use the physical dimensions from the server
             const width_inches = dimensions.width;
             const height_inches = dimensions.height;
@@ -258,7 +258,7 @@ const PrintUI = {
             this.dropZone.classList.remove('dragover');
 
             const files = [...e.dataTransfer.files].filter(f => f.type === 'image/png');
-            
+
             // Early feedback for no PNG files
             if (files.length === 0) {
                 this.showAlert('Only PNG files are accepted', 'error');
@@ -266,7 +266,7 @@ const PrintUI = {
             }
 
             // Check file sizes immediately
-            const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+            const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB to match server limit
             const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB
             const totalSize = files.reduce((sum, file) => sum + file.size, 0);
 
@@ -275,7 +275,7 @@ const PrintUI = {
             if (largeFiles.length > 0) {
                 const fileNames = largeFiles.map(f => f.name).join(', ');
                 this.showAlert(
-                    `Some files are too large (max 500MB per file): ${fileNames}`,
+                    `Some files are too large (max 30MB per file): ${fileNames}`,
                     'error'
                 );
                 return;
@@ -292,7 +292,7 @@ const PrintUI = {
 
             // Show processing feedback
             LoadingManager.show('Processing files...', 0);
-            
+
             try {
                 await this.handleFiles(files);
             } catch (error) {
@@ -304,7 +304,7 @@ const PrintUI = {
 
         this.fileInput.addEventListener('change', async () => {
             const files = [...this.fileInput.files].filter(f => f.type === 'image/png');
-            
+
             // Early feedback for no PNG files
             if (files.length === 0) {
                 this.showAlert('Only PNG files are accepted', 'error');
@@ -312,7 +312,7 @@ const PrintUI = {
             }
 
             // Check file sizes immediately
-            const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+            const MAX_FILE_SIZE = 30 * 1024 * 1024; // 30MB to match server limit
             const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB
             const totalSize = files.reduce((sum, file) => sum + file.size, 0);
 
@@ -321,7 +321,7 @@ const PrintUI = {
             if (largeFiles.length > 0) {
                 const fileNames = largeFiles.map(f => f.name).join(', ');
                 this.showAlert(
-                    `Some files are too large (max 500MB per file): ${fileNames}`,
+                    `Some files are too large (max 30MB per file): ${fileNames}`,
                     'error'
                 );
                 this.fileInput.value = ''; // Reset input
@@ -340,7 +340,7 @@ const PrintUI = {
 
             // Show processing feedback
             LoadingManager.show('Processing files...', 0);
-            
+
             try {
                 await this.handleFiles(files);
             } catch (error) {
@@ -364,7 +364,7 @@ const PrintUI = {
 
             const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
             const reader = new FileReader();
-            
+
             // Track progress of file reading
             reader.onprogress = (event) => {
                 if (event.lengthComputable && onProgress) {
@@ -456,28 +456,28 @@ const PrintUI = {
         // Calculate total size for all files
         const totalSize = files.reduce((sum, file) => sum + file.size, 0);
         const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(1);
-        
+
         console.log(`Processing ${files.length} files, total size: ${totalSizeMB}MB`);
 
         for (const [index, file] of files.entries()) {
             try {
                 const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
                 const fileStartTime = Date.now();
-                
+
                 // Calculate overall progress
                 const overallProgress = (totalProcessed / totalSize) * 100;
-                
+
                 // Calculate processing speed and time remaining
                 const elapsedTime = (Date.now() - startTime) / 1000;
                 const processSpeed = totalProcessed / elapsedTime;
                 const remainingSize = totalSize - totalProcessed;
                 const estimatedTimeRemaining = processSpeed > 0 ? remainingSize / processSpeed : 0;
-                
+
                 // Format time remaining
                 const timeRemainingText = estimatedTimeRemaining > 0 
                     ? `Est. ${Math.ceil(estimatedTimeRemaining)}s remaining`
                     : '';
-                
+
                 LoadingManager.updateProgress(
                     overallProgress,
                     `Processing file ${index + 1}/${files.length}: ${file.name}`,
@@ -488,11 +488,11 @@ const PrintUI = {
                 const updateProgress = (progress, status) => {
                     const fileProgress = progress;
                     const overallProgress = ((totalProcessed + (file.size * (progress / 100))) / totalSize) * 100;
-                    
+
                     // Update speed calculations
                     const currentTime = Date.now();
                     const fileElapsedTime = (currentTime - fileStartTime) / 1000;
-                    
+
                     // Only show speed for file reading phase (0-50%)
                     let speedText = '';
                     if (progress <= 50) {
@@ -503,7 +503,7 @@ const PrintUI = {
                             speedText = `${(processSpeed / 1024).toFixed(1)} KB/s`;
                         }
                     }
-                    
+
                     LoadingManager.updateProgress(
                         overallProgress,
                         `${status} ${file.name} (${Math.round(fileProgress)}%)`,
@@ -513,11 +513,11 @@ const PrintUI = {
 
                 // Process file with progress tracking
                 const { img, dimensions } = await this.loadImage(file, updateProgress);
-                
+
                 const id = PrintCalculator.addImage(file, img, dimensions);
                 this.renderImagePreview(id, img);
                 this.updateTotalDisplay();
-                
+
                 successCount++;
                 totalProcessed += file.size;
 
@@ -544,7 +544,7 @@ const PrintUI = {
                 'error'
             );
         }
-        
+
         LoadingManager.hide();
     },
 
@@ -621,21 +621,21 @@ const PrintUI = {
             // Prevent the event from bubbling up to the form
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Remove from state
             PrintCalculator.removeImage(id);
-            
+
             // Remove the container with animation
             container.style.opacity = '0';
             container.style.transform = 'scale(0.95)';
-            
+
             setTimeout(() => {
                 container.remove();
                 this.updateTotalDisplay();
-                
+
                 // Show feedback toast
                 this.showAlert('Image removed from order', 'success');
-                
+
                 // If no images left, reset the form
                 if (!PrintCalculator.hasImages()) {
                     this.form.reset();
@@ -668,13 +668,13 @@ const PrintUI = {
     updateTotalDisplay() {
         const total = PrintCalculator.getTotalCost();
         const formattedTotal = `$${total.toFixed(2)}`;
-        
+
         // Update the total cost display if it exists
         const totalDisplay = document.getElementById('totalCost');
         if (totalDisplay) {
             totalDisplay.textContent = `Total: ${formattedTotal}`;
         }
-        
+
         // Update the submit button total
         const submitBtn = document.querySelector('.submit-btn');
         if (submitBtn) {
@@ -690,7 +690,7 @@ const PrintUI = {
                 lastSpeedUpdate: Date.now(),
                 failedAttempts: 0
             };
-            
+
             LoadingManager.show('Preparing your files...', 0);
             const formData = new FormData(this.form);
             const orderDetails = [];
@@ -742,14 +742,14 @@ const PrintUI = {
                     for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
                         const file = files[fileIndex];
                         const totalChunks = Math.ceil(file.size / chunkSize);
-                        
+
                         console.log(`Starting upload of file ${fileIndex + 1}/${files.length}: ${file.name} (${file.size} bytes in ${totalChunks} chunks)`);
 
                         for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
                             const start = chunkIndex * chunkSize;
                             const end = Math.min(start + chunkSize, file.size);
                             const chunk = file.slice(start, end);
-                            
+
                             const chunkFormData = new FormData();
                             const modifiedFilename = file.name.replace('.png', `.${orderDetails[fileIndex].quantity}.png`);
                             chunkFormData.append('file', chunk, modifiedFilename);
@@ -757,12 +757,12 @@ const PrintUI = {
                             chunkFormData.append('totalChunks', totalChunks);
                             chunkFormData.append('fileIndex', fileIndex);
                             chunkFormData.append('totalFiles', files.length);
-                            
+
                             // Always send session ID if we have one
                             if (sessionId) {
                                 chunkFormData.append('sessionId', sessionId);
                             }
-                            
+
                             if (chunkIndex === 0) {
                                 // Send metadata with first chunk
                                 chunkFormData.append('email', formData.get('email'));
@@ -774,7 +774,7 @@ const PrintUI = {
                             let chunkRetries = 0;
                             const maxChunkRetries = 3;
                             let lastError = null;
-                            
+
                             while (chunkRetries < maxChunkRetries) {
                                 try {
                                     const controller = new AbortController();
@@ -793,7 +793,7 @@ const PrintUI = {
                                     }
 
                                     const result = await response.json();
-                                    
+
                                     if (result.error) {
                                         throw new Error(result.error);
                                     }
@@ -816,20 +816,20 @@ const PrintUI = {
                                         window.location.href = result.redirect;
                                         return;
                                     }
-                                    
+
                                     // Update progress
                                     totalUploaded += chunk.size;
                                     const totalProgress = (totalUploaded / totalSize) * 100;
-                                    
+
                                     // Calculate upload speed
                                     const currentTime = Date.now();
                                     const timeDiff = (currentTime - lastChunkTime) / 1000;
                                     const bytesDiff = totalUploaded - lastUploadedBytes;
                                     const uploadSpeed = bytesDiff / timeDiff;
-                                    
+
                                     lastChunkTime = currentTime;
                                     lastUploadedBytes = totalUploaded;
-                                    
+
                                     let speedText;
                                     if (uploadSpeed >= 1024 * 1024) {
                                         speedText = `${(uploadSpeed / (1024 * 1024)).toFixed(1)} MB/s`;
@@ -838,20 +838,20 @@ const PrintUI = {
                                     } else {
                                         speedText = `${Math.round(uploadSpeed)} B/s`;
                                     }
-                                    
+
                                     console.log(`Chunk ${chunkIndex + 1}/${totalChunks} of file ${fileIndex + 1}/${files.length} uploaded (${speedText})`);
-                                    
+
                                     LoadingManager.updateProgress(
                                         Math.round(totalProgress),
                                         `Uploading: ${(totalUploaded / (1024 * 1024)).toFixed(1)}MB / ${(totalSize / (1024 * 1024)).toFixed(1)}MB (${speedText})`
                                     );
-                                    
+
                                     break; // Successful chunk upload
                                 } catch (error) {
                                     lastError = error;
                                     chunkRetries++;
                                     console.error(`Chunk upload error (attempt ${chunkRetries}):`, error);
-                                    
+
                                     if (error.name === 'AbortError') {
                                         this.showAlert(
                                             `Upload timeout. The server is taking too long to respond. Please try again.`,
@@ -859,31 +859,31 @@ const PrintUI = {
                                         );
                                         throw error;
                                     }
-                                    
+
                                     if (chunkRetries === maxChunkRetries) {
                                         throw new Error(`Failed to upload chunk after ${maxChunkRetries} attempts: ${error.message}`);
                                     }
-                                    
+
                                     LoadingManager.updateProgress(
                                         Math.round((totalUploaded / totalSize) * 100),
                                         `Upload failed. Retrying in 1 second... (${error.message})`
                                     );
-                                    
+
                                     await new Promise(resolve => setTimeout(resolve, 1000));
                                 }
                             }
-                            
+
                             if (lastError) {
                                 throw lastError;
                             }
                         }
                     }
-                    
+
                     break; // Successfully uploaded all files
                 } catch (error) {
                     retryCount++;
                     console.error('Upload error:', error);
-                    
+
                     if (retryCount === maxRetries) {
                         this.showAlert(
                             `Failed to upload files: ${error.message}. Please try again or contact support if the issue persists.`,
@@ -931,8 +931,7 @@ const PrintUI = {
 
         // Create toast element
         const toast = document.createElement('div');
-        toast.className = `toast ${type === 'error' ? 'toast-error' : 'toast-success'}`;
-        toast.style.cssText = `
+        toast.className = `toast ${type === 'error' ? 'toast-error' : 'toast-success'}`;        toast.style.cssText = `
             background: white;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -947,10 +946,10 @@ const PrintUI = {
             pointer-events: auto;
             border-left: 4px solid ${type === 'error' ? '#ef4444' : '#22c55e'};
         `;
-        
+
         // Add icon based on type
         const icon = type === 'error' ? 'exclamation-circle' : 'check-circle';
-        
+
         toast.innerHTML = `
             <div class="toast-content" style="display: flex; align-items: center; gap: 12px; flex: 1;">
                 <i class="fas fa-${icon} toast-icon" style="color: ${type === 'error' ? '#ef4444' : '#22c55e'}; font-size: 1.2rem;"></i>
@@ -993,7 +992,7 @@ const PrintUI = {
         const input = event.target;
         const value = parseFloat(input.value) || 0;
         const dimension = input.dataset.dimension;
-        
+
         PrintCalculator.updateImageDimension(imageId, dimension, value);
         this.updateTotalDisplay();
     }
