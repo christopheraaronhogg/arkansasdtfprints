@@ -25,9 +25,6 @@ import shutil
 # Set longer timeout for the server
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
 
-# Set max request size to 30MB to stay under Replit's 32MB limit
-app.config['MAX_CONTENT_LENGTH'] = 30 * 1024 * 1024  # 30MB in bytes
-
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
