@@ -10,14 +10,15 @@
     <main>
         <form id="upload-form">
             <div class="upload-section">
-                <div class="upload-area" id="dropZone">
+                <div id="dropZone" class="upload-area">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    <p class="upload-title">Drag & drop your PNG files here</p>
-                    <p class="upload-subtitle">or</p>
+                    <h3 class="upload-title">Drag & Drop PNG Files Here</h3>
+                    <p class="upload-subtitle">or click to select files</p>
+                    <p class="size-limits">Maximum 500MB per file, 1GB total</p>
                     <label class="upload-btn">
                         <i class="fas fa-folder-open"></i>
                         Choose Files
-                        <input type="file" name="file" accept="image/png" multiple required id="file-input">
+                        <input type="file" id="file-input" accept=".png" multiple>
                     </label>
                 </div>
                 <div id="fileList" class="file-list"></div>
@@ -26,16 +27,17 @@
             <div id="images-container" class="images-grid"></div>
 
             <div class="order-submit-section">
-                <div class="email-input">
-                    <i class="fas fa-envelope"></i>
-                    <input type="email" id="email" name="email" required 
-                           placeholder="Enter your email">
-                </div>
-                <div class="action-row">
-                    <div class="total-display" id="totalCost">Total: $0.00</div>
-                    <button type="submit" class="submit-btn">
-                        <i class="fas fa-paper-plane"></i>
-                        Submit
+                <div class="email-submit-row">
+                    <div class="email-input">
+                        <i class="fas fa-envelope"></i>
+                        <input type="email" id="email" name="email" required 
+                               placeholder="Enter your email">
+                    </div>
+                    <button type="submit" class="submit-btn" data-total="$0.00">
+                        <span>
+                            <i class="fas fa-paper-plane"></i>
+                            Submit Order
+                        </span>
                     </button>
                 </div>
             </div>
@@ -51,6 +53,33 @@
         </div>
     </div>
 </div>
+
+<div id="sizeWarningModal" class="modal">
+    <div class="modal-content size-warning">
+        <div class="modal-header">
+            <h4><i class="fas fa-exclamation-triangle text-warning"></i> Automatic Size Adjustment</h4>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Our DTF printers use a roll system with a maximum width of 22 inches. Your image has been automatically scaled to fit within this limit while maintaining its proportions.</p>
+            <p class="mt-2">The image dimensions have been adjusted to: <br>
+                <span class="font-weight-bold" id="adjustedDimensions"></span>
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary acknowledge-resize">Got it</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.size-limits {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0.5rem 0;
+    opacity: 0.8;
+}
+</style>
 {% endblock %}
 
 {% block scripts %}

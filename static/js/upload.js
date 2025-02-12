@@ -1,47 +1,86 @@
 // Function to manage loading state
 const LoadingManager = {
     show(message = 'Uploading files...', progress = 0) {
-        const spinner = document.createElement('div');
-        spinner.id = 'uploadSpinner';
-        spinner.innerHTML = `
-            <div class="loading-overlay">
-                <div class="upload-progress">
-                    <div class="progress" style="width: 300px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" 
-                             role="progressbar" 
-                             style="width: ${progress}%" 
-                             aria-valuenow="${progress}" 
-                             aria-valuemin="0" 
-                             aria-valuemax="100">
-                            ${progress}%
-                        </div>
-                    </div>
-                    <p class="mt-2">${message}</p>
+        // Create progress container if it doesn't exist
+        let container = document.getElementById('progress-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'progress-container';
+            container.innerHTML = `
+                <div class="progress-info">
+                    <div class="progress-status"></div>
+                    <div class="progress-details"></div>
                 </div>
-            </div>`;
-        document.body.appendChild(spinner);
+                <div class="progress" role="progressbar">
+                    <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">
+                        <div id="progress-text">0%</div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert after email-submit-row
+            const emailSubmitRow = document.querySelector('.email-submit-row');
+            emailSubmitRow.parentNode.insertBefore(container, emailSubmitRow.nextSibling);
+            
+            // Force a reflow before adding the show class
+            container.offsetHeight;
+        }
+        
+        // Show the container with animation
+        requestAnimationFrame(() => {
+            container.classList.add('show');
+        });
+        
+        // Update progress
+        this.updateProgress(progress, message);
     },
 
-    updateProgress(progress, message) {
-        const overlay = document.getElementById('uploadSpinner');
-        if (overlay) {
-            const progressBar = overlay.querySelector('.progress-bar');
-            const messageText = overlay.querySelector('p');
-            if (progressBar) {
-                progressBar.style.width = `${progress}%`;
-                progressBar.setAttribute('aria-valuenow', progress);
-                progressBar.textContent = `${progress}%`;
+    updateProgress(progress, message = '', details = '') {
+        const container = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('progress-text');
+        
+        if (container && progressBar && progressText) {
+            // Round progress to nearest integer
+            const roundedProgress = Math.round(progress);
+            
+            // Update progress bar width and text
+            progressBar.style.width = `${roundedProgress}%`;
+            progressText.textContent = `${roundedProgress}%`;
+            
+            // Update status message if provided
+            if (message) {
+                const statusDiv = container.querySelector('.progress-status');
+                if (statusDiv) {
+                    statusDiv.textContent = message;
+                }
             }
-            if (messageText) {
-                messageText.textContent = message;
+
+            // Update details if provided
+            if (details) {
+                const detailsDiv = container.querySelector('.progress-details');
+                if (detailsDiv) {
+                    detailsDiv.textContent = details;
+                }
+            }
+
+            // Add animation class when progress is increasing
+            if (roundedProgress > 0) {
+                progressBar.classList.add('progress-bar-animated');
+            } else {
+                progressBar.classList.remove('progress-bar-animated');
             }
         }
     },
 
     hide() {
-        const spinner = document.getElementById('uploadSpinner');
-        if (spinner) {
-            spinner.remove();
+        const container = document.getElementById('progress-container');
+        if (container) {
+            container.classList.remove('show');
+            // Remove the container after animation
+            setTimeout(() => {
+                container.remove();
+            }, 300);
         }
     }
 };
@@ -54,35 +93,66 @@ const PrintCalculator = (() => {
     };
 
     function calculateCost(width, height, quantity = 1) {
-        const roundedWidth = Math.round(width);
-        const roundedHeight = Math.round(height);
+        // Custom rounding function that rounds up at .5
+        function roundUpAtHalf(num) {
+            // Convert to string with 2 decimal places for display and calculation
+            const displayValue = Number(num).toFixed(2);
+            console.log('Display value:', displayValue);
+            
+            // Parse back to number and round for pricing
+            const value = parseFloat(displayValue);
+            const rounded = (value % 1 >= 0.5) ? Math.ceil(value) : Math.round(value);
+            console.log('Rounded value:', rounded);
+            return Math.max(1, rounded);
+        }
+        
+        console.log('Raw dimensions:', { width, height });
+        
+        // Round to nearest inch with minimum of 1 inch, rounding up at .5
+        const roundedWidth = roundUpAtHalf(width);
+        const roundedHeight = roundUpAtHalf(height);
         const area = roundedWidth * roundedHeight;
-        return area * state.basePrice * quantity;
+        const cost = area * state.basePrice * quantity;
+        
+        console.log('Cost calculation:', {
+            originalWidth: width,
+            originalHeight: height,
+            displayWidth: Number(width).toFixed(2),
+            displayHeight: Number(height).toFixed(2),
+            roundedWidth,
+            roundedHeight,
+            area,
+            basePrice: state.basePrice,
+            quantity,
+            finalCost: cost
+        });
+        
+        return cost;
     }
 
     return {
-        addImage(file, img) {
+        addImage(file, img, dimensions) {
             const id = crypto.randomUUID();
-            const DPI = 300;
-            const maxWidth = 24 * DPI;
-            const maxHeight = 24 * DPI;
-            const scale = Math.min(maxWidth / img.naturalWidth, maxHeight / img.naturalHeight, 1);
-            const finalWidth = (img.naturalWidth * scale) / DPI;
-            const finalHeight = (img.naturalHeight * scale) / DPI;
+            
+            // Use the physical dimensions from the server
+            const width_inches = dimensions.width;
+            const height_inches = dimensions.height;
 
             state.images.set(id, {
                 file,
                 original: {
-                    width: finalWidth,
-                    height: finalHeight,
-                    aspect: finalWidth / finalHeight
+                    width: width_inches,
+                    height: height_inches,
+                    aspect: width_inches / height_inches
                 },
                 current: {
-                    width: finalWidth,
-                    height: finalHeight
+                    width: width_inches,
+                    height: height_inches
                 },
                 quantity: 1,
+                notes: '',
                 get cost() {
+                    // Use the current dimensions that are being displayed
                     return calculateCost(
                         this.current.width,
                         this.current.height,
@@ -126,6 +196,12 @@ const PrintCalculator = (() => {
             imageState.quantity = Math.max(1, parseInt(quantity) || 1);
         },
 
+        updateNotes(id, notes) {
+            const imageState = state.images.get(id);
+            if (!imageState) return;
+            imageState.notes = notes;
+        },
+
         getImageState(id) {
             return state.images.get(id);
         },
@@ -141,6 +217,14 @@ const PrintCalculator = (() => {
                 total += img.cost;
             });
             return total;
+        },
+
+        removeImage(id) {
+            return state.images.delete(id);
+        },
+
+        hasImages() {
+            return state.images.size > 0;
         }
     };
 })();
@@ -151,6 +235,10 @@ const PrintUI = {
         this.form = document.getElementById('upload-form');
         this.dropZone = document.getElementById('dropZone');
         this.fileInput = document.getElementById('file-input');
+        this.imagesContainer = document.getElementById('images-container');
+        if (this.imagesContainer) {
+            this.imagesContainer.className = 'images-grid';
+        }
         this.totalDisplay = document.getElementById('totalCost');
         this.setupEventListeners();
     },
@@ -170,12 +258,96 @@ const PrintUI = {
             this.dropZone.classList.remove('dragover');
 
             const files = [...e.dataTransfer.files].filter(f => f.type === 'image/png');
-            await this.handleFiles(files);
+            
+            // Early feedback for no PNG files
+            if (files.length === 0) {
+                this.showAlert('Only PNG files are accepted', 'error');
+                return;
+            }
+
+            // Check file sizes immediately
+            const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+            const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB
+            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+
+            // Check individual file sizes
+            const largeFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+            if (largeFiles.length > 0) {
+                const fileNames = largeFiles.map(f => f.name).join(', ');
+                this.showAlert(
+                    `Some files are too large (max 500MB per file): ${fileNames}`,
+                    'error'
+                );
+                return;
+            }
+
+            // Check total upload size
+            if (totalSize > MAX_TOTAL_SIZE) {
+                this.showAlert(
+                    `Total upload size (${(totalSize / (1024 * 1024)).toFixed(1)}MB) exceeds the limit of 1GB`,
+                    'error'
+                );
+                return;
+            }
+
+            // Show processing feedback
+            LoadingManager.show('Processing files...', 0);
+            
+            try {
+                await this.handleFiles(files);
+            } catch (error) {
+                this.showAlert(`Error processing files: ${error.message}`, 'error');
+            } finally {
+                LoadingManager.hide();
+            }
         });
 
         this.fileInput.addEventListener('change', async () => {
             const files = [...this.fileInput.files].filter(f => f.type === 'image/png');
-            await this.handleFiles(files);
+            
+            // Early feedback for no PNG files
+            if (files.length === 0) {
+                this.showAlert('Only PNG files are accepted', 'error');
+                return;
+            }
+
+            // Check file sizes immediately
+            const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
+            const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB
+            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+
+            // Check individual file sizes
+            const largeFiles = files.filter(file => file.size > MAX_FILE_SIZE);
+            if (largeFiles.length > 0) {
+                const fileNames = largeFiles.map(f => f.name).join(', ');
+                this.showAlert(
+                    `Some files are too large (max 500MB per file): ${fileNames}`,
+                    'error'
+                );
+                this.fileInput.value = ''; // Reset input
+                return;
+            }
+
+            // Check total upload size
+            if (totalSize > MAX_TOTAL_SIZE) {
+                this.showAlert(
+                    `Total upload size (${(totalSize / (1024 * 1024)).toFixed(1)}MB) exceeds the limit of 1GB`,
+                    'error'
+                );
+                this.fileInput.value = ''; // Reset input
+                return;
+            }
+
+            // Show processing feedback
+            LoadingManager.show('Processing files...', 0);
+            
+            try {
+                await this.handleFiles(files);
+            } catch (error) {
+                this.showAlert(`Error processing files: ${error.message}`, 'error');
+            } finally {
+                LoadingManager.hide();
+            }
         });
 
         this.form.addEventListener('submit', (e) => {
@@ -184,46 +356,196 @@ const PrintUI = {
         });
     },
 
-    loadImage(file) {
+    async loadImage(file, onProgress) {
         return new Promise((resolve, reject) => {
-            const img = new Image();
-            img.onload = () => resolve(img);
-            img.onerror = reject;
-            img.src = URL.createObjectURL(file);
+            const timeout = setTimeout(() => {
+                reject(new Error('File processing timed out. The file might be too large or corrupted.'));
+            }, 360000); // 360 second timeout
+
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+            const reader = new FileReader();
+            
+            // Track progress of file reading
+            reader.onprogress = (event) => {
+                if (event.lengthComputable && onProgress) {
+                    // File reading is 25% of the total progress
+                    const readProgress = (event.loaded / event.total) * 25;
+                    const speed = event.loaded / ((Date.now() - startTime) / 1000);
+                    let speedText = '';
+                    if (speed >= 1024 * 1024) {
+                        speedText = `${(speed / (1024 * 1024)).toFixed(1)} MB/s`;
+                    } else if (speed >= 1024) {
+                        speedText = `${(speed / 1024).toFixed(1)} KB/s`;
+                    }
+                    onProgress(readProgress, `Reading file (${fileSizeMB} MB)...`, speedText);
+                }
+            };
+
+            const startTime = Date.now();
+            reader.onload = async () => {
+                try {
+                    // Get dimensions from server
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    onProgress(25, `Preparing ${fileSizeMB} MB file for processing...`, '');
+
+                    // Start server processing phase
+                    const processingStartTime = Date.now();
+                    const progressInterval = setInterval(() => {
+                        const elapsedTime = Math.round((Date.now() - processingStartTime) / 1000);
+                        // During server processing, progress moves from 25% to 75% over time
+                        // The longer it takes, the slower it moves to avoid hitting 100% too early
+                        const processingProgress = 25 + Math.min(50, (elapsedTime / (30 + elapsedTime)) * 50);
+                        onProgress(
+                            processingProgress,
+                            `Processing ${fileSizeMB} MB file`,
+                            `${elapsedTime}s elapsed`
+                        );
+                    }, 1000);
+
+                    const response = await fetch('/get-dimensions', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    clearInterval(progressInterval);
+
+                    if (!response.ok) {
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+
+                    const dimensions = await response.json();
+                    clearTimeout(timeout);
+
+                    onProgress(75, `Creating preview for ${fileSizeMB} MB file...`, '');
+
+                    // Create image preview
+                    const img = new Image();
+                    img.onload = () => {
+                        onProgress(100, 'Complete', '');
+                        resolve({ img, dimensions });
+                    };
+                    img.onerror = () => reject(new Error('Failed to load image preview'));
+                    img.src = URL.createObjectURL(file);
+                } catch (error) {
+                    clearTimeout(timeout);
+                    reject(new Error(`Failed to process file: ${error.message}`));
+                }
+            };
+
+            reader.onerror = () => {
+                clearTimeout(timeout);
+                reject(new Error('Failed to read file'));
+            };
+
+            // Start reading the file
+            reader.readAsArrayBuffer(file);
         });
     },
 
     async handleFiles(files) {
-        for (const file of files) {
+        let successCount = 0;
+        let errorCount = 0;
+        let totalProcessed = 0;
+        const startTime = Date.now();
+
+        // Show initial processing message
+        LoadingManager.show('Analyzing files...', 0);
+
+        // Calculate total size for all files
+        const totalSize = files.reduce((sum, file) => sum + file.size, 0);
+        const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(1);
+        
+        console.log(`Processing ${files.length} files, total size: ${totalSizeMB}MB`);
+
+        for (const [index, file] of files.entries()) {
             try {
-                const img = await this.loadImage(file);
-                const id = PrintCalculator.addImage(file, img);
+                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
+                const fileStartTime = Date.now();
+                
+                // Calculate overall progress
+                const overallProgress = (totalProcessed / totalSize) * 100;
+                
+                // Calculate processing speed and time remaining
+                const elapsedTime = (Date.now() - startTime) / 1000;
+                const processSpeed = totalProcessed / elapsedTime;
+                const remainingSize = totalSize - totalProcessed;
+                const estimatedTimeRemaining = processSpeed > 0 ? remainingSize / processSpeed : 0;
+                
+                // Format time remaining
+                const timeRemainingText = estimatedTimeRemaining > 0 
+                    ? `Est. ${Math.ceil(estimatedTimeRemaining)}s remaining`
+                    : '';
+                
+                LoadingManager.updateProgress(
+                    overallProgress,
+                    `Processing file ${index + 1}/${files.length}: ${file.name}`,
+                    `${fileSizeMB}MB - ${timeRemainingText}`
+                );
+
+                // Process the file with progress updates
+                const updateProgress = (progress, status) => {
+                    const fileProgress = progress;
+                    const overallProgress = ((totalProcessed + (file.size * (progress / 100))) / totalSize) * 100;
+                    
+                    // Update speed calculations
+                    const currentTime = Date.now();
+                    const fileElapsedTime = (currentTime - fileStartTime) / 1000;
+                    
+                    // Only show speed for file reading phase (0-50%)
+                    let speedText = '';
+                    if (progress <= 50) {
+                        const processSpeed = (file.size * (progress / 100)) / fileElapsedTime;
+                        if (processSpeed >= 1024 * 1024) {
+                            speedText = `${(processSpeed / (1024 * 1024)).toFixed(1)} MB/s`;
+                        } else if (processSpeed >= 1024) {
+                            speedText = `${(processSpeed / 1024).toFixed(1)} KB/s`;
+                        }
+                    }
+                    
+                    LoadingManager.updateProgress(
+                        overallProgress,
+                        `${status} ${file.name} (${Math.round(fileProgress)}%)`,
+                        speedText ? `${speedText}` : status
+                    );
+                };
+
+                // Process file with progress tracking
+                const { img, dimensions } = await this.loadImage(file, updateProgress);
+                
+                const id = PrintCalculator.addImage(file, img, dimensions);
                 this.renderImagePreview(id, img);
                 this.updateTotalDisplay();
+                
+                successCount++;
+                totalProcessed += file.size;
+
             } catch (error) {
                 console.error('Error processing image:', error);
+                errorCount++;
+                this.showAlert(
+                    `Failed to process ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)}MB): ${error.message}`,
+                    'error'
+                );
             }
         }
-    },
 
-    handleDimensionInput(input) {
-        const container = input.closest('.size-inputs');
-        const id = container.dataset.imageId;
-        const dimension = input.classList.contains('width-input') ? 'width' : 'height';
-
-        PrintCalculator.updateDimension(id, dimension, input.value);
-        const imageState = PrintCalculator.getImageState(id);
-
-        // Update linked dimension input
-        const otherDimension = dimension === 'width' ? 'height' : 'width';
-        const otherInput = container.querySelector(
-            `.${otherDimension}-input`
-        );
-        otherInput.value = imageState.current[otherDimension].toFixed(2);
-
-        // Update costs
-        this.updateCostDisplay(id);
-        this.updateTotalDisplay();
+        // Show final results
+        if (successCount > 0) {
+            this.showAlert(
+                `Successfully added ${successCount} image${successCount !== 1 ? 's' : ''} to your order`,
+                'success'
+            );
+        }
+        if (errorCount > 0) {
+            this.showAlert(
+                `Failed to process ${errorCount} file${errorCount !== 1 ? 's' : ''}. Please check the file size and format.`,
+                'error'
+            );
+        }
+        
+        LoadingManager.hide();
     },
 
     handleQuantityInput(input) {
@@ -243,62 +565,82 @@ const PrintUI = {
     },
 
     renderImagePreview(id, img) {
+        const imageState = PrintCalculator.getImageState(id);
+        if (!imageState) return;
+
         const container = document.createElement('div');
         container.className = 'size-inputs';
         container.dataset.imageId = id;
 
-        const imageState = PrintCalculator.getImageState(id);
-
         container.innerHTML = `
             <div class="preview-content">
                 <div class="preview-section">
+                    <button class="delete-btn" title="Remove image">
+                        <i class="fas fa-times"></i>
+                    </button>
                     <img src="${img.src}" class="preview-image" alt="Preview">
                 </div>
                 <div class="controls-section">
-                    <div class="input-with-unit">
-                        <label>Width</label>
-                        <input type="number" 
-                               value="${imageState.current.width.toFixed(2)}" 
-                               step="0.01" 
-                               min="0.1" 
-                               class="width-input">
-                        <span class="unit">in</span>
+                    <div class="info-row">
+                        <div class="quantity-size-container">
+                            <div class="quantity-input">
+                                <label>Qty:</label>
+                                <input type="number" class="quantity" value="${imageState.quantity}" min="1">
+                            </div>
+                            <div class="size-display">
+                                <span class="dimensions">${imageState.current.width.toFixed(1)}" × ${imageState.current.height.toFixed(1)}"</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="input-with-unit">
-                        <label>Height</label>
-                        <input type="number" 
-                               value="${imageState.current.height.toFixed(2)}" 
-                               step="0.01" 
-                               min="0.1" 
-                               class="height-input">
-                        <span class="unit">in</span>
+                    <div class="notes-input">
+                        <label>Notes:</label>
+                        <textarea class="notes" placeholder="Add any special instructions...">${imageState.notes}</textarea>
                     </div>
-                    <div class="input-with-unit">
-                        <label>Qty</label>
-                        <input type="number" 
-                               value="${imageState.quantity}" 
-                               min="1" 
-                               step="1" 
-                               class="quantity-input">
+                    <div class="cost-display">
+                        <span class="cost-label">Cost:</span>
+                        <span class="cost-value">$${imageState.cost.toFixed(2)}</span>
                     </div>
                 </div>
-            </div>
-            <div class="cost-display">
-                <span>Cost: </span>
-                <span class="cost-value">$${imageState.cost.toFixed(2)}</span>
             </div>`;
 
         document.getElementById('images-container').appendChild(container);
 
-        // Add event listeners to input fields
-        container.querySelectorAll('input').forEach(input => {
-            input.addEventListener('input', () => {
-                if (input.classList.contains('width-input') || input.classList.contains('height-input')) {
-                    this.handleDimensionInput(input);
-                } else if (input.classList.contains('quantity-input')) {
-                    this.handleQuantityInput(input);
+        // Add quantity input handler
+        container.querySelector('.quantity').addEventListener('input', (e) => {
+            this.handleQuantityInput(e.target);
+        });
+
+        // Add notes input handler
+        container.querySelector('.notes').addEventListener('input', (e) => {
+            const id = container.dataset.imageId;
+            PrintCalculator.updateNotes(id, e.target.value);
+        });
+
+        // Add delete button handler
+        container.querySelector('.delete-btn').addEventListener('click', (e) => {
+            // Prevent the event from bubbling up to the form
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Remove from state
+            PrintCalculator.removeImage(id);
+            
+            // Remove the container with animation
+            container.style.opacity = '0';
+            container.style.transform = 'scale(0.95)';
+            
+            setTimeout(() => {
+                container.remove();
+                this.updateTotalDisplay();
+                
+                // Show feedback toast
+                this.showAlert('Image removed from order', 'success');
+                
+                // If no images left, reset the form
+                if (!PrintCalculator.hasImages()) {
+                    this.form.reset();
                 }
-            });
+            }, 300);
         });
 
         // Add click handler to preview images
@@ -324,117 +666,336 @@ const PrintUI = {
     },
 
     updateTotalDisplay() {
-        this.totalDisplay.textContent =
-            `Total: $${PrintCalculator.getTotalCost().toFixed(2)}`;
+        const total = PrintCalculator.getTotalCost();
+        const formattedTotal = `$${total.toFixed(2)}`;
+        
+        // Update the total cost display if it exists
+        const totalDisplay = document.getElementById('totalCost');
+        if (totalDisplay) {
+            totalDisplay.textContent = `Total: ${formattedTotal}`;
+        }
+        
+        // Update the submit button total
+        const submitBtn = document.querySelector('.submit-btn');
+        if (submitBtn) {
+            submitBtn.setAttribute('data-total', formattedTotal);
+        }
     },
 
     async handleSubmit() {
-        LoadingManager.show('Preparing files for upload...', 0);
-        const formData = new FormData(this.form);
-        const orderDetails = [];
+        try {
+            uploadStats = {
+                startTime: Date.now(),
+                bytesUploaded: 0,
+                lastSpeedUpdate: Date.now(),
+                failedAttempts: 0
+            };
+            
+            LoadingManager.show('Preparing your files...', 0);
+            const formData = new FormData(this.form);
+            const orderDetails = [];
+            let totalImages = 0;
+            let totalSize = 0;
+            const files = [];
+            let sessionId = null;
 
-        // Add all image details
-        document.querySelectorAll('.size-inputs').forEach((container) => {
-            const id = container.dataset.imageId;
-            const imageState = PrintCalculator.getImageState(id);
-            if (imageState) {
-                formData.append('file', imageState.file);
-                orderDetails.push({
-                    width: imageState.current.width,
-                    height: imageState.current.height,
-                    quantity: imageState.quantity,
-                    cost: imageState.cost
-                });
+            // Collect files and details
+            document.querySelectorAll('.size-inputs').forEach((container) => {
+                const id = container.dataset.imageId;
+                const imageState = PrintCalculator.getImageState(id);
+                if (imageState) {
+                    totalSize += imageState.file.size;
+                    files.push(imageState.file);
+                    const details = {
+                        width: imageState.current.width,
+                        height: imageState.current.height,
+                        quantity: imageState.quantity,
+                        cost: imageState.cost,
+                        filename: imageState.file.name.replace('.png', `.${imageState.quantity}.png`),
+                        notes: imageState.notes
+                    };
+                    orderDetails.push(details);
+                    totalImages++;
+                    console.log(`Added file to order: ${imageState.file.name}`, details);
+                }
+            });
+
+            let retryCount = 0;
+            const maxRetries = 3;
+            const chunkSize = 10 * 1024 * 1024; // 10MB chunks for better performance
+            const origin = window.location.origin;
+
+            console.log('Starting upload with:', {
+                totalFiles: files.length,
+                orderDetails,
+                totalCost: PrintCalculator.getTotalCost()
+            });
+
+            while (retryCount < maxRetries) {
+                try {
+                    let totalUploaded = 0;
+                    const uploadStartTime = Date.now();
+                    let lastChunkTime = uploadStartTime;
+                    let lastUploadedBytes = 0;
+
+                    // Upload each file in chunks
+                    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+                        const file = files[fileIndex];
+                        const totalChunks = Math.ceil(file.size / chunkSize);
+                        
+                        console.log(`Starting upload of file ${fileIndex + 1}/${files.length}: ${file.name} (${file.size} bytes in ${totalChunks} chunks)`);
+
+                        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                            const start = chunkIndex * chunkSize;
+                            const end = Math.min(start + chunkSize, file.size);
+                            const chunk = file.slice(start, end);
+                            
+                            const chunkFormData = new FormData();
+                            const modifiedFilename = file.name.replace('.png', `.${orderDetails[fileIndex].quantity}.png`);
+                            chunkFormData.append('file', chunk, modifiedFilename);
+                            chunkFormData.append('chunkIndex', chunkIndex);
+                            chunkFormData.append('totalChunks', totalChunks);
+                            chunkFormData.append('fileIndex', fileIndex);
+                            chunkFormData.append('totalFiles', files.length);
+                            
+                            // Always send session ID if we have one
+                            if (sessionId) {
+                                chunkFormData.append('sessionId', sessionId);
+                            }
+                            
+                            if (chunkIndex === 0) {
+                                // Send metadata with first chunk
+                                chunkFormData.append('email', formData.get('email'));
+                                chunkFormData.append('orderDetails', JSON.stringify(orderDetails));
+                                chunkFormData.append('totalCost', PrintCalculator.getTotalCost());
+                                console.log('Sending metadata with first chunk');
+                            }
+
+                            let chunkRetries = 0;
+                            const maxChunkRetries = 3;
+                            let lastError = null;
+                            
+                            while (chunkRetries < maxChunkRetries) {
+                                try {
+                                    const controller = new AbortController();
+                                    const timeout = setTimeout(() => controller.abort(), 120000); // 30 second timeout
+
+                                    const response = await fetch(`${origin}/upload-chunk`, {
+                                        method: 'POST',
+                                        body: chunkFormData,
+                                        signal: controller.signal
+                                    });
+
+                                    clearTimeout(timeout);
+
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    }
+
+                                    const result = await response.json();
+                                    
+                                    if (result.error) {
+                                        throw new Error(result.error);
+                                    }
+
+                                    // Store session ID if provided
+                                    if (result.sessionId) {
+                                        sessionId = result.sessionId;
+                                        console.log(`Using session ID: ${sessionId}`);
+                                    }
+
+                                    // Handle completion
+                                    if (result.redirect) {
+                                        LoadingManager.updateProgress(100, 'Upload complete! Processing...');
+                                        this.showAlert(
+                                            `Order successfully submitted with ${totalImages} image${totalImages !== 1 ? 's' : ''}! Check your email for confirmation.`,
+                                            'success'
+                                        );
+                                        console.log('Order completed successfully:', result);
+                                        await new Promise(resolve => setTimeout(resolve, 1000));
+                                        window.location.href = result.redirect;
+                                        return;
+                                    }
+                                    
+                                    // Update progress
+                                    totalUploaded += chunk.size;
+                                    const totalProgress = (totalUploaded / totalSize) * 100;
+                                    
+                                    // Calculate upload speed
+                                    const currentTime = Date.now();
+                                    const timeDiff = (currentTime - lastChunkTime) / 1000;
+                                    const bytesDiff = totalUploaded - lastUploadedBytes;
+                                    const uploadSpeed = bytesDiff / timeDiff;
+                                    
+                                    lastChunkTime = currentTime;
+                                    lastUploadedBytes = totalUploaded;
+                                    
+                                    let speedText;
+                                    if (uploadSpeed >= 1024 * 1024) {
+                                        speedText = `${(uploadSpeed / (1024 * 1024)).toFixed(1)} MB/s`;
+                                    } else if (uploadSpeed >= 1024) {
+                                        speedText = `${(uploadSpeed / 1024).toFixed(1)} KB/s`;
+                                    } else {
+                                        speedText = `${Math.round(uploadSpeed)} B/s`;
+                                    }
+                                    
+                                    console.log(`Chunk ${chunkIndex + 1}/${totalChunks} of file ${fileIndex + 1}/${files.length} uploaded (${speedText})`);
+                                    
+                                    LoadingManager.updateProgress(
+                                        Math.round(totalProgress),
+                                        `Uploading: ${(totalUploaded / (1024 * 1024)).toFixed(1)}MB / ${(totalSize / (1024 * 1024)).toFixed(1)}MB (${speedText})`
+                                    );
+                                    
+                                    break; // Successful chunk upload
+                                } catch (error) {
+                                    lastError = error;
+                                    chunkRetries++;
+                                    console.error(`Chunk upload error (attempt ${chunkRetries}):`, error);
+                                    
+                                    if (error.name === 'AbortError') {
+                                        this.showAlert(
+                                            `Upload timeout. The server is taking too long to respond. Please try again.`,
+                                            'error'
+                                        );
+                                        throw error;
+                                    }
+                                    
+                                    if (chunkRetries === maxChunkRetries) {
+                                        throw new Error(`Failed to upload chunk after ${maxChunkRetries} attempts: ${error.message}`);
+                                    }
+                                    
+                                    LoadingManager.updateProgress(
+                                        Math.round((totalUploaded / totalSize) * 100),
+                                        `Upload failed. Retrying in 1 second... (${error.message})`
+                                    );
+                                    
+                                    await new Promise(resolve => setTimeout(resolve, 1000));
+                                }
+                            }
+                            
+                            if (lastError) {
+                                throw lastError;
+                            }
+                        }
+                    }
+                    
+                    break; // Successfully uploaded all files
+                } catch (error) {
+                    retryCount++;
+                    console.error('Upload error:', error);
+                    
+                    if (retryCount === maxRetries) {
+                        this.showAlert(
+                            `Failed to upload files: ${error.message}. Please try again or contact support if the issue persists.`,
+                            'error'
+                        );
+                        break;
+                    }
+
+                    LoadingManager.updateProgress(0, 'Upload failed. Retrying in 2 seconds...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
             }
-        });
-
-        formData.append('orderDetails', JSON.stringify(orderDetails));
-        formData.append('totalCost', PrintCalculator.getTotalCost());
-
-        let retryCount = 0;
-        const maxRetries = 3;
-
-        while (retryCount < maxRetries) {
-            try {
-                LoadingManager.updateProgress(30, `Uploading files to server... (Attempt ${retryCount + 1})`);
-                const origin = window.location.origin;
-                const response = await fetch(`${origin}/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                LoadingManager.updateProgress(60, 'Processing your order...');
-
-                const data = await response.json();
-
-                if (!response.ok) {
-                    const errorMessage = data.details || data.error || 'Failed to submit order';
-                    throw new Error(errorMessage);
-                }
-
-                LoadingManager.updateProgress(100, 'Order submitted successfully!');
-
-                // Show success message and handle redirect
-                this.showAlert(data.message || 'Order successfully submitted! Check your email for confirmation.', 'success');
-
-                // If there's a redirect URL, navigate to it after a short delay
-                if (data.redirect) {
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 1000);
-                } else {
-                    // If no redirect, just reset the form
-                    this.form.reset();
-                    document.getElementById('images-container').innerHTML = '';
-                    this.totalDisplay.textContent = 'Total: $0.00';
-                }
-                break; // Exit retry loop on success
-
-            } catch (error) {
-                retryCount++;
-                console.error('Submission error:', error);
-
-                if (retryCount === maxRetries) {
-                    this.showAlert(
-                        error.message || 'Failed to submit order after multiple attempts. Please try again later.',
-                        'error'
-                    );
-                    break;
-                }
-
-                // Show retry message
-                LoadingManager.updateProgress(
-                    30,
-                    `Upload failed. Retrying... (Attempt ${retryCount + 1}/${maxRetries})`
-                );
-
-                // Wait before retrying
-                await new Promise(resolve => setTimeout(resolve, 2000));
-            }
+        } catch (error) {
+            console.error('Fatal error:', error);
+            this.showAlert(
+                `An unexpected error occurred: ${error.message}. Please try again or contact support if the issue persists.`,
+                'error'
+            );
+        } finally {
+            LoadingManager.hide();
         }
-
-        LoadingManager.hide();
     },
 
     showAlert(message, type = 'error') {
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show`;
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        console.log('Showing alert:', { message, type }); // Debug log
+
+        // Create toast container if it doesn't exist
+        let toastContainer = document.querySelector('.toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'toast-container';
+            toastContainer.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 99999;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                pointer-events: none;
+            `;
+            document.body.appendChild(toastContainer);
+            console.log('Created toast container'); // Debug log
+        }
+
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast ${type === 'error' ? 'toast-error' : 'toast-success'}`;
+        toast.style.cssText = `
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 12px 16px;
+            min-width: 300px;
+            max-width: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transform: translateX(120%);
+            transition: transform 0.3s ease;
+            pointer-events: auto;
+            border-left: 4px solid ${type === 'error' ? '#ef4444' : '#22c55e'};
+        `;
+        
+        // Add icon based on type
+        const icon = type === 'error' ? 'exclamation-circle' : 'check-circle';
+        
+        toast.innerHTML = `
+            <div class="toast-content" style="display: flex; align-items: center; gap: 12px; flex: 1;">
+                <i class="fas fa-${icon} toast-icon" style="color: ${type === 'error' ? '#ef4444' : '#22c55e'}; font-size: 1.2rem;"></i>
+                <span class="toast-message" style="font-size: 0.95rem; color: #1e293b; line-height: 1.4;">${message}</span>
+            </div>
+            <button class="toast-close" style="background: none; border: none; padding: 4px; margin-left: 8px; cursor: pointer; color: #64748b; opacity: 0.7;">
+                <i class="fas fa-times"></i>
+            </button>
         `;
 
-        // Remove any existing alerts
-        const existingAlerts = document.querySelectorAll('.alert');
-        existingAlerts.forEach(alert => alert.remove());
+        // Add to container
+        toastContainer.appendChild(toast);
+        console.log('Added toast to container'); // Debug log
 
-        // Insert the new alert at the top of the form
-        this.form.insertAdjacentElement('beforebegin', alertDiv);
+        // Add click handler to close button
+        toast.querySelector('.toast-close').onclick = () => {
+            toast.style.transform = 'translateX(120%)';
+            setTimeout(() => toast.remove(), 300);
+        };
 
-        // Remove the alert after 5 seconds if it's a success message
-        if (type === 'success') {
-            setTimeout(() => alertDiv.remove(), 5000);
+        // Auto remove after 5 seconds for success, stay for error
+        if (type !== 'error') {
+            setTimeout(() => {
+                toast.style.transform = 'translateX(120%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 5000);
         }
+
+        // Force a reflow to ensure the animation works
+        toast.offsetHeight;
+
+        // Animate in
+        requestAnimationFrame(() => {
+            toast.style.transform = 'translateX(0)';
+            console.log('Animated toast in'); // Debug log
+        });
+    },
+
+    handleDimensionChange(event, imageId) {
+        const input = event.target;
+        const value = parseFloat(input.value) || 0;
+        const dimension = input.dataset.dimension;
+        
+        PrintCalculator.updateImageDimension(imageId, dimension, value);
+        this.updateTotalDisplay();
     }
 };
 

@@ -1,11 +1,14 @@
-modules = ["python-3.11"]
+modules = ["python-3.11", "postgresql-16"]
 
 [nix]
 channel = "stable-24_05"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "1200", "--workers", "4", "--worker-class", "gthread", "--threads", "4", "--limit-request-line", "0", "--limit-request-field_size", "0", "main:app"]
+
+[http]
+proxyBodySize = "512m"
 
 [workflows]
 runButton = "Project"
@@ -39,4 +42,4 @@ localPort = 5000
 externalPort = 80
 
 [objectStorage]
-defaultBucketID = "replit-objstore-d6681de1-ab82-438e-9d90-46e2c13adc31"
+defaultBucketID = "replit-objstore-b9495cba-12af-4e41-8388-3c12c11e5b8a"

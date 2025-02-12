@@ -32,14 +32,28 @@
             <div class="info-value">{{ order.order_number }}</div>
         </div>
 
-        <!-- 2: Customer Email -->
+        <!-- 2: Invoice Number -->
+        <div class="info-card">
+            <div class="card-icon"><i class="fas fa-file-invoice"></i></div>
+            <div class="info-label">Invoice Number</div>
+            <div class="info-value">
+                <input type="text" 
+                       class="invoice-input" 
+                       value="{{ order.invoice_number or '' }}" 
+                       placeholder="Enter invoice number..."
+                       data-order-id="{{ order.id }}">
+                <div class="invoice-feedback"></div>
+            </div>
+        </div>
+
+        <!-- 3: Customer Email -->
         <div class="info-card">
             <div class="card-icon"><i class="fas fa-envelope"></i></div>
             <div class="info-label">Customer Email</div>
             <div class="info-value text-break">{{ order.email }}</div>
         </div>
 
-        <!-- 3: Order Date -->
+        <!-- 4: Order Date -->
         <div class="info-card">
             <div class="card-icon"><i class="fas fa-calendar-alt"></i></div>
             <div class="info-label">Order Date</div>
@@ -48,7 +62,7 @@
             </div>
         </div>
 
-        <!-- 4: Total Cost -->
+        <!-- 5: Total Cost -->
         <div class="info-card">
             <div class="card-icon text-success"><i class="fas fa-dollar-sign"></i></div>
             <div class="info-label">Total Cost</div>
@@ -63,17 +77,12 @@
         <i class="fas fa-tasks me-2"></i>Order Status
     </h5>
     <div class="status-card w-100">
-        <form method="POST" action="{{ url_for('update_order_status', order_id=order.id) }}"
-              class="d-flex align-items-center gap-2 m-0">
-            <select name="status" class="form-select status-select">
-                <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
-                <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
-                <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
-            </select>
-            <button type="submit" class="submit-btn">
-                <i class="fas fa-check me-1"></i>Update Status
-            </button>
-        </form>
+        <select name="status" class="form-select status-select w-100" value="{{ order.status }}" data-order-id="{{ order.id }}">
+            <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
+            <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
+        </select>
+        <div class="status-feedback"></div>
     </div>
 
     <!-- Order Items -->
@@ -98,6 +107,12 @@
                         <label class="info-label">Quantity</label>
                         <div class="info-value">{{ item.quantity }}</div>
                     </div>
+                    {% if item.notes %}
+                    <div class="mb-3">
+                        <label class="info-label">Notes</label>
+                        <div class="info-value notes-text">{{ item.notes }}</div>
+                    </div>
+                    {% endif %}
                     <div>
                         <label class="info-label">Cost</label>
                         <div class="info-value text-success">
@@ -107,9 +122,9 @@
                 </div>
             </div>
             <div class="cost-display">
-                <a href="{{ url_for('download_order_image', order_id=order.id, filename=item.file_key) }}"
-                   class="submit-btn w-100">
-                    <i class="fas fa-download me-1"></i>Download File
+                <a href="{{ url_for('download_order_image', order_id=order.id, filename=item.file_key) }}" class="details-btn download-btn">
+                    <i class="fas fa-download"></i>
+                    Download File
                 </a>
             </div>
         </div>
@@ -149,7 +164,7 @@ body {
 /* Info Cards Grid */
 .info-cards-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
     margin-bottom: 2rem;
 }
@@ -210,13 +225,84 @@ body {
     width: 100%;
 }
 
+.status-price {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.status-price .text-success {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
 /* Status Select Styling */
 .status-select.form-select {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
     border-radius: var(--radius-sm);
     border-color: var(--border-color);
-    min-width: 180px;
+    width: 100%;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+}
+
+/* Status-specific select styling */
+.status-select.form-select option {
+    background: white;
+    color: var(--text-primary);
+}
+
+.status-select.form-select[value="completed"],
+.status-select.form-select option[value="completed"],
+.status-select.form-select:has(option[value="completed"]:checked) {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.status-select.form-select[value="processing"],
+.status-select.form-select option[value="processing"],
+.status-select.form-select:has(option[value="processing"]:checked) {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.status-select.form-select[value="pending"],
+.status-select.form-select option[value="pending"],
+.status-select.form-select:has(option[value="pending"]:checked) {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+    border-color: var(--warning-color);
+}
+
+/* Loading state */
+.status-select.form-select.loading {
+    background-image: none;
+    padding-right: 2.5rem; /* Keep space for spinner */
+}
+
+.status-select-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.status-indicator {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    display: none;
+}
+
+.status-indicator.show {
+    display: block;
 }
 
 /* Buttons */
@@ -224,10 +310,11 @@ body {
 .submit-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
     background: var(--primary-color);
     color: #ffffff !important;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 1.25rem;
     font-size: 0.9rem;
     font-weight: 500;
     border: none;
@@ -235,6 +322,7 @@ body {
     transition: all 0.2s ease;
     text-decoration: none;
     cursor: pointer;
+    min-width: 120px;
 }
 
 .upload-btn:hover,
@@ -247,6 +335,13 @@ body {
 
 .submit-btn i {
     color: #ffffff !important;
+    margin: 0;
+}
+
+/* Ensure the price display only appears on the main form submit button */
+.submit-btn::after {
+    display: none;
+    content: none;
 }
 
 /* Images Grid */
@@ -354,6 +449,63 @@ body {
         width: 100%;
     }
 }
+
+/* Status feedback styling */
+.status-feedback {
+    min-width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-feedback i {
+    font-size: 1.1rem;
+}
+
+.text-success {
+    color: var(--success-color) !important;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+/* Invoice Input Styling */
+.invoice-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    background: transparent;
+    text-align: center;
+}
+
+.invoice-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
+}
+
+.invoice-input::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+.invoice-feedback {
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+    min-height: 1rem;
+}
+
+.invoice-feedback.success {
+    color: var(--success-color);
+}
+
+.invoice-feedback.error {
+    color: #ef4444;
+}
 </style>
 
 <script>
@@ -369,5 +521,122 @@ function showFullSizePreview(src) {
         }
     };
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize status select styling
+    const statusSelect = document.querySelector('.status-select');
+    
+    if (statusSelect) {
+        // Wrap select in a container if not already wrapped
+        if (!statusSelect.parentElement.classList.contains('status-select-wrapper')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'status-select-wrapper';
+            statusSelect.parentNode.insertBefore(wrapper, statusSelect);
+            wrapper.appendChild(statusSelect);
+        }
+        
+        // Create status indicator if it doesn't exist
+        let statusIndicator = statusSelect.nextElementSibling;
+        if (!statusIndicator || !statusIndicator.classList.contains('status-indicator')) {
+            statusIndicator = document.createElement('div');
+            statusIndicator.className = 'status-indicator';
+            statusSelect.parentNode.appendChild(statusIndicator);
+        }
+        
+        // Set initial value
+        statusSelect.setAttribute('value', statusSelect.value);
+        
+        // Update value when changed
+        statusSelect.addEventListener('change', async function() {
+            const newStatus = this.value;
+            const orderId = this.dataset.orderId;
+            
+            // Always show loading state, regardless of status change
+            this.classList.add('loading');
+            statusIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            statusIndicator.classList.add('show');
+            
+            try {
+                const response = await fetch(`/admin/order/${orderId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `status=${newStatus}`
+                });
+
+                if (response.ok) {
+                    // Update the select's value attribute for styling
+                    this.setAttribute('value', newStatus);
+                    
+                    // Show success feedback briefly
+                    statusIndicator.innerHTML = '<i class="fas fa-check text-success"></i>';
+                    
+                    // Reset after delay
+                    setTimeout(() => {
+                        this.classList.remove('loading');
+                        statusIndicator.classList.remove('show');
+                    }, 1000);
+                } else {
+                    throw new Error('Failed to update status');
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+                // Show error feedback
+                statusIndicator.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i>';
+                
+                // Reset after delay
+                setTimeout(() => {
+                    this.classList.remove('loading');
+                    statusIndicator.classList.remove('show');
+                }, 2000);
+            }
+        });
+    }
+
+    // Handle invoice number updates
+    const invoiceInput = document.querySelector('.invoice-input');
+    if (invoiceInput) {
+        let timeout;
+        
+        invoiceInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            const feedback = this.nextElementSibling;
+            
+            timeout = setTimeout(() => {
+                const orderId = this.dataset.orderId;
+                const invoiceNumber = this.value.trim();
+                
+                fetch('/update-invoice-number', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        order_id: orderId,
+                        invoice_number: invoiceNumber
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        feedback.textContent = data.error;
+                        feedback.className = 'invoice-feedback error';
+                    } else {
+                        feedback.textContent = 'Saved';
+                        feedback.className = 'invoice-feedback success';
+                        setTimeout(() => {
+                            feedback.textContent = '';
+                        }, 2000);
+                    }
+                })
+                .catch(error => {
+                    feedback.textContent = 'Failed to save';
+                    feedback.className = 'invoice-feedback error';
+                });
+            }, 500);
+        });
+    }
+});
 </script>
 {% endblock %}
