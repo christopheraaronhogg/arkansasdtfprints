@@ -825,32 +825,17 @@ body {
 }
 
 /* Adjust order item layout for proper alignment */
-.order-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 1.5rem;
-    padding: 1.25rem;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease;
-    position: relative; 
-    overflow: visible;
-    z-index: 1;
-}
-
 /* Left section: checkbox and order details */
 .order-select {
-    flex-shrink: 0;
-    padding-right: 0;
+    flex: 0 0 auto;
     display: flex;
     align-items: center;
+    padding-right: 0;
     padding-right: 0.5rem;
 }
 
 .order-details {
-    flex: 1;
+    flex: 0 0 250px;
     min-width: 200px;
     color: var(--text-primary);  
     font-size: 1rem;
@@ -859,50 +844,36 @@ body {
 
 /* Center section: images */
 .order-images {
-    flex: 2;
+    flex: 1;
     display: flex;
     gap: 0.75rem;
-    justify-content: center;
+    justify-content: flex-start;
     flex-wrap: wrap;
-    min-width: 240px; /* Ensures space for at least 3 images */
-    padding: 0 0.5rem;
+    max-width: calc(70px * 4 + 0.75rem * 3); /* Allow max 4 images per row */
+    min-width: calc(70px * 3 + 0.75rem * 2); /* Ensure min 3 images width */
+    padding: 0 1rem;
 }
 
 /* Right section: status, price, details button */
 .order-actions {
+    flex: 0 0 320px;
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-left: auto;
-    min-width: 320px; /* Minimum width before stacking */
+    justify-content: flex-end;
 }
 
 .img-container {
     width: 70px;
-    min-width: 70px;
     height: 70px;
-    flex-shrink: 0;
+    flex: 0 0 70px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     overflow: hidden;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
     transition: all 0.2s ease;
-}
-
-.img-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: opacity 0.2s;
-}
-
-.img-container:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.img-container img:hover {
-    opacity: 0.9;
+    position: relative;
 }
 
 /* Responsive adjustments */
@@ -917,13 +888,16 @@ body {
 
     .order-details {
         flex: 1;
+        min-width: 0;
     }
 
     .order-images {
         flex: 0 0 100%;
         order: 3;
+        max-width: none;
         justify-content: flex-start;
         margin-top: 1rem;
+        padding: 0;
     }
 
     .order-actions {
@@ -939,10 +913,6 @@ body {
         padding: 1rem;
     }
 
-    .order-select {
-        margin-right: 1rem;
-    }
-
     .order-details {
         width: 100%;
     }
@@ -950,7 +920,6 @@ body {
     .order-images {
         width: 100%;
         margin-top: 0.5rem;
-        padding: 0;
     }
 
     .order-actions {
@@ -990,6 +959,127 @@ body {
     font-size: 0.9rem;
     border-radius: var(--radius-sm);
     border-color: var(--border-color);
+    min-width: 140px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+}
+
+/* Status-specific select styling */
+.status-select.form-select option {
+    background: white;
+    color: var(--text-primary);
+}
+
+.status-select.form-select[value="completed"],
+.status-select.form-select option[value="completed"],
+.status-select.form-select:has(option[value="completed"]:checked) {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: var(--success-color);
+    border-color: var(--success-color);
+}
+
+.status-select.form-select[value="processing"],
+.status-select.form-select option[value="processing"],
+.status-select.form-select:has(option[value="processing"]:checked) {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.status-select.form-select[value="pending"],
+.status-select.form-select option[value="pending"],
+.status-select.form-select:has(option[value="pending"]:checked) {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+    border-color: var(--warning-color);
+}
+
+/* Loading state */
+.status-select.form-select.loading {
+    background-image: none;
+    padding-right: 2.5rem; /* Keep space for spinner */
+}
+
+.status-select-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.status-indicator {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    display: none;
+}
+
+.status-indicator.show {
+    display: block;
+}
+
+/* Status feedback styling */
+.status-feedback {
+    min-width: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.status-feedback i {
+    font-size: 1.1rem;
+}
+
+.text-success {
+    color: var(--success-color) !important;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+}
+
+/* Add invoice number styling */
+.invoice-number {
+    display: inline-flex;
+    align-items: center;
+    color: var(--primary-color);
+    font-weight: 500;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.invoice-number i {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+}
+
+/* Add invoice button styling */
+.invoice-button {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.25rem;
+}
+
+.invoice-button:hover {
+    background: var(--background-color);
+    border-color: var(--primary-color);
+}
+
+.invoice-button i {
+    font-size: 0.9rem;
+    color: var(--primary-color);
 }
 
 .btn-danger {
@@ -1151,6 +1241,7 @@ body {
     font-size: 0.9rem;
     color: var(--primary-color);
 }
+
 </style>
 
 <script>
