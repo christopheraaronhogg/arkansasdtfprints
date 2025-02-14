@@ -220,22 +220,27 @@ def upload_file():
 
                         # Validate image format
                         try:
-                            with Image.open(file_data) as img:
-                                if img.format != 'PNG':
-                                    return jsonify({
-                                        'error': 'Invalid image',
-                                        'details': "Only PNG files are supported"
-                                    }), 400
-                                if img.mode not in ('RGB', 'RGBA'):
-                                    return jsonify({
-                                        'error': 'Invalid image',
-                                        'details': "Image must be in RGB or RGBA format"
-                                    }), 400
+                            img = Image.open(file_data)
+                            logger.info(f"Image format: {img.format}, Mode: {img.mode}")
+
+                            if img.format != 'PNG':
+                                logger.error(f"Invalid image format: {img.format}")
+                                return jsonify({
+                                    'error': 'Invalid image',
+                                    'details': f"Only PNG files are supported. File '{filename}' is {img.format}"
+                                }), 400
+                            if img.mode not in ('RGB', 'RGBA'):
+                                logger.error(f"Invalid image mode: {img.mode}")
+                                return jsonify({
+                                    'error': 'Invalid image',
+                                    'details': f"Image must be in RGB or RGBA format. File '{filename}' is in {img.mode} mode"
+                                }), 400
+                            img.close()
                         except Exception as e:
                             logger.error(f"Error validating image format: {str(e)}")
                             return jsonify({
                                 'error': 'Invalid image',
-                                'details': f"Error validating image format: {str(e)}"
+                                'details': f"Error validating image format for '{filename}': {str(e)}"
                             }), 400
 
                         # Reset pointer for storage
@@ -797,7 +802,7 @@ def update_session_file_progress(session_id, filename, chunk_index, total_chunks
     """Update file progress in session metadata"""
     temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp')
     session_dir = os.path.join(temp_dir, session_id)
-    metadata_path = os.path.join(session_dir, 'metadata.json')
+    metadata_path = os.join(session_dir, 'metadata.json')
 
     try:
         with open(metadata_path, 'r') as f:
