@@ -214,26 +214,31 @@ def upload_file():
                         filename = secure_filename(file.filename)
                         logger.info(f"Processing file: {filename}")
 
-                        # Store file in memory for validation
-                        file_data = BytesIO(file.read())
-                        file_data.seek(0)
+                        # Read file data into memory
+                        file_data = file.read()
+                        file.seek(0)  # Reset file pointer for later use
+
+                        # Create BytesIO object for validation
+                        img_data = BytesIO(file_data)
 
                         # Validate image format
                         try:
-                            img = Image.open(file_data)
-                            logger.info(f"Image format: {img.format}, Mode: {img.mode}")
+                            img = Image.open(img_data)
+                            format_name = img.format
+                            mode_name = img.mode
+                            logger.info(f"Image format: {format_name}, Mode: {mode_name}")
 
-                            if img.format != 'PNG':
-                                logger.error(f"Invalid image format: {img.format}")
+                            if format_name != 'PNG':
+                                logger.error(f"Invalid image format: {format_name}")
                                 return jsonify({
                                     'error': 'Invalid image',
-                                    'details': f"Only PNG files are supported. File '{filename}' is {img.format}"
+                                    'details': f"Only PNG files are supported. File '{filename}' appears to be {format_name}"
                                 }), 400
-                            if img.mode not in ('RGB', 'RGBA'):
-                                logger.error(f"Invalid image mode: {img.mode}")
+                            if mode_name not in ('RGB', 'RGBA'):
+                                logger.error(f"Invalid image mode: {mode_name}")
                                 return jsonify({
                                     'error': 'Invalid image',
-                                    'details': f"Image must be in RGB or RGBA format. File '{filename}' is in {img.mode} mode"
+                                    'details': f"Image must be in RGB or RGBA format. File '{filename}' is in {mode_name} mode"
                                 }), 400
                             img.close()
                         except Exception as e:
@@ -243,13 +248,10 @@ def upload_file():
                                 'details': f"Error validating image format for '{filename}': {str(e)}"
                             }), 400
 
-                        # Reset pointer for storage
-                        file_data.seek(0)
-
-                        # Upload to object storage
+                        # Upload to object storage using the original file data
                         logger.info(f"Starting upload to storage: {filename}")
                         try:
-                            if not storage.upload_file(BytesIO(file_data.read()), filename):
+                            if not storage.upload_file(BytesIO(file_data), filename):
                                 error_msg = f"Failed to upload file {filename} to object storage"
                                 logger.error(error_msg)
                                 raise Exception(error_msg)
@@ -860,7 +862,7 @@ def combine_file_chunks(session_id, filename):
 
         # Combine chunks
         with open(final_path, 'wb') as outfile:
-            for i in range(file_meta['total_chunks']):
+            for i in range(file_meta['totalchunks']):
                 chunk_path = os.path.join(session_dir, f"{filename}.part{i}")
                 with open(chunk_path, 'rb') as infile:
                     outfile.write(infile.read())
