@@ -133,18 +133,54 @@ def index():
 def success():
     return render_template('success.html')
 
+@app.route('/create-order', methods=['POST'])
+def create_order():
+    """Create initial order record"""
+    try:
+        email = request.form.get('email')
+        po_number = request.form.get('po_number')
+
+        if not email:
+            return jsonify({'error': 'Missing email', 'details': 'Email address is required'}), 400
+
+        order = Order(
+            order_number=generate_order_number(),
+            email=email,
+            po_number=po_number,
+            status='pending'
+        )
+        db.session.add(order)
+        db.session.commit()
+
+        return jsonify({
+            'success': True,
+            'orderId': order.id,
+            'orderNumber': order.order_number
+        })
+
+    except Exception as e:
+        logger.error(f"Error creating order: {str(e)}")
+        db.session.rollback()
+        return jsonify({
+            'error': 'Failed to create order',
+            'details': str(e)
+        }), 500
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
         logger.info("Starting upload process")
 
         if 'file' not in request.files:
-            logger.error("No file provided in request")
             return jsonify({'error': 'No file provided', 'details': 'Please select at least one file to upload'}), 400
 
-        files = request.files.getlist('file')
+        file = request.files['file']
         email = request.form.get('email')
         po_number = request.form.get('po_number')
+        order_id = request.form.get('orderId')
+
+        if not order_id:
+            return jsonify({'error': 'Missing order ID', 'details': 'Order ID is required'}), 400
 
         try:
             order_details = json.loads(request.form.get('orderDetails', '[]'))
@@ -153,102 +189,81 @@ def upload_file():
             logger.error(f"Invalid order details format: {str(e)}")
             return jsonify({'error': 'Invalid order details', 'details': 'Order details are not properly formatted'}), 400
 
-        # Check individual file sizes
-        for file in files:
-            file_size = 0
-            file.seek(0, 2)  # Seek to end of file
-            file_size = file.tell()  # Get current position (file size)
-            file.seek(0)  # Reset to beginning
+        # Check file size
+        file_size = 0
+        file.seek(0, 2)  # Seek to end of file
+        file_size = file.tell()  # Get current position (file size)
+        file.seek(0)  # Reset to beginning
 
-            logger.info(f"Processing file: {file.filename}, Size: {file_size / (1024 * 1024):.1f}MB")
+        logger.info(f"Processing file: {file.filename}, Size: {file_size / (1024 * 1024):.1f}MB")
 
-            if file_size > 32 * 1024 * 1024:  # 32MB limit
-                logger.error(f"File too large: {file.filename} ({file_size / (1024 * 1024):.1f}MB)")
-                return jsonify({
-                    'error': 'File too large',
-                    'details': f'File {file.filename} is {file_size / (1024 * 1024):.1f}MB. Maximum allowed size is 32MB'
-                }), 413
-
-        if not email:
-            return jsonify({'error': 'Missing email', 'details': 'Email address is required'}), 400
-
-        if not files:
-            return jsonify({'error': 'No files', 'details': 'No files were selected'}), 400
+        if file_size > 32 * 1024 * 1024:  # 32MB limit
+            logger.error(f"File too large: {file.filename} ({file_size / (1024 * 1024):.1f}MB)")
+            return jsonify({
+                'error': 'File too large',
+                'details': f'File {file.filename} is {file_size / (1024 * 1024):.1f}MB. Maximum allowed size is 32MB'
+            }), 413
 
         try:
-            # Try to find existing pending order for this email within the last hour
-            one_hour_ago = datetime.utcnow() - timedelta(hours=1)
-            existing_order = Order.query.filter_by(
-                email=email,
-                status='pending'
-            ).filter(
-                Order.created_at >= one_hour_ago
-            ).first()
+            # Get existing order
+            order = Order.query.get(order_id)
+            if not order:
+                return jsonify({'error': 'Order not found', 'details': 'Invalid order ID'}), 404
 
-            if existing_order:
-                order = existing_order
-                logger.info(f"Using existing order: {order.order_number}")
-            else:
-                # Create new order
-                order = Order(
-                    order_number=generate_order_number(),
-                    email=email,
-                    po_number=po_number,
-                    total_cost=total_cost,
-                    status='pending'
+            if file and allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                logger.info(f"Processing file: {filename}")
+
+                # Upload to storage
+                try:
+                    if not storage.upload_file(file, filename):
+                        error_msg = f"Failed to upload file {filename} to storage"
+                        logger.error(error_msg)
+                        raise Exception(error_msg)
+
+                    logger.info(f"Successfully uploaded {filename} to storage")
+
+                except Exception as e:
+                    logger.error(f"Storage error for {filename}: {str(e)}")
+                    return jsonify({
+                        'error': 'Storage error',
+                        'details': str(e)
+                    }), 500
+
+                # Find matching order details for this file
+                file_details = next((details for details in order_details 
+                                   if details.get('filename') == filename), None)
+
+                if not file_details:
+                    return jsonify({
+                        'error': 'Missing details',
+                        'details': f'Could not find order details for file {filename}'
+                    }), 400
+
+                # Create order item
+                order_item = OrderItem(
+                    order_id=order.id,
+                    file_key=filename,
+                    width_inches=file_details['width'],
+                    height_inches=file_details['height'],
+                    quantity=file_details['quantity'],
+                    cost=file_details['cost'],
+                    notes=file_details.get('notes', '')
                 )
-                db.session.add(order)
-                db.session.flush()  # This assigns the ID to the order
-                logger.info(f"Created new order: {order.order_number} with ID: {order.id}")
+                db.session.add(order_item)
 
-            # Process each file
-            for file, details in zip(files, order_details):
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    logger.info(f"Processing file: {filename}")
+                # Update order total
+                order.total_cost = total_cost
+                db.session.commit()
+                logger.info(f"Added order item for file: {filename}")
 
-                    # Upload to storage
-                    try:
-                        if not storage.upload_file(file, filename):
-                            error_msg = f"Failed to upload file {filename} to storage"
-                            logger.error(error_msg)
-                            raise Exception(error_msg)
+                return jsonify({
+                    'success': True,
+                    'message': f'Successfully uploaded {filename}',
+                    'order': order.to_dict()
+                })
 
-                        logger.info(f"Successfully uploaded {filename} to storage")
-
-                    except Exception as e:
-                        logger.error(f"Storage error for {filename}: {str(e)}")
-                        raise Exception(f"Storage error: {str(e)}")
-
-                    # Create order item
-                    order_item = OrderItem(
-                        order_id=order.id,
-                        file_key=filename,
-                        width_inches=details['width'],
-                        height_inches=details['height'],
-                        quantity=details['quantity'],
-                        cost=details['cost'],
-                        notes=details.get('notes', '')
-                    )
-                    db.session.add(order_item)
-                    logger.info(f"Added order item for file: {filename}")
-
-            # Update total cost
-            order.total_cost = sum(item.cost for item in order.items)
-            db.session.commit()
-            logger.info(f"Order {order.order_number} committed to database successfully")
-
-            # Send emails only when it's a new order
-            if not existing_order and not send_order_emails(order):
-                logger.warning(f"Failed to send emails for order {order.order_number}")
-                # Continue anyway as this is not critical
-
-            return jsonify({
-                'success': True,
-                'message': 'Order submitted successfully',
-                'order': order.to_dict(),
-                'redirect': url_for('success')
-            }), 200
+            return jsonify({'error': 'Invalid file', 'details': 'File type not allowed'}), 400
 
         except Exception as e:
             db.session.rollback()

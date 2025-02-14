@@ -524,7 +524,7 @@ const PrintUI = {
                 return;
             }
 
-            // Create a single order first -  This part needs server-side integration.  This is a placeholder.
+            // Create a single order first
             const createOrderResponse = await fetch('/create-order', {
                 method: 'POST',
                 body: formData,
@@ -548,10 +548,9 @@ const PrintUI = {
                 // Add order ID
                 singleFormData.append('orderId', orderId);
 
-                // Add order details for all files.  The server will handle the aggregation.
+                // Add order details for all files
                 singleFormData.append('orderDetails', JSON.stringify(orderDetails));
                 singleFormData.append('totalCost', PrintCalculator.getTotalCost());
-
 
                 // Update progress
                 const progress = ((i + 1) / files.length) * 100;
@@ -567,17 +566,12 @@ const PrintUI = {
                         }
                     });
 
-                    if (!response.ok) {
-                        const result = await response.json();
-                        throw new Error(result.details || 'Upload failed');
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.details || result.error || 'Upload failed');
                     }
 
-                    const result = await response.json();
-                    if (result.success) {
-                        uploadedFiles.push(file.name);
-                    } else {
-                        throw new Error(result.error || 'Upload failed');
-                    }
+                    uploadedFiles.push(file.name);
                 } catch (error) {
                     if (error.name === 'AbortError') {
                         this.showAlert(
