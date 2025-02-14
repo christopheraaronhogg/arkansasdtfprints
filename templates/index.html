@@ -10,15 +10,14 @@
     <main>
         <form id="upload-form">
             <div class="upload-section">
-                <div id="dropZone" class="upload-area">
+                <div class="upload-area" id="dropZone">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    <h3 class="upload-title">Drag & Drop PNG Files Here</h3>
-                    <p class="upload-subtitle">or click to select files</p>
-                    <p class="size-limits">Maximum 500MB per file, 1GB total</p>
+                    <p class="upload-title">Drag & drop your PNG files here</p>
+                    <p class="upload-subtitle">or</p>
                     <label class="upload-btn">
                         <i class="fas fa-folder-open"></i>
                         Choose Files
-                        <input type="file" id="file-input" accept=".png" multiple>
+                        <input type="file" name="file" accept="image/png" multiple required id="file-input">
                     </label>
                 </div>
                 <div id="fileList" class="file-list"></div>
@@ -32,6 +31,11 @@
                         <i class="fas fa-envelope"></i>
                         <input type="email" id="email" name="email" required 
                                placeholder="Enter your email">
+                    </div>
+                    <div class="po-input">
+                        <i class="fas fa-file-alt"></i>
+                        <input type="text" id="po_number" name="po_number" 
+                               placeholder="PO Number (optional)">
                     </div>
                     <button type="submit" class="submit-btn" data-total="$0.00">
                         <span>
@@ -71,15 +75,6 @@
         </div>
     </div>
 </div>
-
-<style>
-.size-limits {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin: 0.5rem 0;
-    opacity: 0.8;
-}
-</style>
 {% endblock %}
 
 {% block scripts %}

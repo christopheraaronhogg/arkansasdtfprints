@@ -7,7 +7,6 @@ from config import Config
 from io import BytesIO
 import logging
 from decimal import Decimal, ROUND_HALF_UP
-import io
 
 logger = logging.getLogger(__name__)
 
@@ -53,73 +52,27 @@ def calculate_cost(width_inches, height_inches):
     return float(cost)
 
 def get_image_dimensions(file_data):
-    try:
-        # Reset file pointer and read first 1000 bytes
-        file_data.seek(0)
-        header = file_data.read(1000)
+    with Image.open(file_data) as img:
+        # Get physical size in inches using the image's DPI info
+        dpi_x, dpi_y = img.info.get('dpi', (96, 96))  # Default to 96 DPI if not specified
         
-        with Image.open(io.BytesIO(header)) as img:
-            dpi_x, dpi_y = img.info.get('dpi', (96, 96))
-            width_px, height_px = img.size
-            
-            # Convert to Decimal for precise calculations
-            width_px = Decimal(str(width_px))
-            height_px = Decimal(str(height_px))
-            dpi_x = Decimal(str(dpi_x))
-            dpi_y = Decimal(str(dpi_y))
-            
-            # Calculate dimensions with 2 decimal places precision
-            width_inches = (width_px / dpi_x).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            height_inches = (height_px / dpi_y).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            
-            logger.debug(f"Image dimensions calculation:")
-            logger.debug(f"Pixels: {width_px} x {height_px}")
-            logger.debug(f"DPI: {dpi_x} x {dpi_y}")
-            logger.debug(f"Result inches: {width_inches} x {height_inches}")
-            
-            # Reset file pointer for subsequent operations
-            file_data.seek(0)
-            
-            # Return as float but maintain precision
-            return float(width_inches), float(height_inches)
-    except Exception as e:
-        logger.error(f"Fast dimension error: {str(e)}")
-        # Reset file pointer before falling back
-        file_data.seek(0)
-        # Fall back to original method
-        return get_image_dimensions_fallback(file_data)
-
-def get_image_dimensions_fallback(file_data):
-    """Fallback method that reads the entire file if header-only approach fails"""
-    try:
-        with Image.open(file_data) as img:
-            dpi_x, dpi_y = img.info.get('dpi', (96, 96))
-            width_px, height_px = img.size
-            
-            # Convert to Decimal for precise calculations
-            width_px = Decimal(str(width_px))
-            height_px = Decimal(str(height_px))
-            dpi_x = Decimal(str(dpi_x))
-            dpi_y = Decimal(str(dpi_y))
-            
-            # Calculate dimensions with 2 decimal places precision
-            width_inches = (width_px / dpi_x).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            height_inches = (height_px / dpi_y).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-            
-            logger.debug(f"Fallback dimensions calculation:")
-            logger.debug(f"Pixels: {width_px} x {height_px}")
-            logger.debug(f"DPI: {dpi_x} x {dpi_y}")
-            logger.debug(f"Result inches: {width_inches} x {height_inches}")
-            
-            # Reset file pointer for subsequent operations
-            file_data.seek(0)
-            
-            # Return as float but maintain precision
-            return float(width_inches), float(height_inches)
-    except Exception as e:
-        logger.error(f"Fallback dimension error: {str(e)}")
-        file_data.seek(0)
-        raise
+        # Convert to Decimal for precise calculations
+        width_px = Decimal(str(img.size[0]))
+        height_px = Decimal(str(img.size[1]))
+        dpi_x = Decimal(str(dpi_x))
+        dpi_y = Decimal(str(dpi_y))
+        
+        # Calculate dimensions with 2 decimal places precision
+        width_inches = (width_px / dpi_x).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        height_inches = (height_px / dpi_y).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        
+        logger.debug(f"Image dimensions calculation:")
+        logger.debug(f"Pixels: {width_px} x {height_px}")
+        logger.debug(f"DPI: {dpi_x} x {dpi_y}")
+        logger.debug(f"Result inches: {width_inches} x {height_inches}")
+        
+        # Return as float but maintain precision
+        return float(width_inches), float(height_inches)
 
 def validate_image(file_data):
     try:

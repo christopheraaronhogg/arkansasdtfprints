@@ -38,39 +38,25 @@ class ObjectStorage:
                     raise RuntimeError(f"Failed to initialize storage: {str(e)}")
 
     def upload_file(self, file_data, filename):
-        """Upload a file to object storage with retry logic and improved streaming"""
+        """Upload a file to object storage with retry logic"""
         attempt = 0
-        total_size = 0
-        CHUNK_SIZE = 10 * 1024 * 1024  # 10MB chunks to match frontend
-        
         while attempt < self.max_retries:
             try:
-                # Stream upload with progress tracking
-                uploader = self.client.get_uploader(filename)
-                
-                while True:
-                    chunk = file_data.read(CHUNK_SIZE)
-                    if not chunk:
-                        break
-                        
-                    uploader.upload_chunk(chunk)
-                    total_size += len(chunk)
-                    logger.debug(f"Uploaded chunk of {len(chunk)} bytes for {filename}. Total: {total_size} bytes")
-                
-                uploader.finish()
-                logger.info(f"Successfully uploaded file {filename} to storage ({total_size} bytes)")
+                # Read file content
+                file_content = file_data.read()
+                # Upload using the client's method
+                self.client.upload_from_bytes(filename, file_content)
+                logger.info(f"Successfully uploaded file {filename} to storage")
                 return True
-                
             except Exception as e:
                 attempt += 1
-                logger.error(f"Upload attempt {attempt} failed for {filename}: {str(e)}")
                 if attempt < self.max_retries:
-                    logger.warning(f"Retrying upload in {self.retry_delay} seconds...")
+                    logger.warning(f"Failed to upload file (attempt {attempt}): {str(e)}")
                     time.sleep(self.retry_delay)
-                    file_data.seek(0)  # Reset file pointer for retry
-                    total_size = 0  # Reset size counter
+                    # Reset file pointer for next attempt
+                    file_data.seek(0)
                 else:
-                    logger.error(f"Failed to upload {filename} after {self.max_retries} attempts")
+                    logger.error(f"Error uploading file to object storage after {self.max_retries} attempts: {str(e)}")
                     return False
 
     def get_file(self, filename):

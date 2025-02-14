@@ -4,8 +4,8 @@ modules = ["python-3.11", "postgresql-16"]
 channel = "stable-24_05"
 
 [deployment]
-deploymentTarget = "autoscale"
-run = ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "1200", "--workers", "4", "--worker-class", "gthread", "--threads", "4", "--limit-request-line", "0", "--limit-request-field_size", "0", "main:app"]
+deploymentTarget = "gce"
+run = ["gunicorn", "--bind", "0.0.0.0:5000", "--timeout", "1200", "--limit-request-line", "0", "--limit-request-field_size", "0", "main:app"]
 
 [http]
 proxyBodySize = "512m"
@@ -42,4 +42,4 @@ localPort = 5000
 externalPort = 80
 
 [objectStorage]
-defaultBucketID = "replit-objstore-b9495cba-12af-4e41-8388-3c12c11e5b8a"
+defaultBucketID = "replit-objstore-975b0bd5-2ee3-448c-bdeb-ede1829b458c"

@@ -47,6 +47,9 @@
             <button onclick="updateSelectedStatus()" class="action-btn">
                 <i class="fas fa-check me-1" style="color: white !important;"></i>Update Selected
             </button>
+            <button onclick="showInvoiceModal()" class="action-btn">
+                <i class="fas fa-file-invoice me-1" style="color: white !important;"></i>Set Invoice Number
+            </button>
             <button onclick="confirmBulkDelete()" class="action-btn btn-danger">
                 <i class="fas fa-trash me-1" style="color: white !important;"></i>Delete Selected
             </button>
@@ -73,6 +76,15 @@
                 <div class="order-meta text-muted">
                     {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }} <br>
                     {{ order.email }}
+                    <br>
+                    <button class="invoice-button" onclick="showSingleInvoiceModal({{ order.id }}, '{{ order.invoice_number or '' }}')">
+                        <i class="fas fa-file-invoice me-1"></i>
+                        {% if order.invoice_number %}
+                        Invoice: {{ order.invoice_number }}
+                        {% else %}
+                        Add Invoice Number
+                        {% endif %}
+                    </button>
                 </div>
             </div>
 
@@ -136,6 +148,52 @@
                 <i class="fas fa-trash me-1"></i>Yes, Delete
             </button>
             <button onclick="closeDeleteModal()" class="action-btn">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Invoice Number Modal -->
+<div id="invoiceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Set Invoice Number</h3>
+            <span class="close-modal" onclick="closeInvoiceModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                <input type="text" id="invoiceNumber" class="form-control" placeholder="Enter invoice number">
+                <div id="invoiceFeedback" class="feedback mt-2"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="executeBulkInvoiceUpdate()" class="action-btn">
+                <i class="fas fa-check me-1"></i>Update
+            </button>
+            <button onclick="closeInvoiceModal()" class="action-btn">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Single Invoice Modal -->
+<div id="singleInvoiceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Update Invoice Number</h3>
+            <span class="close-modal" onclick="closeSingleInvoiceModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="singleInvoiceNumber" class="form-label">Invoice Number</label>
+                <input type="text" id="singleInvoiceNumber" class="form-control" placeholder="Enter invoice number">
+                <div id="singleInvoiceFeedback" class="feedback mt-2"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="executeSingleInvoiceUpdate()" class="action-btn">
+                <i class="fas fa-check me-1"></i>Update
+            </button>
+            <button onclick="closeSingleInvoiceModal()" class="action-btn">Cancel</button>
         </div>
     </div>
 </div>
@@ -995,6 +1053,46 @@ body {
 .text-danger {
     color: #dc3545 !important;
 }
+
+/* Add invoice number styling */
+.invoice-number {
+    display: inline-flex;
+    align-items: center;
+    color: var(--primary-color);
+    font-weight: 500;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.invoice-number i {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+}
+
+/* Add invoice button styling */
+.invoice-button {
+    display: inline-flex;
+    align-items: center;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.75rem;
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.25rem;
+}
+
+.invoice-button:hover {
+    background: var(--background-color);
+    border-color: var(--primary-color);
+}
+
+.invoice-button i {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+}
 </style>
 
 <script>
@@ -1645,6 +1743,154 @@ function executeBulkDelete() {
     .finally(() => {
         closeDeleteModal();
     });
+}
+
+function showInvoiceModal() {
+    const selectedCount = document.querySelectorAll('.order-checkbox:checked').length;
+    if (selectedCount === 0) {
+        alert('Please select at least one order to update.');
+        return;
+    }
+    
+    document.getElementById('invoiceModal').style.display = 'flex';
+    document.getElementById('invoiceNumber').value = '';
+    document.getElementById('invoiceFeedback').textContent = '';
+}
+
+function closeInvoiceModal() {
+    document.getElementById('invoiceModal').style.display = 'none';
+}
+
+async function executeBulkInvoiceUpdate() {
+    const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+        .map(checkbox => parseInt(checkbox.dataset.orderId));
+    
+    const invoiceNumber = document.getElementById('invoiceNumber').value;
+    const feedback = document.getElementById('invoiceFeedback');
+    
+    try {
+        const response = await fetch('/admin/bulk-invoice-update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                order_ids: selectedOrders,
+                invoice_number: invoiceNumber
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            closeInvoiceModal();
+            alert(`Successfully updated ${data.updated} orders with invoice number: ${invoiceNumber}`);
+            location.reload();
+        } else {
+            feedback.textContent = data.error || 'Failed to update invoice numbers';
+            feedback.className = 'feedback text-danger mt-2';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        feedback.textContent = 'Failed to update invoice numbers';
+        feedback.className = 'feedback text-danger mt-2';
+    }
+}
+
+let currentOrderId = null;
+
+function showSingleInvoiceModal(orderId, currentInvoiceNumber) {
+    currentOrderId = orderId;
+    const modal = document.getElementById('singleInvoiceModal');
+    const input = document.getElementById('singleInvoiceNumber');
+    const feedback = document.getElementById('singleInvoiceFeedback');
+    
+    input.value = currentInvoiceNumber;
+    feedback.textContent = '';
+    feedback.className = 'feedback mt-2';
+    
+    modal.style.display = 'flex';
+}
+
+function closeSingleInvoiceModal() {
+    const modal = document.getElementById('singleInvoiceModal');
+    modal.style.display = 'none';
+    currentOrderId = null;
+}
+
+async function executeSingleInvoiceUpdate() {
+    if (!currentOrderId) return;
+    
+    const input = document.getElementById('singleInvoiceNumber');
+    const feedback = document.getElementById('singleInvoiceFeedback');
+    const invoiceNumber = input.value.trim();
+    
+    try {
+        const response = await fetch('/update-invoice-number', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                order_id: currentOrderId,
+                invoice_number: invoiceNumber
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Update the button text in the list
+            const orderItem = document.querySelector(`.order-item [onclick*="${currentOrderId}"]`);
+            if (orderItem) {
+                orderItem.innerHTML = `
+                    <i class="fas fa-file-invoice me-1"></i>
+                    ${invoiceNumber ? `Invoice: ${invoiceNumber}` : 'Add Invoice Number'}
+                `;
+            }
+            
+            closeSingleInvoiceModal();
+            showToast('Invoice number updated successfully', 'success');
+        } else {
+            feedback.textContent = data.error || 'Failed to update invoice number';
+            feedback.className = 'feedback error mt-2';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        feedback.textContent = 'Failed to update invoice number';
+        feedback.className = 'feedback error mt-2';
+    }
+}
+
+// Add toast notification function if not already present
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} toast-icon"></i>
+            <span class="toast-message">${message}</span>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('toast-showing'));
+    
+    setTimeout(() => {
+        toast.classList.remove('toast-showing');
+        toast.classList.add('toast-hiding');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 </script>
 {% endblock %}

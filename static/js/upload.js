@@ -7,15 +7,12 @@ const LoadingManager = {
             container = document.createElement('div');
             container.id = 'progress-container';
             container.innerHTML = `
-                <div class="progress-info">
-                    <div class="progress-status"></div>
-                    <div class="progress-details"></div>
-                </div>
                 <div class="progress" role="progressbar">
                     <div id="progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%">
                         <div id="progress-text">0%</div>
                     </div>
                 </div>
+                <div class="progress-status"></div>
             `;
             
             // Insert after email-submit-row
@@ -35,12 +32,12 @@ const LoadingManager = {
         this.updateProgress(progress, message);
     },
 
-    updateProgress(progress, message = '', details = '') {
+    updateProgress(progress, message = '') {
         const container = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progress-text');
         
-        if (container && progressBar && progressText) {
+        if (progressBar && progressText) {
             // Round progress to nearest integer
             const roundedProgress = Math.round(progress);
             
@@ -48,19 +45,14 @@ const LoadingManager = {
             progressBar.style.width = `${roundedProgress}%`;
             progressText.textContent = `${roundedProgress}%`;
             
+            // Add progress to data attribute for CSS styling
+            progressBar.setAttribute('data-progress', `${roundedProgress}%`);
+            
             // Update status message if provided
             if (message) {
-                const statusDiv = container.querySelector('.progress-status');
+                const statusDiv = document.querySelector('.progress-status');
                 if (statusDiv) {
                     statusDiv.textContent = message;
-                }
-            }
-
-            // Update details if provided
-            if (details) {
-                const detailsDiv = container.querySelector('.progress-details');
-                if (detailsDiv) {
-                    detailsDiv.textContent = details;
                 }
             }
 
@@ -258,96 +250,12 @@ const PrintUI = {
             this.dropZone.classList.remove('dragover');
 
             const files = [...e.dataTransfer.files].filter(f => f.type === 'image/png');
-            
-            // Early feedback for no PNG files
-            if (files.length === 0) {
-                this.showAlert('Only PNG files are accepted', 'error');
-                return;
-            }
-
-            // Check file sizes immediately
-            const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-            const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB
-            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-
-            // Check individual file sizes
-            const largeFiles = files.filter(file => file.size > MAX_FILE_SIZE);
-            if (largeFiles.length > 0) {
-                const fileNames = largeFiles.map(f => f.name).join(', ');
-                this.showAlert(
-                    `Some files are too large (max 500MB per file): ${fileNames}`,
-                    'error'
-                );
-                return;
-            }
-
-            // Check total upload size
-            if (totalSize > MAX_TOTAL_SIZE) {
-                this.showAlert(
-                    `Total upload size (${(totalSize / (1024 * 1024)).toFixed(1)}MB) exceeds the limit of 1GB`,
-                    'error'
-                );
-                return;
-            }
-
-            // Show processing feedback
-            LoadingManager.show('Processing files...', 0);
-            
-            try {
-                await this.handleFiles(files);
-            } catch (error) {
-                this.showAlert(`Error processing files: ${error.message}`, 'error');
-            } finally {
-                LoadingManager.hide();
-            }
+            await this.handleFiles(files);
         });
 
         this.fileInput.addEventListener('change', async () => {
             const files = [...this.fileInput.files].filter(f => f.type === 'image/png');
-            
-            // Early feedback for no PNG files
-            if (files.length === 0) {
-                this.showAlert('Only PNG files are accepted', 'error');
-                return;
-            }
-
-            // Check file sizes immediately
-            const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
-            const MAX_TOTAL_SIZE = 1024 * 1024 * 1024; // 1GB
-            const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-
-            // Check individual file sizes
-            const largeFiles = files.filter(file => file.size > MAX_FILE_SIZE);
-            if (largeFiles.length > 0) {
-                const fileNames = largeFiles.map(f => f.name).join(', ');
-                this.showAlert(
-                    `Some files are too large (max 500MB per file): ${fileNames}`,
-                    'error'
-                );
-                this.fileInput.value = ''; // Reset input
-                return;
-            }
-
-            // Check total upload size
-            if (totalSize > MAX_TOTAL_SIZE) {
-                this.showAlert(
-                    `Total upload size (${(totalSize / (1024 * 1024)).toFixed(1)}MB) exceeds the limit of 1GB`,
-                    'error'
-                );
-                this.fileInput.value = ''; // Reset input
-                return;
-            }
-
-            // Show processing feedback
-            LoadingManager.show('Processing files...', 0);
-            
-            try {
-                await this.handleFiles(files);
-            } catch (error) {
-                this.showAlert(`Error processing files: ${error.message}`, 'error');
-            } finally {
-                LoadingManager.hide();
-            }
+            await this.handleFiles(files);
         });
 
         this.form.addEventListener('submit', (e) => {
@@ -356,196 +264,52 @@ const PrintUI = {
         });
     },
 
-    async loadImage(file, onProgress) {
+    loadImage(file) {
         return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                reject(new Error('File processing timed out. The file might be too large or corrupted.'));
-            }, 360000); // 360 second timeout
+            // First get the physical dimensions from the server
+            const formData = new FormData();
+            formData.append('file', file);
 
-            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-            const reader = new FileReader();
-            
-            // Track progress of file reading
-            reader.onprogress = (event) => {
-                if (event.lengthComputable && onProgress) {
-                    // File reading is 25% of the total progress
-                    const readProgress = (event.loaded / event.total) * 25;
-                    const speed = event.loaded / ((Date.now() - startTime) / 1000);
-                    let speedText = '';
-                    if (speed >= 1024 * 1024) {
-                        speedText = `${(speed / (1024 * 1024)).toFixed(1)} MB/s`;
-                    } else if (speed >= 1024) {
-                        speedText = `${(speed / 1024).toFixed(1)} KB/s`;
-                    }
-                    onProgress(readProgress, `Reading file (${fileSizeMB} MB)...`, speedText);
-                }
-            };
-
-            const startTime = Date.now();
-            reader.onload = async () => {
-                try {
-                    // Get dimensions from server
-                    const formData = new FormData();
-                    formData.append('file', file);
-
-                    onProgress(25, `Preparing ${fileSizeMB} MB file for processing...`, '');
-
-                    // Start server processing phase
-                    const processingStartTime = Date.now();
-                    const progressInterval = setInterval(() => {
-                        const elapsedTime = Math.round((Date.now() - processingStartTime) / 1000);
-                        // During server processing, progress moves from 25% to 75% over time
-                        // The longer it takes, the slower it moves to avoid hitting 100% too early
-                        const processingProgress = 25 + Math.min(50, (elapsedTime / (30 + elapsedTime)) * 50);
-                        onProgress(
-                            processingProgress,
-                            `Processing ${fileSizeMB} MB file`,
-                            `${elapsedTime}s elapsed`
-                        );
-                    }, 1000);
-
-                    const response = await fetch('/get-dimensions', {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    clearInterval(progressInterval);
-
-                    if (!response.ok) {
-                        throw new Error(`Server error: ${response.status}`);
-                    }
-
-                    const dimensions = await response.json();
-                    clearTimeout(timeout);
-
-                    onProgress(75, `Creating preview for ${fileSizeMB} MB file...`, '');
-
-                    // Create image preview
-                    const img = new Image();
-                    img.onload = () => {
-                        onProgress(100, 'Complete', '');
-                        resolve({ img, dimensions });
-                    };
-                    img.onerror = () => reject(new Error('Failed to load image preview'));
-                    img.src = URL.createObjectURL(file);
-                } catch (error) {
-                    clearTimeout(timeout);
-                    reject(new Error(`Failed to process file: ${error.message}`));
-                }
-            };
-
-            reader.onerror = () => {
-                clearTimeout(timeout);
-                reject(new Error('Failed to read file'));
-            };
-
-            // Start reading the file
-            reader.readAsArrayBuffer(file);
+            fetch('/get-dimensions', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(dimensions => {
+            const img = new Image();
+                img.onload = () => resolve({ img, dimensions });
+            img.onerror = reject;
+            img.src = URL.createObjectURL(file);
+            })
+            .catch(reject);
         });
     },
 
     async handleFiles(files) {
         let successCount = 0;
         let errorCount = 0;
-        let totalProcessed = 0;
-        const startTime = Date.now();
 
-        // Show initial processing message
-        LoadingManager.show('Analyzing files...', 0);
-
-        // Calculate total size for all files
-        const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-        const totalSizeMB = (totalSize / (1024 * 1024)).toFixed(1);
-        
-        console.log(`Processing ${files.length} files, total size: ${totalSizeMB}MB`);
-
-        for (const [index, file] of files.entries()) {
+        for (const file of files) {
             try {
-                const fileSizeMB = (file.size / (1024 * 1024)).toFixed(1);
-                const fileStartTime = Date.now();
-                
-                // Calculate overall progress
-                const overallProgress = (totalProcessed / totalSize) * 100;
-                
-                // Calculate processing speed and time remaining
-                const elapsedTime = (Date.now() - startTime) / 1000;
-                const processSpeed = totalProcessed / elapsedTime;
-                const remainingSize = totalSize - totalProcessed;
-                const estimatedTimeRemaining = processSpeed > 0 ? remainingSize / processSpeed : 0;
-                
-                // Format time remaining
-                const timeRemainingText = estimatedTimeRemaining > 0 
-                    ? `Est. ${Math.ceil(estimatedTimeRemaining)}s remaining`
-                    : '';
-                
-                LoadingManager.updateProgress(
-                    overallProgress,
-                    `Processing file ${index + 1}/${files.length}: ${file.name}`,
-                    `${fileSizeMB}MB - ${timeRemainingText}`
-                );
-
-                // Process the file with progress updates
-                const updateProgress = (progress, status) => {
-                    const fileProgress = progress;
-                    const overallProgress = ((totalProcessed + (file.size * (progress / 100))) / totalSize) * 100;
-                    
-                    // Update speed calculations
-                    const currentTime = Date.now();
-                    const fileElapsedTime = (currentTime - fileStartTime) / 1000;
-                    
-                    // Only show speed for file reading phase (0-50%)
-                    let speedText = '';
-                    if (progress <= 50) {
-                        const processSpeed = (file.size * (progress / 100)) / fileElapsedTime;
-                        if (processSpeed >= 1024 * 1024) {
-                            speedText = `${(processSpeed / (1024 * 1024)).toFixed(1)} MB/s`;
-                        } else if (processSpeed >= 1024) {
-                            speedText = `${(processSpeed / 1024).toFixed(1)} KB/s`;
-                        }
-                    }
-                    
-                    LoadingManager.updateProgress(
-                        overallProgress,
-                        `${status} ${file.name} (${Math.round(fileProgress)}%)`,
-                        speedText ? `${speedText}` : status
-                    );
-                };
-
-                // Process file with progress tracking
-                const { img, dimensions } = await this.loadImage(file, updateProgress);
-                
+                const { img, dimensions } = await this.loadImage(file);
                 const id = PrintCalculator.addImage(file, img, dimensions);
                 this.renderImagePreview(id, img);
                 this.updateTotalDisplay();
-                
                 successCount++;
-                totalProcessed += file.size;
-
             } catch (error) {
                 console.error('Error processing image:', error);
                 errorCount++;
-                this.showAlert(
-                    `Failed to process ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)}MB): ${error.message}`,
-                    'error'
-                );
+                this.showAlert(`Failed to process ${file.name}: ${error.message}`, 'error');
             }
         }
 
-        // Show final results
+        // Show summary toast for successful uploads
         if (successCount > 0) {
             this.showAlert(
                 `Successfully added ${successCount} image${successCount !== 1 ? 's' : ''} to your order`,
                 'success'
             );
         }
-        if (errorCount > 0) {
-            this.showAlert(
-                `Failed to process ${errorCount} file${errorCount !== 1 ? 's' : ''}. Please check the file size and format.`,
-                'error'
-            );
-        }
-        
-        LoadingManager.hide();
     },
 
     handleQuantityInput(input) {
@@ -684,220 +448,71 @@ const PrintUI = {
 
     async handleSubmit() {
         try {
-            uploadStats = {
-                startTime: Date.now(),
-                bytesUploaded: 0,
-                lastSpeedUpdate: Date.now(),
-                failedAttempts: 0
-            };
-            
             LoadingManager.show('Preparing your files...', 0);
             const formData = new FormData(this.form);
             const orderDetails = [];
             let totalImages = 0;
-            let totalSize = 0;
-            const files = [];
-            let sessionId = null;
-
+            
             // Collect files and details
             document.querySelectorAll('.size-inputs').forEach((container) => {
                 const id = container.dataset.imageId;
                 const imageState = PrintCalculator.getImageState(id);
                 if (imageState) {
-                    totalSize += imageState.file.size;
-                    files.push(imageState.file);
+                    formData.append('file', imageState.file);
                     const details = {
                         width: imageState.current.width,
                         height: imageState.current.height,
                         quantity: imageState.quantity,
                         cost: imageState.cost,
-                        filename: imageState.file.name.replace('.png', `.${imageState.quantity}.png`),
+                        filename: imageState.file.name,
                         notes: imageState.notes
                     };
                     orderDetails.push(details);
                     totalImages++;
-                    console.log(`Added file to order: ${imageState.file.name}`, details);
                 }
             });
 
-            let retryCount = 0;
-            const maxRetries = 3;
-            const chunkSize = 10 * 1024 * 1024; // 10MB chunks for better performance
-            const origin = window.location.origin;
+            formData.append('orderDetails', JSON.stringify(orderDetails));
+            formData.append('totalCost', PrintCalculator.getTotalCost());
 
-            console.log('Starting upload with:', {
-                totalFiles: files.length,
-                orderDetails,
-                totalCost: PrintCalculator.getTotalCost()
+            LoadingManager.updateProgress(50, 'Uploading files...');
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
             });
 
-            while (retryCount < maxRetries) {
-                try {
-                    let totalUploaded = 0;
-                    const uploadStartTime = Date.now();
-                    let lastChunkTime = uploadStartTime;
-                    let lastUploadedBytes = 0;
-
-                    // Upload each file in chunks
-                    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
-                        const file = files[fileIndex];
-                        const totalChunks = Math.ceil(file.size / chunkSize);
-                        
-                        console.log(`Starting upload of file ${fileIndex + 1}/${files.length}: ${file.name} (${file.size} bytes in ${totalChunks} chunks)`);
-
-                        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-                            const start = chunkIndex * chunkSize;
-                            const end = Math.min(start + chunkSize, file.size);
-                            const chunk = file.slice(start, end);
-                            
-                            const chunkFormData = new FormData();
-                            const modifiedFilename = file.name.replace('.png', `.${orderDetails[fileIndex].quantity}.png`);
-                            chunkFormData.append('file', chunk, modifiedFilename);
-                            chunkFormData.append('chunkIndex', chunkIndex);
-                            chunkFormData.append('totalChunks', totalChunks);
-                            chunkFormData.append('fileIndex', fileIndex);
-                            chunkFormData.append('totalFiles', files.length);
-                            
-                            // Always send session ID if we have one
-                            if (sessionId) {
-                                chunkFormData.append('sessionId', sessionId);
-                            }
-                            
-                            if (chunkIndex === 0) {
-                                // Send metadata with first chunk
-                                chunkFormData.append('email', formData.get('email'));
-                                chunkFormData.append('orderDetails', JSON.stringify(orderDetails));
-                                chunkFormData.append('totalCost', PrintCalculator.getTotalCost());
-                                console.log('Sending metadata with first chunk');
-                            }
-
-                            let chunkRetries = 0;
-                            const maxChunkRetries = 3;
-                            let lastError = null;
-                            
-                            while (chunkRetries < maxChunkRetries) {
-                                try {
-                                    const controller = new AbortController();
-                                    const timeout = setTimeout(() => controller.abort(), 120000); // 30 second timeout
-
-                                    const response = await fetch(`${origin}/upload-chunk`, {
-                                        method: 'POST',
-                                        body: chunkFormData,
-                                        signal: controller.signal
-                                    });
-
-                                    clearTimeout(timeout);
-
-                                    if (!response.ok) {
-                                        throw new Error(`HTTP error! status: ${response.status}`);
-                                    }
-
-                                    const result = await response.json();
-                                    
-                                    if (result.error) {
-                                        throw new Error(result.error);
-                                    }
-
-                                    // Store session ID if provided
-                                    if (result.sessionId) {
-                                        sessionId = result.sessionId;
-                                        console.log(`Using session ID: ${sessionId}`);
-                                    }
-
-                                    // Handle completion
-                                    if (result.redirect) {
-                                        LoadingManager.updateProgress(100, 'Upload complete! Processing...');
-                                        this.showAlert(
-                                            `Order successfully submitted with ${totalImages} image${totalImages !== 1 ? 's' : ''}! Check your email for confirmation.`,
-                                            'success'
-                                        );
-                                        console.log('Order completed successfully:', result);
-                                        await new Promise(resolve => setTimeout(resolve, 1000));
-                                        window.location.href = result.redirect;
-                                        return;
-                                    }
-                                    
-                                    // Update progress
-                                    totalUploaded += chunk.size;
-                                    const totalProgress = (totalUploaded / totalSize) * 100;
-                                    
-                                    // Calculate upload speed
-                                    const currentTime = Date.now();
-                                    const timeDiff = (currentTime - lastChunkTime) / 1000;
-                                    const bytesDiff = totalUploaded - lastUploadedBytes;
-                                    const uploadSpeed = bytesDiff / timeDiff;
-                                    
-                                    lastChunkTime = currentTime;
-                                    lastUploadedBytes = totalUploaded;
-                                    
-                                    let speedText;
-                                    if (uploadSpeed >= 1024 * 1024) {
-                                        speedText = `${(uploadSpeed / (1024 * 1024)).toFixed(1)} MB/s`;
-                                    } else if (uploadSpeed >= 1024) {
-                                        speedText = `${(uploadSpeed / 1024).toFixed(1)} KB/s`;
-                                    } else {
-                                        speedText = `${Math.round(uploadSpeed)} B/s`;
-                                    }
-                                    
-                                    console.log(`Chunk ${chunkIndex + 1}/${totalChunks} of file ${fileIndex + 1}/${files.length} uploaded (${speedText})`);
-                                    
-                                    LoadingManager.updateProgress(
-                                        Math.round(totalProgress),
-                                        `Uploading: ${(totalUploaded / (1024 * 1024)).toFixed(1)}MB / ${(totalSize / (1024 * 1024)).toFixed(1)}MB (${speedText})`
-                                    );
-                                    
-                                    break; // Successful chunk upload
-                                } catch (error) {
-                                    lastError = error;
-                                    chunkRetries++;
-                                    console.error(`Chunk upload error (attempt ${chunkRetries}):`, error);
-                                    
-                                    if (error.name === 'AbortError') {
-                                        this.showAlert(
-                                            `Upload timeout. The server is taking too long to respond. Please try again.`,
-                                            'error'
-                                        );
-                                        throw error;
-                                    }
-                                    
-                                    if (chunkRetries === maxChunkRetries) {
-                                        throw new Error(`Failed to upload chunk after ${maxChunkRetries} attempts: ${error.message}`);
-                                    }
-                                    
-                                    LoadingManager.updateProgress(
-                                        Math.round((totalUploaded / totalSize) * 100),
-                                        `Upload failed. Retrying in 1 second... (${error.message})`
-                                    );
-                                    
-                                    await new Promise(resolve => setTimeout(resolve, 1000));
-                                }
-                            }
-                            
-                            if (lastError) {
-                                throw lastError;
-                            }
-                        }
-                    }
-                    
-                    break; // Successfully uploaded all files
-                } catch (error) {
-                    retryCount++;
-                    console.error('Upload error:', error);
-                    
-                    if (retryCount === maxRetries) {
-                        this.showAlert(
-                            `Failed to upload files: ${error.message}. Please try again or contact support if the issue persists.`,
-                            'error'
-                        );
-                        break;
-                    }
-
-                    LoadingManager.updateProgress(0, 'Upload failed. Retrying in 2 seconds...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                }
+            if (!response.ok) {
+                const result = await response.json();
+                console.error('Upload failed:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    result
+                });
+                throw new Error(result.error || result.details || `Upload failed: ${response.statusText}`);
             }
+
+            const result = await response.json();
+            console.log('Upload succeeded:', result);
+            
+            if (result.redirect) {
+                LoadingManager.updateProgress(100, 'Upload complete! Processing...');
+                this.showAlert(
+                    `Order successfully submitted with ${totalImages} image${totalImages !== 1 ? 's' : ''}! Check your email for confirmation.`,
+                    'success'
+                );
+                // Add a small delay before redirecting to ensure the alert is shown
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                window.location.href = result.redirect;
+                return;
+            }
+            
         } catch (error) {
-            console.error('Fatal error:', error);
+            console.error('Fatal error:', {
+                message: error.message,
+                error: error,
+                stack: error.stack
+            });
             this.showAlert(
                 `An unexpected error occurred: ${error.message}. Please try again or contact support if the issue persists.`,
                 'error'

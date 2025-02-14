@@ -18,6 +18,15 @@
         </div>
     </header>
 
+    {% if order.items|selectattr('notes')|list|length > 0 %}
+    <div class="notes-alert">
+        <div class="alert-content">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>This order contains production notes. Please review each item carefully.</span>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- "Order Information" heading -->
     <h5 class="section-subtitle mb-3">
         <i class="fas fa-info-circle me-2"></i>Order Information
@@ -36,24 +45,32 @@
         <div class="info-card">
             <div class="card-icon"><i class="fas fa-file-invoice"></i></div>
             <div class="info-label">Invoice Number</div>
-            <div class="info-value">
-                <input type="text" 
-                       class="invoice-input" 
-                       value="{{ order.invoice_number or '' }}" 
-                       placeholder="Enter invoice number..."
-                       data-order-id="{{ order.id }}">
-                <div class="invoice-feedback"></div>
-            </div>
+            <button class="info-value invoice-button" onclick="showInvoiceModal('{{ order.id }}', '{{ order.invoice_number or '' }}')">
+                {% if order.invoice_number %}
+                {{ order.invoice_number }}
+                {% else %}
+                <span class="text-muted">Add Invoice Number</span>
+                {% endif %}
+            </button>
         </div>
 
-        <!-- 3: Customer Email -->
+        {% if order.po_number and order.po_number.strip() %}
+        <!-- 3: PO Number -->
+        <div class="info-card">
+            <div class="card-icon"><i class="fas fa-file-alt"></i></div>
+            <div class="info-label">PO Number</div>
+            <div class="info-value">{{ order.po_number }}</div>
+        </div>
+        {% endif %}
+
+        <!-- 4: Customer Email -->
         <div class="info-card">
             <div class="card-icon"><i class="fas fa-envelope"></i></div>
             <div class="info-label">Customer Email</div>
             <div class="info-value text-break">{{ order.email }}</div>
         </div>
 
-        <!-- 4: Order Date -->
+        <!-- 5: Order Date -->
         <div class="info-card">
             <div class="card-icon"><i class="fas fa-calendar-alt"></i></div>
             <div class="info-label">Order Date</div>
@@ -136,6 +153,29 @@
 <div id="previewModal" class="modal">
     <span class="close-modal">&times;</span>
     <img id="modalImage" class="modal-image" src="" alt="Full size preview">
+</div>
+
+<!-- Invoice Number Modal -->
+<div id="invoiceModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Update Invoice Number</h3>
+            <span class="close-modal" onclick="closeInvoiceModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="invoiceNumber" class="form-label">Invoice Number</label>
+                <input type="text" id="invoiceNumber" class="form-control" placeholder="Enter invoice number">
+                <div id="invoiceFeedback" class="feedback mt-2"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="updateInvoiceNumber()" class="action-btn">
+                <i class="fas fa-check me-1"></i>Update
+            </button>
+            <button onclick="closeInvoiceModal()" class="action-btn">Cancel</button>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -506,9 +546,138 @@ body {
 .invoice-feedback.error {
     color: #ef4444;
 }
+
+/* Add these styles */
+.invoice-button {
+    width: 100%;
+    text-align: center;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.invoice-button:hover {
+    background: var(--background-color);
+    border-color: var(--primary-color);
+}
+
+.invoice-button .text-muted {
+    font-size: 0.9rem;
+    font-weight: normal;
+}
+
+/* Modal styles */
+.modal-content {
+    max-width: 500px;
+    width: 90%;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
+}
+
+.feedback {
+    font-size: 0.85rem;
+}
+
+.feedback.error {
+    color: #ef4444;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--primary-color);
+    color: white;
+}
+
+.action-btn:hover {
+    background: var(--primary-dark);
+}
+
+/* Add these styles to the existing styles */
+.notes-alert {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.notes-alert .alert-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #856404;
+}
+
+.notes-alert i {
+    font-size: 1.25rem;
+}
+
+.notes-alert span {
+    font-weight: 500;
+}
 </style>
 
 <script>
+let currentOrderId = null;
+
 function showFullSizePreview(src) {
     const modal = document.getElementById('previewModal');
     const modalImg = document.getElementById('modalImage');
@@ -638,5 +807,98 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function showInvoiceModal(orderId, currentInvoiceNumber) {
+    currentOrderId = orderId;
+    const modal = document.getElementById('invoiceModal');
+    const input = document.getElementById('invoiceNumber');
+    const feedback = document.getElementById('invoiceFeedback');
+    
+    input.value = currentInvoiceNumber;
+    feedback.textContent = '';
+    feedback.className = 'feedback mt-2';
+    
+    modal.style.display = 'flex';
+}
+
+function closeInvoiceModal() {
+    const modal = document.getElementById('invoiceModal');
+    modal.style.display = 'none';
+    currentOrderId = null;
+}
+
+async function updateInvoiceNumber() {
+    if (!currentOrderId) return;
+    
+    const input = document.getElementById('invoiceNumber');
+    const feedback = document.getElementById('invoiceFeedback');
+    const invoiceNumber = input.value.trim();
+    
+    try {
+        const response = await fetch('/update-invoice-number', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                order_id: currentOrderId,
+                invoice_number: invoiceNumber
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Update the button text
+            const button = document.querySelector('.invoice-button');
+            if (button) {
+                button.innerHTML = invoiceNumber ? 
+                    invoiceNumber : 
+                    '<span class="text-muted">Add Invoice Number</span>';
+            }
+            
+            closeInvoiceModal();
+            showToast('Invoice number updated successfully', 'success');
+        } else {
+            feedback.textContent = data.error || 'Failed to update invoice number';
+            feedback.className = 'feedback error mt-2';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        feedback.textContent = 'Failed to update invoice number';
+        feedback.className = 'feedback error mt-2';
+    }
+}
+
+// Add toast notification function if not already present
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} toast-icon"></i>
+            <span class="toast-message">${message}</span>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
+    }
+    
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('toast-showing'));
+    
+    setTimeout(() => {
+        toast.classList.remove('toast-showing');
+        toast.classList.add('toast-hiding');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 </script>
 {% endblock %}

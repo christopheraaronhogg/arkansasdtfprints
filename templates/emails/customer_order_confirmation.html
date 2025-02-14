@@ -24,6 +24,9 @@
         <div class="order-details">
             <h2>Order Information</h2>
             <p><strong>Order Number:</strong> {{ order.order_number }}</p>
+            {% if order.po_number %}
+            <p><strong>PO Number:</strong> {{ order.po_number }}</p>
+            {% endif %}
             <p><strong>Order Date:</strong> {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</p>
             <p><strong>Total Cost:</strong> ${{ "%.2f"|format(order.total_cost) }}</p>
 

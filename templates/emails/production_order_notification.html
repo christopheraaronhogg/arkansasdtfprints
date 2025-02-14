@@ -12,6 +12,23 @@
         .quantity-badge { position: absolute; top: -5px; right: -5px; background: #3b82f6; color: white; padding: 2px 4px; border-radius: 3px; font-size: 10px; }
         .item-details { flex: 1; }
         .admin-link { display: inline-block; background: #007bff; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px; margin-top: 10px; }
+        .notes-section {
+            margin-top: 8px;
+            padding: 8px;
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 4px;
+        }
+        .notes-label {
+            color: #856404;
+            font-weight: bold;
+            margin: 0 0 4px 0;
+        }
+        .notes-text {
+            margin: 0;
+            white-space: pre-wrap;
+            color: #333;
+        }
     </style>
 </head>
 <body>
@@ -25,6 +42,9 @@
             <h2>Order Information</h2>
             <p><strong>Order Number:</strong> {{ order.order_number }}</p>
             <p><strong>Customer Email:</strong> {{ order.email }}</p>
+            {% if order.po_number and order.po_number.strip() %}
+            <p><strong>PO Number:</strong> {{ order.po_number }}</p>
+            {% endif %}
             <p><strong>Order Date:</strong> {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}</p>
             <p><strong>Total Cost:</strong> ${{ "%.2f"|format(order.total_cost) }}</p>
 
@@ -41,6 +61,12 @@
                     <p>Dimensions: {{ "%.2f"|format(item.width_inches) }}" × {{ "%.2f"|format(item.height_inches) }}"</p>
                     <p>Quantity: {{ item.quantity }}</p>
                     <p>Cost: ${{ "%.2f"|format(item.cost) }}</p>
+                    {% if item.notes %}
+                    <div class="notes-section">
+                        <p class="notes-label">Production Notes:</p>
+                        <p class="notes-text">{{ item.notes }}</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% endfor %}

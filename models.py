@@ -4,7 +4,8 @@ from app import db
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_number = db.Column(db.String(20), unique=True, nullable=False)
-    invoice_number = db.Column(db.String(50), unique=True, nullable=True)
+    invoice_number = db.Column(db.String(50), nullable=True)
+    po_number = db.Column(db.String(50), nullable=True)
     email = db.Column(db.String(120), nullable=False)
     total_cost = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='pending')
@@ -16,6 +17,7 @@ class Order(db.Model):
             'id': self.id,
             'order_number': self.order_number,
             'invoice_number': self.invoice_number,
+            'po_number': self.po_number,
             'email': self.email,
             'total_cost': f"${self.total_cost:.2f}",
             'status': self.status,
