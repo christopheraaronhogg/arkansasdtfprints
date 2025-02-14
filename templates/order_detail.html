@@ -439,9 +439,35 @@ body {
     background: var(--surface-color);
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: space-between;
+    gap: 0.75rem;
+    justify-content: flex-end;
     align-items: center;
+    width: 100%;
+}
+
+/* Details Button */
+.details-btn {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    max-width: 100%;
+}
+
+.download-btn {
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+}
+
+.download-btn:hover {
+    background-color: var(--primary-dark);
+    color: white;
+    text-decoration: none;
 }
 
 /* Modal */
@@ -484,6 +510,14 @@ body {
         gap: 0.5rem !important;
         justify-content: flex-start;
     }
+    .cost-display {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .details-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 @media (max-width: 576px) {
@@ -509,63 +543,26 @@ body {
     .submit-btn {
         width: 100%;
     }
+    .cost-display {
+        padding: 0.75rem;
+        gap: 0.5rem;
+    }
+    .details-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+    }
 }
 
-/* Status feedback styling */
-.status-feedback {
-    min-width: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.status-feedback i {
-    font-size: 1.1rem;
-}
-
-.text-success {
-    color: var(--success-color) !important;
-}
-
-.text-danger {
-    color: #dc3545 !important;
-}
-
-/* Invoice Input Styling */
-.invoice-input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    transition: all 0.2s ease;
-    background: transparent;
-    text-align: center;
-}
-
-.invoice-input:focus {
-    outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
-}
-
-.invoice-input::placeholder {
-    color: var(--text-secondary);
-    opacity: 0.7;
-}
-
-.invoice-feedback {
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
-    min-height: 1rem;
-}
-
-.invoice-feedback.success {
-    color: var(--success-color);
-}
-
-.invoice-feedback.error {
-    color: #ef4444;
+@media (max-width: 350px) {
+    .cost-display {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.5rem;
+    }
+    .details-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* Add these styles */
@@ -683,37 +680,6 @@ header.d-flex {
     min-width: auto;
 }
 
-/* Make sure details buttons don't overflow */
-.details-btn {
-    white-space: nowrap;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    border-radius: var(--radius-sm);
-}
-
-/* Update grid responsiveness */
-@media (max-width: 992px) {
-
-}
-
-@media (max-width: 576px) {
-
-}
-
-@media (max-width: 350px) {
-    .cost-display {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .details-btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
 
 /* Add these styles to the existing styles */
 .notes-alert {
@@ -770,7 +736,7 @@ function showFullSizePreview(src) {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize status select styling
     const statusSelect = document.querySelector('.status-select');
-    
+
     if (statusSelect) {
         // Wrap select in a container if not already wrapped
         if (!statusSelect.parentElement.classList.contains('status-select-wrapper')) {
@@ -779,7 +745,7 @@ document.addEventListener('DOMContentLoaded', function() {
             statusSelect.parentNode.insertBefore(wrapper, statusSelect);
             wrapper.appendChild(statusSelect);
         }
-        
+
         // Create status indicator if it doesn't exist
         let statusIndicator = statusSelect.nextElementSibling;
         if (!statusIndicator || !statusIndicator.classList.contains('status-indicator')) {
@@ -787,20 +753,20 @@ document.addEventListener('DOMContentLoaded', function() {
             statusIndicator.className = 'status-indicator';
             statusSelect.parentNode.appendChild(statusIndicator);
         }
-        
+
         // Set initial value
         statusSelect.setAttribute('value', statusSelect.value);
-        
+
         // Update value when changed
         statusSelect.addEventListener('change', async function() {
             const newStatus = this.value;
             const orderId = this.dataset.orderId;
-            
+
             // Always show loading state, regardless of status change
             this.classList.add('loading');
             statusIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             statusIndicator.classList.add('show');
-            
+
             try {
                 const response = await fetch(`/admin/order/${orderId}/status`, {
                     method: 'POST',
@@ -813,10 +779,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok) {
                     // Update the select's value attribute for styling
                     this.setAttribute('value', newStatus);
-                    
+
                     // Show success feedback briefly
                     statusIndicator.innerHTML = '<i class="fas fa-check text-success"></i>';
-                    
+
                     // Reset after delay
                     setTimeout(() => {
                         this.classList.remove('loading');
@@ -829,7 +795,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error updating status:', error);
                 // Show error feedback
                 statusIndicator.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i>';
-                
+
                 // Reset after delay
                 setTimeout(() => {
                     this.classList.remove('loading');
@@ -843,15 +809,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const invoiceInput = document.querySelector('.invoice-input');
     if (invoiceInput) {
         let timeout;
-        
+
         invoiceInput.addEventListener('input', function() {
             clearTimeout(timeout);
             const feedback = this.nextElementSibling;
-            
+
             timeout = setTimeout(() => {
                 const orderId = this.dataset.orderId;
                 const invoiceNumber = this.value.trim();
-                
+
                 fetch('/update-invoice-number', {
                     method: 'POST',
                     headers: {
@@ -889,11 +855,11 @@ function showInvoiceModal(orderId, currentInvoiceNumber) {
     const modal = document.getElementById('invoiceModal');
     const input = document.getElementById('invoiceNumber');
     const feedback = document.getElementById('invoiceFeedback');
-    
+
     input.value = currentInvoiceNumber;
     feedback.textContent = '';
     feedback.className = 'feedback mt-2';
-    
+
     modal.style.display = 'flex';
 }
 
@@ -905,11 +871,11 @@ function closeInvoiceModal() {
 
 async function updateInvoiceNumber() {
     if (!currentOrderId) return;
-    
+
     const input = document.getElementById('invoiceNumber');
     const feedback = document.getElementById('invoiceFeedback');
     const invoiceNumber = input.value.trim();
-    
+
     try {
         const response = await fetch('/update-invoice-number', {
             method: 'POST',
@@ -921,18 +887,18 @@ async function updateInvoiceNumber() {
                 invoice_number: invoiceNumber
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
             // Update the button text
             const button = document.querySelector('.invoice-button');
             if (button) {
-                button.innerHTML = invoiceNumber ? 
-                    invoiceNumber : 
+                button.innerHTML = invoiceNumber ?
+                    invoiceNumber :
                     '<span class="text-muted">Add Invoice Number</span>';
             }
-            
+
             closeInvoiceModal();
             showToast('Invoice number updated successfully', 'success');
         } else {
@@ -959,17 +925,17 @@ function showToast(message, type = 'success') {
             <i class="fas fa-times"></i>
         </button>
     `;
-    
+
     let container = document.querySelector('.toast-container');
     if (!container) {
         container = document.createElement('div');
         container.className = 'toast-container';
         document.body.appendChild(container);
     }
-    
+
     container.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('toast-showing'));
-    
+
     setTimeout(() => {
         toast.classList.remove('toast-showing');
         toast.classList.add('toast-hiding');
