@@ -14,20 +14,20 @@ const LoadingManager = {
                 </div>
                 <div class="progress-status"></div>
             `;
-            
+
             // Insert after email-submit-row
             const emailSubmitRow = document.querySelector('.email-submit-row');
             emailSubmitRow.parentNode.insertBefore(container, emailSubmitRow.nextSibling);
-            
+
             // Force a reflow before adding the show class
             container.offsetHeight;
         }
-        
+
         // Show the container with animation
         requestAnimationFrame(() => {
             container.classList.add('show');
         });
-        
+
         // Update progress
         this.updateProgress(progress, message);
     },
@@ -36,18 +36,18 @@ const LoadingManager = {
         const container = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progress-text');
-        
+
         if (progressBar && progressText) {
             // Round progress to nearest integer
             const roundedProgress = Math.round(progress);
-            
+
             // Update progress bar width and text
             progressBar.style.width = `${roundedProgress}%`;
             progressText.textContent = `${roundedProgress}%`;
-            
+
             // Add progress to data attribute for CSS styling
             progressBar.setAttribute('data-progress', `${roundedProgress}%`);
-            
+
             // Update status message if provided
             if (message) {
                 const statusDiv = document.querySelector('.progress-status');
@@ -90,22 +90,22 @@ const PrintCalculator = (() => {
             // Convert to string with 2 decimal places for display and calculation
             const displayValue = Number(num).toFixed(2);
             console.log('Display value:', displayValue);
-            
+
             // Parse back to number and round for pricing
             const value = parseFloat(displayValue);
             const rounded = (value % 1 >= 0.5) ? Math.ceil(value) : Math.round(value);
             console.log('Rounded value:', rounded);
             return Math.max(1, rounded);
         }
-        
+
         console.log('Raw dimensions:', { width, height });
-        
+
         // Round to nearest inch with minimum of 1 inch, rounding up at .5
         const roundedWidth = roundUpAtHalf(width);
         const roundedHeight = roundUpAtHalf(height);
         const area = roundedWidth * roundedHeight;
         const cost = area * state.basePrice * quantity;
-        
+
         console.log('Cost calculation:', {
             originalWidth: width,
             originalHeight: height,
@@ -118,14 +118,14 @@ const PrintCalculator = (() => {
             quantity,
             finalCost: cost
         });
-        
+
         return cost;
     }
 
     return {
         addImage(file, img, dimensions) {
             const id = crypto.randomUUID();
-            
+
             // Use the physical dimensions from the server
             const width_inches = dimensions.width;
             const height_inches = dimensions.height;
@@ -250,11 +250,19 @@ const PrintUI = {
             this.dropZone.classList.remove('dragover');
 
             const files = [...e.dataTransfer.files].filter(f => f.type === 'image/png');
+            if (files.length === 0) {
+                this.showAlert('Please only upload PNG files.', 'error');
+                return;
+            }
             await this.handleFiles(files);
         });
 
         this.fileInput.addEventListener('change', async () => {
             const files = [...this.fileInput.files].filter(f => f.type === 'image/png');
+            if (files.length === 0) {
+                this.showAlert('Please only upload PNG files.', 'error');
+                return;
+            }
             await this.handleFiles(files);
         });
 
@@ -274,14 +282,14 @@ const PrintUI = {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(dimensions => {
-            const img = new Image();
-                img.onload = () => resolve({ img, dimensions });
-            img.onerror = reject;
-            img.src = URL.createObjectURL(file);
-            })
-            .catch(reject);
+                .then(response => response.json())
+                .then(dimensions => {
+                    const img = new Image();
+                    img.onload = () => resolve({ img, dimensions });
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(file);
+                })
+                .catch(reject);
         });
     },
 
@@ -291,6 +299,11 @@ const PrintUI = {
 
         for (const file of files) {
             try {
+                // Strict PNG validation
+                if (file.type !== 'image/png') {
+                    throw new Error(`${file.name} is not a PNG file. Only PNG files are supported.`);
+                }
+
                 const { img, dimensions } = await this.loadImage(file);
                 const id = PrintCalculator.addImage(file, img, dimensions);
                 this.renderImagePreview(id, img);
@@ -385,21 +398,21 @@ const PrintUI = {
             // Prevent the event from bubbling up to the form
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Remove from state
             PrintCalculator.removeImage(id);
-            
+
             // Remove the container with animation
             container.style.opacity = '0';
             container.style.transform = 'scale(0.95)';
-            
+
             setTimeout(() => {
                 container.remove();
                 this.updateTotalDisplay();
-                
+
                 // Show feedback toast
                 this.showAlert('Image removed from order', 'success');
-                
+
                 // If no images left, reset the form
                 if (!PrintCalculator.hasImages()) {
                     this.form.reset();
@@ -432,13 +445,13 @@ const PrintUI = {
     updateTotalDisplay() {
         const total = PrintCalculator.getTotalCost();
         const formattedTotal = `$${total.toFixed(2)}`;
-        
+
         // Update the total cost display if it exists
         const totalDisplay = document.getElementById('totalCost');
         if (totalDisplay) {
             totalDisplay.textContent = `Total: ${formattedTotal}`;
         }
-        
+
         // Update the submit button total
         const submitBtn = document.querySelector('.submit-btn');
         if (submitBtn) {
@@ -452,7 +465,7 @@ const PrintUI = {
             const formData = new FormData(this.form);
             const orderDetails = [];
             let totalImages = 0;
-            
+
             // Collect files and details
             document.querySelectorAll('.size-inputs').forEach((container) => {
                 const id = container.dataset.imageId;
@@ -494,7 +507,7 @@ const PrintUI = {
 
             const result = await response.json();
             console.log('Upload succeeded:', result);
-            
+
             if (result.redirect) {
                 LoadingManager.updateProgress(100, 'Upload complete! Processing...');
                 this.showAlert(
@@ -506,7 +519,7 @@ const PrintUI = {
                 window.location.href = result.redirect;
                 return;
             }
-            
+
         } catch (error) {
             console.error('Fatal error:', {
                 message: error.message,
@@ -562,10 +575,10 @@ const PrintUI = {
             pointer-events: auto;
             border-left: 4px solid ${type === 'error' ? '#ef4444' : '#22c55e'};
         `;
-        
+
         // Add icon based on type
         const icon = type === 'error' ? 'exclamation-circle' : 'check-circle';
-        
+
         toast.innerHTML = `
             <div class="toast-content" style="display: flex; align-items: center; gap: 12px; flex: 1;">
                 <i class="fas fa-${icon} toast-icon" style="color: ${type === 'error' ? '#ef4444' : '#22c55e'}; font-size: 1.2rem;"></i>
@@ -608,7 +621,7 @@ const PrintUI = {
         const input = event.target;
         const value = parseFloat(input.value) || 0;
         const dimension = input.dataset.dimension;
-        
+
         PrintCalculator.updateImageDimension(imageId, dimension, value);
         this.updateTotalDisplay();
     }

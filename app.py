@@ -164,6 +164,13 @@ def upload_file():
         logger.info(f"Received {len(files)} files for upload")
         for file in files:
             logger.info(f"File: {file.filename}, Content Type: {file.content_type}")
+            # Strict content type check
+            if file.content_type != 'image/png':
+                logger.error(f"Invalid content type: {file.content_type} for file {file.filename}")
+                return jsonify({
+                    'error': 'Invalid file type',
+                    'details': f'File {file.filename} must be a PNG image. Other formats are not supported.'
+                }), 400
 
         try:
             order_details = json.loads(request.form.get('orderDetails', '[]'))
@@ -181,9 +188,9 @@ def upload_file():
                 file.seek(0, 2)  # Seek to end of file
                 file_size = file.tell()  # Get current position (file size)
                 file.seek(0)  # Reset to beginning
-                
+
                 logger.info(f"Processing file: {file.filename}, Size: {file_size / (1024 * 1024):.1f}MB")
-                
+
                 if file_size > Config.MAX_FILE_SIZE:
                     logger.error(f"File too large: {file.filename} ({file_size / (1024 * 1024):.1f}MB)")
                     return jsonify({
@@ -290,9 +297,9 @@ def upload_file():
                                     error_msg = f"Failed to upload file {filename} to object storage"
                                     logger.error(error_msg)
                                     raise Exception(error_msg)
-                                
+
                                 logger.info(f"Successfully uploaded {filename} to storage")
-                                
+
                             except Exception as e:
                                 logger.error(f"Storage error for {filename}: {str(e)}")
                                 raise Exception(f"Storage error: {str(e)}")
@@ -476,7 +483,7 @@ def bulk_delete():
         for order in orders:
             try:
                 logger.info(f"Processing order {order.order_number}")
-                
+
                 # Delete order items from database first
                 for item in order.items:
                     # Try to delete files but don't wait for retries if they fail
@@ -485,10 +492,10 @@ def bulk_delete():
                         storage.delete_file_no_retry(get_thumbnail_key(item.file_key))
                     except Exception as e:
                         logger.warning(f"Could not delete files for {item.file_key}: {str(e)}")
-                    
+
                     # Delete the item from database
                     db.session.delete(item)
-                
+
                 # Delete the order
                 db.session.delete(order)
                 logger.info(f"Deleted order {order.order_number} from database")
@@ -582,16 +589,16 @@ def get_order_thumbnail(order_id, filename):
 
     # Create thumbnail
     image = Image.open(io.BytesIO(file_data))
-    
+
     # Calculate thumbnail size while maintaining aspect ratio
     max_size = (100, 100)
     image.thumbnail(max_size, Image.Resampling.LANCZOS)
-    
+
     # Save thumbnail to bytes
     thumb_io = io.BytesIO()
     image.save(thumb_io, 'PNG', quality=85)
     thumb_io.seek(0)
-    
+
     return Response(
         thumb_io.getvalue(),
         mimetype='image/png',
@@ -602,11 +609,11 @@ def get_order_thumbnail(order_id, filename):
 def get_dimensions():
     if 'file' not in request.files:
         return jsonify({'error': 'No file provided'}), 400
-        
+
     file = request.files['file']
     if not file or not allowed_file(file.filename):
         return jsonify({'error': 'Invalid file'}), 400
-        
+
     try:
         width_inches, height_inches = get_image_dimensions(file)
         return jsonify({
