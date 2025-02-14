@@ -510,7 +510,6 @@ const PrintUI = {
                         notes: imageState.notes
                     };
                     orderDetails.push(details);
-                    formData.append('file', imageState.file);
                 }
             });
 
@@ -525,55 +524,76 @@ const PrintUI = {
                 return;
             }
 
-            // Add order details to form
-            formData.append('orderDetails', JSON.stringify(orderDetails));
-            formData.append('totalCost', PrintCalculator.getTotalCost());
+            // Upload files one by one
+            const uploadedFiles = [];
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const singleFormData = new FormData();
 
-            try {
-                LoadingManager.show('Uploading your files...', 0);
-                const response = await fetch('/upload', {
-                    method: 'POST',
-                    body: formData,
-                    // Add timeout and keep-alive settings
-                    signal: AbortSignal.timeout(120000), // 2 minute timeout
-                    headers: {
-                        'Connection': 'keep-alive'
+                // Add the current file
+                singleFormData.append('file', file);
+
+                // Add email and PO number
+                singleFormData.append('email', formData.get('email'));
+                singleFormData.append('po_number', formData.get('po_number'));
+
+                // Add order details for this file only
+                singleFormData.append('orderDetails', JSON.stringify([orderDetails[i]]));
+                singleFormData.append('totalCost', orderDetails[i].cost);
+
+                // Update progress
+                const progress = ((i + 1) / files.length) * 100;
+                LoadingManager.show(`Uploading file ${i + 1} of ${files.length}: ${file.name}`, progress);
+
+                try {
+                    const response = await fetch('/upload', {
+                        method: 'POST',
+                        body: singleFormData,
+                        signal: AbortSignal.timeout(30000), // 30 second timeout per file
+                        headers: {
+                            'Connection': 'keep-alive'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.details || 'Upload failed');
                     }
-                });
 
-                if (!response.ok) {
                     const result = await response.json();
-                    throw new Error(result.details || 'Upload failed');
-                }
-
-                const result = await response.json();
-
-                if (result.success) {
-                    LoadingManager.updateProgress(100, 'Upload complete!');
-                    this.showAlert(
-                        `Order successfully submitted! Check your email for confirmation.`,
-                        'success'
-                    );
-
-                    // Add a small delay before redirecting
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    window.location.href = result.redirect;
-                } else {
-                    throw new Error(result.error || 'Upload failed');
-                }
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    this.showAlert(
-                        'Upload timed out. Please try uploading fewer files at once or contact support.',
-                        'error'
-                    );
-                } else {
-                    this.showAlert(
-                        `Failed to upload files: ${error.message}. Please try again or contact support if the issue persists.`,
-                        'error'
-                    );
+                    if (result.success) {
+                        uploadedFiles.push(file.name);
+                    } else {
+                        throw new Error(result.error || 'Upload failed');
+                    }
+                } catch (error) {
+                    if (error.name === 'AbortError') {
+                        this.showAlert(
+                            `Upload timed out for file ${file.name}. Please try again.`,
+                            'error'
+                        );
+                    } else {
+                        this.showAlert(
+                            `Failed to upload ${file.name}: ${error.message}`,
+                            'error'
+                        );
+                    }
+                    LoadingManager.hide();
+                    return;
                 }
             }
+
+            // All files uploaded successfully
+            LoadingManager.updateProgress(100, 'Upload complete!');
+            this.showAlert(
+                `Successfully uploaded ${uploadedFiles.length} files! Check your email for confirmation.`,
+                'success'
+            );
+
+            // Add a small delay before redirecting
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            window.location.href = '/success';
+
         } catch (error) {
             console.error('Fatal error:', error);
             this.showAlert(

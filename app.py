@@ -209,7 +209,7 @@ def upload_file():
 
                     # Create order item
                     order_item = OrderItem(
-                        order_id=order.id,  # Now we have a valid order ID
+                        order_id=order.id,
                         file_key=filename,
                         width_inches=details['width'],
                         height_inches=details['height'],
