@@ -1515,134 +1515,7 @@ form .submit-btn::after {
     }
 }
 
-/* Order layout improvements */
-/* Simple order layout */
-.order-item {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-/* Left: Info section */
-.order-info {
-    width: 200px;
-    flex-shrink: 0;
-    display: flex;
-    gap: 1rem;
-}
-
-.order-checkbox {
-    flex-shrink: 0;
-}
-
-.order-details {
-    min-width: 0;
-}
-
-/* Middle: Images section */
-.order-images {
-    flex: 1;
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding: 0.5rem;
-    background: var(--background-color);
-    border-radius: var(--radius-sm);
-}
-
-.order-image {
-    width: 80px;
-    height: 80px;
-    object-fit: contain;
-    flex-shrink: 0;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-color);
-    background: white;
-}
-
-/* Right: Controls section */
-.order-controls {
-    width: 300px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.status-badge {
-    white-space: nowrap;
-    padding: 0.35rem 0.75rem;
-    border-radius: var(--radius-sm);
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.order-cost {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--primary-color);
-    white-space: nowrap;
-}
-
-/* Only stack on mobile */
-@media (max-width: 768px) {
-    .order-item {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 1rem;
-        padding: 1rem;
-    }
-
-    .order-info,
-    .order-controls {
-        width: 100%;
-    }
-
-    .order-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .details-btn {
-        width: 100%;
-    }
-}
-
-.button-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    margin: 0.5rem 0;
-}
-
-.order-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 0.5rem;
-}
-
-.status-select-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    min-width: 200px;
-}
-
-.form-select,
-.form-control {
-    max-width: 100%;
-    min-width: 0;
-}
+/* Order list container */
 .orders-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1650,6 +1523,7 @@ form .submit-btn::after {
     margin: 1rem 0;
 }
 
+/* Order item styling */
 .order-item {
     background: var(--surface-color);
     border: 1px solid var(--border-color);
@@ -1673,6 +1547,7 @@ form .submit-btn::after {
     gap: 1rem;
 }
 
+/* Status and amount group */
 .status-amount-group {
     display: flex;
     align-items: center;
@@ -1692,6 +1567,7 @@ form .submit-btn::after {
     padding: 0.375rem 0;
 }
 
+/* Details button */
 .details-btn {
     white-space: nowrap;
     display: inline-flex;
@@ -1706,6 +1582,7 @@ form .submit-btn::after {
     text-decoration: none;
 }
 
+/* Responsive adjustments */
 @media (max-width: 768px) {
     .orders-list {
         grid-template-columns: 1fr;
@@ -1746,102 +1623,35 @@ form .submit-btn::after {
     }
 }
 
-/* Order item base layout */
-.order-item {
+.button-container {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     align-items: center;
-    gap: 1.5rem;
-    padding: 1.5rem;
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    margin-bottom: 1rem;
+    margin: 0.5rem 0;
 }
 
-/* Left section: checkbox and details */
-.order-select {
-    flex-shrink: 0;
-}
-
-.order-details {
-    width: 250px;
-    flex-shrink: 0;
-}
-
-.order-meta {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-}
-
-/* Middle section: images */
-.order-images {
-    flex: 1;
+.order-actions {
     display: flex;
-    gap: 0.75rem;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-end;
     padding: 0.5rem;
 }
 
-.img-container {
-    position: relative;
-    width: 70px;
-    height: 70px;
-    flex-shrink: 0;
-}
-
-.img-container img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-    border: 1px solid var(--border-color);
-}
-
-/* Right section: status, price, button */
-.order-actions {
-    width: 300px;
-    flex-shrink: 0;
+/* Status select container */
+.status-select-container {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
     align-items: center;
-    gap: 1rem;
+    min-width: 200px;
 }
 
-.status-select-wrapper {
-    flex-shrink: 1;
-    min-width: 140px;
-}
-
-.order-cost {
-    flex-shrink: 0;
-    font-weight: 600;
-    color: var(--success-color);
-}
-
-.details-btn {
-    flex-shrink: 0;
-}
-
-/* Mobile layout */
-@media (max-width: 768px) {
-    .order-item {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 1rem;
-        padding: 1rem;
-    }
-
-    .order-details {
-        width: 100%;
-    }
-
-    .order-images {
-        width: 100%;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-    }
-
-    .order-actions {
-        width: 100%;
-        flex-wrap: wrap;
-    }
+/* Ensure form elements don't overflow */
+.form-select,
+.form-control {
+    max-width: 100%;
+    min-width: 0;
 }
