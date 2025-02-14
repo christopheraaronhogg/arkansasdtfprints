@@ -524,7 +524,15 @@ const PrintUI = {
                 return;
             }
 
-            // Upload files one by one
+            // Create a single order first -  This part needs server-side integration.  This is a placeholder.
+            const createOrderResponse = await fetch('/create-order', {
+                method: 'POST',
+                body: formData,
+            });
+            const orderData = await createOrderResponse.json();
+            const orderId = orderData.orderId; // Assuming the server returns an order ID
+
+            // Upload files one by one using the same order ID
             const uploadedFiles = [];
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
@@ -537,9 +545,13 @@ const PrintUI = {
                 singleFormData.append('email', formData.get('email'));
                 singleFormData.append('po_number', formData.get('po_number'));
 
-                // Add order details for this file only
-                singleFormData.append('orderDetails', JSON.stringify([orderDetails[i]]));
-                singleFormData.append('totalCost', orderDetails[i].cost);
+                // Add order ID
+                singleFormData.append('orderId', orderId);
+
+                // Add order details for all files.  The server will handle the aggregation.
+                singleFormData.append('orderDetails', JSON.stringify(orderDetails));
+                singleFormData.append('totalCost', PrintCalculator.getTotalCost());
+
 
                 // Update progress
                 const progress = ((i + 1) / files.length) * 100;

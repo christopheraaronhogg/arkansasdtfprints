@@ -176,17 +176,30 @@ def upload_file():
             return jsonify({'error': 'No files', 'details': 'No files were selected'}), 400
 
         try:
-            # Create order
-            order = Order(
-                order_number=generate_order_number(),
+            # Try to find existing pending order for this email within the last hour
+            one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+            existing_order = Order.query.filter_by(
                 email=email,
-                po_number=po_number,
-                total_cost=total_cost,
                 status='pending'
-            )
-            db.session.add(order)
-            db.session.flush()  # This assigns the ID to the order
-            logger.info(f"Created new order: {order.order_number} with ID: {order.id}")
+            ).filter(
+                Order.created_at >= one_hour_ago
+            ).first()
+
+            if existing_order:
+                order = existing_order
+                logger.info(f"Using existing order: {order.order_number}")
+            else:
+                # Create new order
+                order = Order(
+                    order_number=generate_order_number(),
+                    email=email,
+                    po_number=po_number,
+                    total_cost=total_cost,
+                    status='pending'
+                )
+                db.session.add(order)
+                db.session.flush()  # This assigns the ID to the order
+                logger.info(f"Created new order: {order.order_number} with ID: {order.id}")
 
             # Process each file
             for file, details in zip(files, order_details):
@@ -220,11 +233,13 @@ def upload_file():
                     db.session.add(order_item)
                     logger.info(f"Added order item for file: {filename}")
 
+            # Update total cost
+            order.total_cost = sum(item.cost for item in order.items)
             db.session.commit()
             logger.info(f"Order {order.order_number} committed to database successfully")
 
-            # Send emails
-            if not send_order_emails(order):
+            # Send emails only when it's a new order
+            if not existing_order and not send_order_emails(order):
                 logger.warning(f"Failed to send emails for order {order.order_number}")
                 # Continue anyway as this is not critical
 
