@@ -266,8 +266,42 @@ const PrintUI = {
 
         this.form.addEventListener('submit', (e) => {
             e.preventDefault();
-            this.handleSubmit();
+            if (PrintCalculator.hasImages()) {
+                this.handleSubmit();
+            } else {
+                this.showAlert('Please add at least one image to your order', 'error');
+            }
         });
+
+        // Add email input Enter key handler
+        const emailInput = document.querySelector('input[name="email"]');
+        if (emailInput) {
+            emailInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (PrintCalculator.hasImages()) {
+                        this.handleSubmit();
+                    } else {
+                        this.showAlert('Please add at least one image to your order', 'error');
+                    }
+                }
+            });
+        }
+
+        // Add PO number input Enter key handler
+        const poInput = document.querySelector('input[name="po_number"]');
+        if (poInput) {
+            poInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (PrintCalculator.hasImages()) {
+                        this.handleSubmit();
+                    } else {
+                        this.showAlert('Please add at least one image to your order', 'error');
+                    }
+                }
+            });
+        }
     },
 
     loadImage(file) {
