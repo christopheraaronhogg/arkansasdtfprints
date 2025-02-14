@@ -524,11 +524,7 @@ const PrintUI = {
                 return;
             }
 
-            // Create a single order first
-            const orderData = await createOrder(formData);
-            const orderId = orderData.orderId;
-
-            // Upload files one by one using the same order ID
+            // Upload files one by one
             const uploadedFiles = [];
             for (let i = 0; i < files.length; i++) {
                 const file = files[i];
@@ -541,12 +537,9 @@ const PrintUI = {
                 singleFormData.append('email', formData.get('email'));
                 singleFormData.append('po_number', formData.get('po_number'));
 
-                // Add order ID
-                singleFormData.append('orderId', orderId);
-
-                // Add order details
-                singleFormData.append('orderDetails', JSON.stringify(orderDetails));
-                singleFormData.append('totalCost', PrintCalculator.getTotalCost());
+                // Add order details for this file only
+                singleFormData.append('orderDetails', JSON.stringify([orderDetails[i]]));
+                singleFormData.append('totalCost', orderDetails[i].cost);
 
                 // Update progress
                 const progress = ((i + 1) / files.length) * 100;
@@ -556,15 +549,23 @@ const PrintUI = {
                     const response = await fetch('/upload', {
                         method: 'POST',
                         body: singleFormData,
-                        signal: AbortSignal.timeout(30000) // 30 second timeout per file
+                        signal: AbortSignal.timeout(30000), // 30 second timeout per file
+                        headers: {
+                            'Connection': 'keep-alive'
+                        }
                     });
 
-                    const result = await response.json();
-                    if (!response.ok || !result.success) {
-                        throw new Error(result.details || result.error || 'Upload failed');
+                    if (!response.ok) {
+                        const result = await response.json();
+                        throw new Error(result.details || 'Upload failed');
                     }
 
-                    uploadedFiles.push(file.name);
+                    const result = await response.json();
+                    if (result.success) {
+                        uploadedFiles.push(file.name);
+                    } else {
+                        throw new Error(result.error || 'Upload failed');
+                    }
                 } catch (error) {
                     if (error.name === 'AbortError') {
                         this.showAlert(
@@ -695,18 +696,6 @@ const PrintUI = {
         this.updateTotalDisplay();
     }
 };
-
-async function createOrder(formData) {
-    const response = await fetch('/create-order', {
-        method: 'POST',
-        body: formData
-    });
-    const result = await response.json();
-    if (!response.ok || !result.success) {
-        throw new Error(result.details || result.error || 'Failed to create order');
-    }
-    return result;
-}
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => PrintUI.init());
