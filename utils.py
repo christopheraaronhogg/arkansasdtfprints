@@ -52,50 +52,85 @@ def calculate_cost(width_inches, height_inches):
     return float(cost)
 
 def get_image_dimensions(file_data):
-    with Image.open(file_data) as img:
-        # Get physical size in inches using the image's DPI info
-        dpi_x, dpi_y = img.info.get('dpi', (96, 96))  # Default to 96 DPI if not specified
-        
-        # Convert to Decimal for precise calculations
-        width_px = Decimal(str(img.size[0]))
-        height_px = Decimal(str(img.size[1]))
-        dpi_x = Decimal(str(dpi_x))
-        dpi_y = Decimal(str(dpi_y))
-        
-        # Calculate dimensions with 2 decimal places precision
-        width_inches = (width_px / dpi_x).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        height_inches = (height_px / dpi_y).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        
-        logger.debug(f"Image dimensions calculation:")
-        logger.debug(f"Pixels: {width_px} x {height_px}")
-        logger.debug(f"DPI: {dpi_x} x {dpi_y}")
-        logger.debug(f"Result inches: {width_inches} x {height_inches}")
-        
-        # Return as float but maintain precision
-        return float(width_inches), float(height_inches)
+    """Get physical dimensions of a PNG image in inches"""
+    try:
+        # Verify PNG format first
+        file_data.seek(0)
+        png_signature = b'\x89PNG\r\n\x1a\n'
+        if file_data.read(8) != png_signature:
+            raise ValueError("Not a valid PNG file")
+
+        # Reset file pointer
+        file_data.seek(0)
+
+        with Image.open(file_data) as img:
+            # Get physical size in inches using the image's DPI info
+            dpi_x, dpi_y = img.info.get('dpi', (96, 96))  # Default to 96 DPI if not specified
+
+            # Convert to Decimal for precise calculations
+            width_px = Decimal(str(img.size[0]))
+            height_px = Decimal(str(img.size[1]))
+            dpi_x = Decimal(str(dpi_x))
+            dpi_y = Decimal(str(dpi_y))
+
+            # Calculate dimensions with 2 decimal places precision
+            width_inches = (width_px / dpi_x).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+            height_inches = (height_px / dpi_y).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+            logger.debug(f"Image dimensions calculation:")
+            logger.debug(f"Pixels: {width_px} x {height_px}")
+            logger.debug(f"DPI: {dpi_x} x {dpi_y}")
+            logger.debug(f"Result inches: {width_inches} x {height_inches}")
+
+            # Return as float but maintain precision
+            return float(width_inches), float(height_inches)
+    except Exception as e:
+        logger.error(f"Error getting image dimensions: {str(e)}")
+        raise
 
 def validate_image(file_data):
+    """Validate PNG image format and dimensions"""
     try:
+        # Check PNG signature
+        file_data.seek(0)
+        png_signature = b'\x89PNG\r\n\x1a\n'
+        file_signature = file_data.read(8)
+        if file_signature != png_signature:
+            logger.error("Invalid PNG signature")
+            return False, "File is not a valid PNG image"
+
+        # Reset file pointer
+        file_data.seek(0)
+
         with Image.open(file_data) as img:
+            logger.debug(f"Image validation details:")
+            logger.debug(f"Format: {img.format}")
+            logger.debug(f"Mode: {img.mode}")
+            logger.debug(f"Size: {img.size}")
+
             if img.format != 'PNG':
+                logger.error(f"Incorrect image format: {img.format}")
                 return False, "Only PNG files are supported"
+
             if img.mode not in ('RGB', 'RGBA'):
+                logger.error(f"Unsupported image mode: {img.mode}")
                 return False, "Image must be in RGB or RGBA format"
-            
+
             # Get physical dimensions
             dpi_x, dpi_y = img.info.get('dpi', (96, 96))
             width_inches = img.size[0] / dpi_x
             height_inches = img.size[1] / dpi_y
-            
-            # Log the dimensions for debugging
-            logger.debug(f"Image physical dimensions: {width_inches:.2f}\" x {height_inches:.2f}\"")
-            
+
+            logger.debug(f"Physical dimensions: {width_inches:.2f}\" x {height_inches:.2f}\"")
+
             # Check if either dimension exceeds 22 inches
             if width_inches > 22 or height_inches > 22:
+                logger.error(f"Image too large: {width_inches:.1f}\" x {height_inches:.1f}\"")
                 return False, f"Image dimensions ({width_inches:.1f}\" x {height_inches:.1f}\") exceed maximum of 22 inches"
-                
+
             return True, "Image is valid"
     except Exception as e:
+        logger.error(f"Error validating image: {str(e)}")
         return False, f"Error validating image: {str(e)}"
 
 def generate_thumbnail(image_data, max_size=(300, 300)):

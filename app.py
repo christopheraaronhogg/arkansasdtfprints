@@ -261,10 +261,23 @@ def upload_file():
                             file_data = BytesIO(file.read())
                             file_data.seek(0)
 
+                            # Check PNG signature
+                            png_signature = b'\x89PNG\r\n\x1a\n'
+                            signature = file_data.read(8)
+                            file_data.seek(0)
+
+                            if signature != png_signature:
+                                error_msg = f"File {file.filename} is not a valid PNG file"
+                                logger.error(error_msg)
+                                return jsonify({
+                                    'error': 'Invalid image',
+                                    'details': error_msg
+                                }), 400
+
                             # Basic format validation only
                             try:
                                 with Image.open(file_data) as img:
-                                    logger.info(f"Image format: {img.format}, Mode: {img.mode}, Size: {img.size}")
+                                    logger.info(f"Image validation - Format: {img.format}, Mode: {img.mode}, Size: {img.size}")
                                     if img.format != 'PNG':
                                         error_msg = f"Invalid image format: {img.format}. Only PNG files are supported"
                                         logger.error(error_msg)
