@@ -1517,46 +1517,43 @@ form .submit-btn::after {
 
 /* Order layout improvements */
 .order-item {
-    display: grid;
-    grid-template-columns: 300px minmax(400px, 1fr) 350px;
+    display: flex;
     gap: 1.5rem;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 1.5rem;
     margin-bottom: 1rem;
-    align-items: start;
+    align-items: flex-start;
 }
 
-/* Checkbox and order info container */
+/* Left column: Checkbox and order info */
 .order-info {
     display: flex;
     gap: 1rem;
-    align-items: flex-start;
-    min-width: 0;
+    width: 250px;
+    flex-shrink: 0;
 }
 
 .order-checkbox {
     flex-shrink: 0;
-    margin-top: 0.25rem;
 }
 
 .order-details {
-    flex: 1;
     min-width: 0;
+    overflow: hidden;
 }
 
-/* Image grid */
+/* Middle column: Images */
 .order-images {
+    flex: 1;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 0.75rem;
-    justify-content: start;
-    align-items: start;
+    gap: 0.5rem;
     padding: 0.5rem;
     background: var(--background-color);
     border-radius: var(--radius-sm);
-    min-width: 0;
+    min-width: 300px;
 }
 
 .order-image {
@@ -1568,18 +1565,13 @@ form .submit-btn::after {
     background: white;
 }
 
-/* Controls section */
+/* Right column: Controls */
 .order-controls {
+    width: 300px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    width: 100%;
-}
-
-.status-price-group {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
 }
 
 .status-badge {
@@ -1597,43 +1589,27 @@ form .submit-btn::after {
     white-space: nowrap;
 }
 
-.details-btn {
-    white-space: nowrap;
-    width: 100%;
-}
-
 /* Responsive adjustments */
-@media (max-width: 1400px) {
-    .order-item {
-        grid-template-columns: 250px minmax(350px, 1fr) 300px;
-    }
-}
-
 @media (max-width: 1200px) {
     .order-item {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+        flex-direction: column;
+    }
+
+    .order-info {
+        width: 100%;
     }
 
     .order-images {
-        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        width: 100%;
     }
 
     .order-controls {
+        width: 100%;
         flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: space-between;
         align-items: center;
-    }
-
-    .status-price-group {
-        flex: 1;
-        min-width: 200px;
-    }
-
-    .details-btn {
-        flex: 0 0 auto;
-        width: auto;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
     }
 }
 
@@ -1645,12 +1621,6 @@ form .submit-btn::after {
     .order-controls {
         flex-direction: column;
         align-items: stretch;
-    }
-
-    .status-price-group {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.5rem;
     }
 
     .details-btn {
