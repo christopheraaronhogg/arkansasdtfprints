@@ -1516,27 +1516,36 @@ form .submit-btn::after {
     }
 }
 
+/* Order list container */
+.orders-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
 /* Order item styling */
 .order-item {
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    margin-bottom: 1rem;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 .order-content {
     padding: 1rem;
+    flex: 1;
 }
 
 .order-footer {
+    padding: 1rem;
+    background: var(--surface-color);
+    border-top: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem;
-    border-top: 1px solid var(--border-color);
-    background: var(--surface-color);
-    flex-wrap: wrap;
 }
 
 /* Status and amount group */
@@ -1545,26 +1554,16 @@ form .submit-btn::after {
     align-items: center;
     gap: 1rem;
     margin-right: auto;
-    flex-wrap: wrap;
-    min-width: 200px;
+    flex-wrap: nowrap;
 }
 
-/* Status select styling */
 .status-select {
     min-width: 140px;
+    max-width: 200px;
     height: 38px;
-    padding: 0.375rem 2rem 0.375rem 0.75rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    background-color: var(--surface-color);
-    font-size: 0.9rem;
-    cursor: pointer;
 }
 
-/* Amount display */
 .amount-display {
-    font-size: 0.95rem;
-    color: var(--text-primary);
     white-space: nowrap;
     padding: 0.375rem 0;
 }
@@ -1576,29 +1575,32 @@ form .submit-btn::after {
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    border-radius: var(--radius-sm);
-    background-color: var(--primary-color);
-    color: white;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
     height: 38px;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .order-footer {
-        flex-direction: column;
-        align-items: stretch;
+    .orders-list {
+        grid-template-columns: 1fr;
         gap: 0.75rem;
     }
-    
-    .status-amount-group {
-        margin-right: 0;
-        justify-content: space-between;
+
+    .order-footer {
+        flex-wrap: wrap;
+        gap: 0.75rem;
     }
-    
+
+    .status-amount-group {
+        width: 100%;
+        justify-content: space-between;
+        margin-right: 0;
+    }
+
     .details-btn {
         width: 100%;
         justify-content: center;
@@ -1610,93 +1612,18 @@ form .submit-btn::after {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .status-select {
         width: 100%;
+        max-width: none;
     }
-    
+
     .amount-display {
-        text-align: center;
+        text-align: left;
+        padding: 0.5rem 0;
     }
 }
 
-/* Admin page specific styles */
-.admin-page .filter-bar {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    padding: 1rem;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.admin-page .filter-bar > * {
-    margin: 0;
-}
-
-.admin-page .action-buttons {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-}
-
-.admin-page .status-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    min-width: 200px;
-}
-
-.admin-page .details-btn,
-.admin-page .action-btn {
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .admin-page .filter-bar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.75rem;
-    }
-    
-    .admin-page .status-group {
-        width: 100%;
-    }
-    
-    .admin-page .action-buttons {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .admin-page .details-btn,
-    .admin-page .action-btn {
-        flex: 1;
-        justify-content: center;
-        text-align: center;
-    }
-}
-
-@media (max-width: 576px) {
-    .admin-page .action-buttons {
-        flex-direction: column;
-    }
-    
-    .admin-page .details-btn,
-    .admin-page .action-btn {
-        width: 100%;
-    }
-    
-    .admin-page .filter-bar select,
-    .admin-page .filter-bar input[type="date"] {
-        width: 100%;
-    }
-}
-
-/* Button container adjustments */
 .button-container {
     display: flex;
     flex-wrap: wrap;
