@@ -14,20 +14,20 @@ const LoadingManager = {
                 </div>
                 <div class="progress-status"></div>
             `;
-            
+
             // Insert after email-submit-row
             const emailSubmitRow = document.querySelector('.email-submit-row');
             emailSubmitRow.parentNode.insertBefore(container, emailSubmitRow.nextSibling);
-            
+
             // Force a reflow before adding the show class
             container.offsetHeight;
         }
-        
+
         // Show the container with animation
         requestAnimationFrame(() => {
             container.classList.add('show');
         });
-        
+
         // Update progress
         this.updateProgress(progress, message);
     },
@@ -36,18 +36,18 @@ const LoadingManager = {
         const container = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progress-text');
-        
+
         if (progressBar && progressText) {
             // Round progress to nearest integer
             const roundedProgress = Math.round(progress);
-            
+
             // Update progress bar width and text
             progressBar.style.width = `${roundedProgress}%`;
             progressText.textContent = `${roundedProgress}%`;
-            
+
             // Add progress to data attribute for CSS styling
             progressBar.setAttribute('data-progress', `${roundedProgress}%`);
-            
+
             // Update status message if provided
             if (message) {
                 const statusDiv = document.querySelector('.progress-status');
@@ -90,22 +90,22 @@ const PrintCalculator = (() => {
             // Convert to string with 2 decimal places for display and calculation
             const displayValue = Number(num).toFixed(2);
             console.log('Display value:', displayValue);
-            
+
             // Parse back to number and round for pricing
             const value = parseFloat(displayValue);
             const rounded = (value % 1 >= 0.5) ? Math.ceil(value) : Math.round(value);
             console.log('Rounded value:', rounded);
             return Math.max(1, rounded);
         }
-        
+
         console.log('Raw dimensions:', { width, height });
-        
+
         // Round to nearest inch with minimum of 1 inch, rounding up at .5
         const roundedWidth = roundUpAtHalf(width);
         const roundedHeight = roundUpAtHalf(height);
         const area = roundedWidth * roundedHeight;
         const cost = area * state.basePrice * quantity;
-        
+
         console.log('Cost calculation:', {
             originalWidth: width,
             originalHeight: height,
@@ -118,14 +118,14 @@ const PrintCalculator = (() => {
             quantity,
             finalCost: cost
         });
-        
+
         return cost;
     }
 
     return {
         addImage(file, img, dimensions) {
             const id = crypto.randomUUID();
-            
+
             // Use the physical dimensions from the server
             const width_inches = dimensions.width;
             const height_inches = dimensions.height;
@@ -274,14 +274,14 @@ const PrintUI = {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
-            .then(dimensions => {
-            const img = new Image();
-                img.onload = () => resolve({ img, dimensions });
-            img.onerror = reject;
-            img.src = URL.createObjectURL(file);
-            })
-            .catch(reject);
+                .then(response => response.json())
+                .then(dimensions => {
+                    const img = new Image();
+                    img.onload = () => resolve({ img, dimensions });
+                    img.onerror = reject;
+                    img.src = URL.createObjectURL(file);
+                })
+                .catch(reject);
         });
     },
 
@@ -385,21 +385,21 @@ const PrintUI = {
             // Prevent the event from bubbling up to the form
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Remove from state
             PrintCalculator.removeImage(id);
-            
+
             // Remove the container with animation
             container.style.opacity = '0';
             container.style.transform = 'scale(0.95)';
-            
+
             setTimeout(() => {
                 container.remove();
                 this.updateTotalDisplay();
-                
+
                 // Show feedback toast
                 this.showAlert('Image removed from order', 'success');
-                
+
                 // If no images left, reset the form
                 if (!PrintCalculator.hasImages()) {
                     this.form.reset();
@@ -432,13 +432,13 @@ const PrintUI = {
     updateTotalDisplay() {
         const total = PrintCalculator.getTotalCost();
         const formattedTotal = `$${total.toFixed(2)}`;
-        
+
         // Update the total cost display if it exists
         const totalDisplay = document.getElementById('totalCost');
         if (totalDisplay) {
             totalDisplay.textContent = `Total: ${formattedTotal}`;
         }
-        
+
         // Update the submit button total
         const submitBtn = document.querySelector('.submit-btn');
         if (submitBtn) {
@@ -451,10 +451,8 @@ const PrintUI = {
             LoadingManager.show('Preparing your files...', 0);
             const formData = new FormData(this.form);
             const orderDetails = [];
-            let totalImages = 0;
-            let totalSize = 0;
             const files = [];
-            let sessionId = null;
+            let totalSize = 0;
 
             // Collect files and details
             document.querySelectorAll('.size-inputs').forEach((container) => {
@@ -468,172 +466,61 @@ const PrintUI = {
                         height: imageState.current.height,
                         quantity: imageState.quantity,
                         cost: imageState.cost,
-                        filename: imageState.file.name.replace('.png', `.${imageState.quantity}.png`),
+                        filename: imageState.file.name,
                         notes: imageState.notes
                     };
                     orderDetails.push(details);
-                    totalImages++;
-                    console.log(`Added file to order: ${imageState.file.name}`, details);
+                    formData.append('file', imageState.file);
                 }
             });
 
-            let retryCount = 0;
-            const maxRetries = 3;
-            const chunkSize = 1024 * 1024; // 1MB chunks
-            const origin = window.location.origin;
+            // Check total size (32MB limit)
+            const maxSize = 32 * 1024 * 1024; // 32MB
+            if (totalSize > maxSize) {
+                this.showAlert(
+                    `Total upload size (${(totalSize / (1024 * 1024)).toFixed(1)}MB) exceeds the maximum allowed size of 32MB`,
+                    'error'
+                );
+                LoadingManager.hide();
+                return;
+            }
 
-            console.log('Starting upload with:', {
-                totalFiles: files.length,
-                orderDetails,
-                totalCost: PrintCalculator.getTotalCost()
-            });
+            // Add order details to form
+            formData.append('orderDetails', JSON.stringify(orderDetails));
+            formData.append('totalCost', PrintCalculator.getTotalCost());
 
-            while (retryCount < maxRetries) {
-                try {
-                    let totalUploaded = 0;
-                    const uploadStartTime = Date.now();
-                    let lastChunkTime = uploadStartTime;
-                    let lastUploadedBytes = 0;
+            try {
+                LoadingManager.show('Uploading your files...', 0);
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
 
-                    // Upload each file in chunks
-                    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
-                        const file = files[fileIndex];
-                        const totalChunks = Math.ceil(file.size / chunkSize);
-                        
-                        console.log(`Starting upload of file ${fileIndex + 1}/${files.length}: ${file.name} (${file.size} bytes in ${totalChunks} chunks)`);
-
-                        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-                            const start = chunkIndex * chunkSize;
-                            const end = Math.min(start + chunkSize, file.size);
-                            const chunk = file.slice(start, end);
-                            
-                            const chunkFormData = new FormData();
-                            const modifiedFilename = file.name.replace('.png', `.${orderDetails[fileIndex].quantity}.png`);
-                            chunkFormData.append('file', chunk, modifiedFilename);
-                            chunkFormData.append('chunkIndex', chunkIndex);
-                            chunkFormData.append('totalChunks', totalChunks);
-                            chunkFormData.append('fileIndex', fileIndex);
-                            chunkFormData.append('totalFiles', files.length);
-                            
-                            // Always send session ID if we have one
-                            if (sessionId) {
-                                chunkFormData.append('sessionId', sessionId);
-                            }
-                            
-                            if (chunkIndex === 0) {
-                                // Send metadata with first chunk
-                                chunkFormData.append('email', formData.get('email'));
-                                chunkFormData.append('po_number', formData.get('po_number'));
-                                chunkFormData.append('orderDetails', JSON.stringify(orderDetails));
-                                chunkFormData.append('totalCost', PrintCalculator.getTotalCost());
-                                console.log('Sending metadata with first chunk');
-                            }
-
-                            let chunkRetries = 0;
-                            const maxChunkRetries = 3;
-                            
-                            while (chunkRetries < maxChunkRetries) {
-                                try {
-                                    const response = await fetch(`${origin}/upload-chunk`, {
-                            method: 'POST',
-                                        body: chunkFormData
-                                    });
-
-                                    if (!response.ok) {
-                                        throw new Error(`HTTP error! status: ${response.status}`);
-                                    }
-
-                                    const result = await response.json();
-                                    
-                                    if (result.error) {
-                                        throw new Error(result.error);
-                                    }
-
-                                    // Store session ID if provided
-                                    if (result.sessionId) {
-                                        sessionId = result.sessionId;
-                                        console.log(`Using session ID: ${sessionId}`);
-                                    }
-
-                                    // Handle completion - moved before progress update
-                                    if (result.redirect) {
-                                        LoadingManager.updateProgress(100, 'Upload complete! Processing...');
-                                        this.showAlert(
-                                            `Order successfully submitted with ${totalImages} image${totalImages !== 1 ? 's' : ''}! Check your email for confirmation.`,
-                                            'success'
-                                        );
-                                        console.log('Order completed successfully:', result);
-                                        // Add a small delay before redirecting to ensure the alert is shown
-                                        await new Promise(resolve => setTimeout(resolve, 1000));
-                                        window.location.href = result.redirect;
-                                        return;
-                                    }
-                                    
-                                    // Update progress
-                                    totalUploaded += chunk.size;
-                                    const totalProgress = (totalUploaded / totalSize) * 100;
-                                    
-                                    // Calculate upload speed
-                                    const currentTime = Date.now();
-                                    const timeDiff = (currentTime - lastChunkTime) / 1000;
-                                    const bytesDiff = totalUploaded - lastUploadedBytes;
-                                    const uploadSpeed = bytesDiff / timeDiff;
-                                    
-                                    lastChunkTime = currentTime;
-                                    lastUploadedBytes = totalUploaded;
-                                    
-                                    let speedText;
-                                    if (uploadSpeed >= 1024 * 1024) {
-                                        speedText = `${(uploadSpeed / (1024 * 1024)).toFixed(1)} MB/s`;
-                                    } else if (uploadSpeed >= 1024) {
-                                        speedText = `${(uploadSpeed / 1024).toFixed(1)} KB/s`;
-                        } else {
-                                        speedText = `${Math.round(uploadSpeed)} B/s`;
-                                    }
-                                    
-                                    console.log(`Chunk ${chunkIndex + 1}/${totalChunks} of file ${fileIndex + 1}/${files.length} uploaded (${speedText})`);
-                                    
-                                    LoadingManager.updateProgress(
-                                        Math.round(totalProgress),
-                                        `Uploading: ${(totalUploaded / (1024 * 1024)).toFixed(1)}MB / ${(totalSize / (1024 * 1024)).toFixed(1)}MB (${speedText})`
-                                    );
-                                    
-                                    break; // Successful chunk upload
-                                } catch (error) {
-                                    chunkRetries++;
-                                    console.error(`Chunk upload error (attempt ${chunkRetries}):`, error);
-                                    
-                                    if (chunkRetries === maxChunkRetries) {
-                                        throw new Error(`Failed to upload chunk after ${maxChunkRetries} attempts: ${error.message}`);
-                                    }
-                                    
-                                    LoadingManager.updateProgress(
-                                        Math.round((totalUploaded / totalSize) * 100),
-                                        `Upload failed. Retrying in 1 second... (${error.message})`
-                                    );
-                                    
-                                    await new Promise(resolve => setTimeout(resolve, 1000));
-                                }
-                            }
-                        }
-                    }
-                    
-                    break; // Successfully uploaded all files
-                } catch (error) {
-                    retryCount++;
-                    console.error('Upload error:', error);
-                    
-                    if (retryCount === maxRetries) {
-                        this.showAlert(
-                            `Failed to upload files: ${error.message}. Please try again or contact support if the issue persists.`,
-                            'error'
-                        );
-                        break;
-                    }
-
-                    LoadingManager.updateProgress(0, 'Upload failed. Retrying in 2 seconds...');
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                if (!response.ok) {
+                    const result = await response.json();
+                    throw new Error(result.details || 'Upload failed');
                 }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    LoadingManager.updateProgress(100, 'Upload complete!');
+                    this.showAlert(
+                        `Order successfully submitted! Check your email for confirmation.`,
+                        'success'
+                    );
+
+                    // Add a small delay before redirecting
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    window.location.href = result.redirect;
+                } else {
+                    throw new Error(result.error || 'Upload failed');
+                }
+            } catch (error) {
+                this.showAlert(
+                    `Failed to upload files: ${error.message}. Please try again or contact support if the issue persists.`,
+                    'error'
+                );
             }
         } catch (error) {
             console.error('Fatal error:', error);
@@ -686,10 +573,10 @@ const PrintUI = {
             pointer-events: auto;
             border-left: 4px solid ${type === 'error' ? '#ef4444' : '#22c55e'};
         `;
-        
+
         // Add icon based on type
         const icon = type === 'error' ? 'exclamation-circle' : 'check-circle';
-        
+
         toast.innerHTML = `
             <div class="toast-content" style="display: flex; align-items: center; gap: 12px; flex: 1;">
                 <i class="fas fa-${icon} toast-icon" style="color: ${type === 'error' ? '#ef4444' : '#22c55e'}; font-size: 1.2rem;"></i>
@@ -732,7 +619,7 @@ const PrintUI = {
         const input = event.target;
         const value = parseFloat(input.value) || 0;
         const dimension = input.dataset.dimension;
-        
+
         PrintCalculator.updateImageDimension(imageId, dimension, value);
         this.updateTotalDisplay();
     }
