@@ -1745,3 +1745,103 @@ form .submit-btn::after {
         padding: 0.5rem 0;
     }
 }
+
+/* Order item base layout */
+.order-item {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+}
+
+/* Left section: checkbox and details */
+.order-select {
+    flex-shrink: 0;
+}
+
+.order-details {
+    width: 250px;
+    flex-shrink: 0;
+}
+
+.order-meta {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Middle section: images */
+.order-images {
+    flex: 1;
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    padding: 0.5rem;
+}
+
+.img-container {
+    position: relative;
+    width: 70px;
+    height: 70px;
+    flex-shrink: 0;
+}
+
+.img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+}
+
+/* Right section: status, price, button */
+.order-actions {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.status-select-wrapper {
+    flex-shrink: 1;
+    min-width: 140px;
+}
+
+.order-cost {
+    flex-shrink: 0;
+    font-weight: 600;
+    color: var(--success-color);
+}
+
+.details-btn {
+    flex-shrink: 0;
+}
+
+/* Mobile layout */
+@media (max-width: 768px) {
+    .order-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .order-details {
+        width: 100%;
+    }
+
+    .order-images {
+        width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+
+    .order-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+}
