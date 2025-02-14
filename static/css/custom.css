@@ -1430,6 +1430,110 @@ form .submit-btn::after {
 
 /* Add these new styles at the end of the file */
 
+/* Order item styling */
+.order-item {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.order-content {
+    padding: 1rem;
+}
+
+.order-footer {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--surface-color);
+    flex-wrap: wrap;
+}
+
+/* Status and amount group */
+.status-amount-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-right: auto;
+    flex-wrap: wrap;
+    min-width: 200px;
+}
+
+/* Status select styling */
+.status-select {
+    min-width: 140px;
+    height: 38px;
+    padding: 0.375rem 2rem 0.375rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+/* Amount display */
+.amount-display {
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    padding: 0.375rem 0;
+}
+
+/* Details button */
+.details-btn {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    height: 38px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .order-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .status-amount-group {
+        margin-right: 0;
+        justify-content: space-between;
+    }
+
+    .details-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .status-amount-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .status-select {
+        width: 100%;
+    }
+
+    .amount-display {
+        text-align: center;
+    }
+}
+
 /* Admin page specific styles */
 .admin-page .filter-bar {
     display: flex;
