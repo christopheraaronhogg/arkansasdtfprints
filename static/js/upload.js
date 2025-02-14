@@ -250,6 +250,12 @@ const PrintUI = {
             this.dropZone.classList.remove('dragover');
 
             const files = [...e.dataTransfer.files].filter(f => f.type === 'image/png');
+
+            // Update the file input with the dropped files
+            const dataTransfer = new DataTransfer();
+            files.forEach(file => dataTransfer.items.add(file));
+            this.fileInput.files = dataTransfer.files;
+
             await this.handleFiles(files);
         });
 
