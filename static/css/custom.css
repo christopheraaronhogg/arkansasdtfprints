@@ -1518,12 +1518,12 @@ form .submit-btn::after {
 /* Order layout improvements */
 .order-item {
     display: grid;
-    grid-template-columns: minmax(200px, 1fr) minmax(300px, 2fr) minmax(auto, 400px);
-    gap: 1rem;
+    grid-template-columns: minmax(250px, 1fr) minmax(400px, 2fr) minmax(300px, 400px);
+    gap: 1.5rem;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    padding: 1rem;
+    padding: 1.5rem;
     margin-bottom: 1rem;
     align-items: start;
 }
@@ -1542,18 +1542,18 @@ form .submit-btn::after {
 
 .order-details {
     flex: 1;
-    min-width: 0; /* Allow text to wrap */
+    min-width: 0;
 }
 
 /* Image grid */
 .order-images {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 0.5rem;
-    justify-content: center;
-    align-items: center;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 0.75rem;
+    justify-content: start;
+    align-items: start;
     padding: 0.5rem;
-    background: var(--surface-color);
+    background: var(--background-color);
     border-radius: var(--radius-sm);
 }
 
@@ -1563,18 +1563,25 @@ form .submit-btn::after {
     object-fit: contain;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
+    background: white;
 }
 
 /* Controls section */
 .order-controls {
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    gap: 1rem;
+    align-items: center;
+}
+
+.status-price-group {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
 }
 
 .status-badge {
-    width: fit-content;
-    padding: 0.25rem 0.75rem;
+    white-space: nowrap;
+    padding: 0.35rem 0.75rem;
     border-radius: var(--radius-sm);
     font-size: 0.875rem;
     font-weight: 500;
@@ -1584,54 +1591,85 @@ form .submit-btn::after {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--primary-color);
+    white-space: nowrap;
+}
+
+.details-btn {
+    white-space: nowrap;
+    min-width: 120px;
 }
 
 /* Responsive adjustments */
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
     .order-item {
-        grid-template-columns: minmax(200px, 1fr) minmax(300px, 1.5fr) minmax(auto, 300px);
+        grid-template-columns: minmax(250px, 1fr) minmax(350px, 1.5fr) minmax(250px, 300px);
     }
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1200px) {
     .order-item {
         grid-template-columns: 1fr 1.5fr;
     }
 
     .order-controls {
         grid-column: 1 / -1;
-        flex-direction: row;
-        flex-wrap: wrap;
         justify-content: flex-start;
-        align-items: center;
-    }
-
-    .order-controls > * {
-        flex: 1;
-        min-width: 150px;
-        max-width: 200px;
+        flex-wrap: wrap;
     }
 }
 
 @media (max-width: 768px) {
     .order-item {
         grid-template-columns: 1fr;
-    }
-
-    .order-images {
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        padding: 1rem;
     }
 
     .order-controls {
         flex-direction: column;
+        align-items: stretch;
     }
 
-    .order-controls > * {
+    .status-price-group {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .details-btn {
         width: 100%;
-        max-width: none;
     }
 }
 
+.button-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    margin: 0.5rem 0;
+}
+
+.order-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.5rem;
+}
+
+.status-select-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    min-width: 200px;
+}
+
+.form-select,
+.form-control {
+    max-width: 100%;
+    min-width: 0;
+}
 .orders-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
@@ -1733,35 +1771,4 @@ form .submit-btn::after {
         text-align: left;
         padding: 0.5rem 0;
     }
-}
-
-.button-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    margin: 0.5rem 0;
-}
-
-.order-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 0.5rem;
-}
-
-.status-select-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    min-width: 200px;
-}
-
-.form-select,
-.form-control {
-    max-width: 100%;
-    min-width: 0;
 }
