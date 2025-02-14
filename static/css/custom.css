@@ -1518,13 +1518,13 @@ form .submit-btn::after {
 /* Order layout improvements */
 .order-item {
     display: flex;
-    flex-wrap: wrap;
     gap: 1.5rem;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 1.5rem;
     margin-bottom: 1rem;
+    align-items: flex-start;
 }
 
 /* Left column: Checkbox and order info */
@@ -1540,8 +1540,8 @@ form .submit-btn::after {
 }
 
 .order-details {
-    flex: 1;
     min-width: 0;
+    overflow: hidden;
 }
 
 /* Middle column: Images */
@@ -1567,15 +1567,14 @@ form .submit-btn::after {
 
 /* Right column: Controls */
 .order-controls {
+    width: 300px;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    width: 200px;
-    flex-shrink: 0;
 }
 
 .status-badge {
-    display: inline-block;
     white-space: nowrap;
     padding: 0.35rem 0.75rem;
     border-radius: var(--radius-sm);
@@ -1590,27 +1589,10 @@ form .submit-btn::after {
     white-space: nowrap;
 }
 
-/* Medium screens */
+/* Responsive adjustments */
 @media (max-width: 1200px) {
-    .order-info {
-        width: 200px;
-    }
-
-    .order-controls {
-        width: 100%;
-        flex-direction: row;
-        justify-content: flex-start;
-        align-items: center;
-        gap: 1rem;
-    }
-}
-
-/* Mobile screens */
-@media (max-width: 768px) {
     .order-item {
         flex-direction: column;
-        padding: 1rem;
-        gap: 1rem;
     }
 
     .order-info {
@@ -1619,7 +1601,21 @@ form .submit-btn::after {
 
     .order-images {
         width: 100%;
-        min-width: 0;
+    }
+
+    .order-controls {
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .order-item {
+        padding: 1rem;
     }
 
     .order-controls {
