@@ -533,7 +533,12 @@ const PrintUI = {
                 LoadingManager.show('Uploading your files...', 0);
                 const response = await fetch('/upload', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    // Add timeout and keep-alive settings
+                    signal: AbortSignal.timeout(120000), // 2 minute timeout
+                    headers: {
+                        'Connection': 'keep-alive'
+                    }
                 });
 
                 if (!response.ok) {
@@ -557,10 +562,17 @@ const PrintUI = {
                     throw new Error(result.error || 'Upload failed');
                 }
             } catch (error) {
-                this.showAlert(
-                    `Failed to upload files: ${error.message}. Please try again or contact support if the issue persists.`,
-                    'error'
-                );
+                if (error.name === 'AbortError') {
+                    this.showAlert(
+                        'Upload timed out. Please try uploading fewer files at once or contact support.',
+                        'error'
+                    );
+                } else {
+                    this.showAlert(
+                        `Failed to upload files: ${error.message}. Please try again or contact support if the issue persists.`,
+                        'error'
+                    );
+                }
             }
         } catch (error) {
             console.error('Fatal error:', error);
