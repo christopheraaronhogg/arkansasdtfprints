@@ -1518,7 +1518,7 @@ form .submit-btn::after {
 /* Order layout improvements */
 .order-item {
     display: grid;
-    grid-template-columns: minmax(250px, 1fr) minmax(400px, 2fr) minmax(300px, 400px);
+    grid-template-columns: 300px minmax(400px, 1fr) 350px;
     gap: 1.5rem;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
@@ -1533,6 +1533,7 @@ form .submit-btn::after {
     display: flex;
     gap: 1rem;
     align-items: flex-start;
+    min-width: 0;
 }
 
 .order-checkbox {
@@ -1548,13 +1549,14 @@ form .submit-btn::after {
 /* Image grid */
 .order-images {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 0.75rem;
     justify-content: start;
     align-items: start;
     padding: 0.5rem;
     background: var(--background-color);
     border-radius: var(--radius-sm);
+    min-width: 0;
 }
 
 .order-image {
@@ -1569,8 +1571,9 @@ form .submit-btn::after {
 /* Controls section */
 .order-controls {
     display: flex;
-    gap: 1rem;
-    align-items: center;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 100%;
 }
 
 .status-price-group {
@@ -1596,31 +1599,46 @@ form .submit-btn::after {
 
 .details-btn {
     white-space: nowrap;
-    min-width: 120px;
+    width: 100%;
 }
 
 /* Responsive adjustments */
 @media (max-width: 1400px) {
     .order-item {
-        grid-template-columns: minmax(250px, 1fr) minmax(350px, 1.5fr) minmax(250px, 300px);
+        grid-template-columns: 250px minmax(350px, 1fr) 300px;
     }
 }
 
 @media (max-width: 1200px) {
     .order-item {
-        grid-template-columns: 1fr 1.5fr;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .order-images {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
 
     .order-controls {
-        grid-column: 1 / -1;
-        justify-content: flex-start;
+        flex-direction: row;
         flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .status-price-group {
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .details-btn {
+        flex: 0 0 auto;
+        width: auto;
     }
 }
 
 @media (max-width: 768px) {
     .order-item {
-        grid-template-columns: 1fr;
         padding: 1rem;
     }
 
