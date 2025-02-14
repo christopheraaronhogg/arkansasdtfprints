@@ -491,14 +491,12 @@ const PrintUI = {
             const formData = new FormData(this.form);
             const orderDetails = [];
             const files = [];
-            let totalSize = 0;
 
             // Collect files and details
             document.querySelectorAll('.size-inputs').forEach((container) => {
                 const id = container.dataset.imageId;
                 const imageState = PrintCalculator.getImageState(id);
                 if (imageState) {
-                    totalSize += imageState.file.size;
                     files.push(imageState.file);
                     const details = {
                         width: imageState.current.width,
@@ -511,16 +509,6 @@ const PrintUI = {
                     orderDetails.push(details);
                 }
             });
-
-            // Check total size (32MB limit)
-            const maxSize = 32 * 1024 * 1024; // 32MB
-            if (totalSize > maxSize) {
-                this.showAlert(
-                    `Total upload size (${(totalSize / (1024 * 1024)).toFixed(1)}MB) exceeds the maximum allowed size of 32MB`,
-                    'error'
-                );
-                return;
-            }
 
             LoadingManager.show('Creating your order...', 0);
 
@@ -549,6 +537,17 @@ const PrintUI = {
                 const uploadedFiles = [];
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
+
+                    // Check individual file size
+                    if (file.size > 32 * 1024 * 1024) { // 32MB limit per file
+                        this.showAlert(
+                            `File ${file.name} is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum allowed size per file is 32MB`,
+                            'error'
+                        );
+                        LoadingManager.hide();
+                        return;
+                    }
+
                     const singleFormData = new FormData();
 
                     // Add the current file
