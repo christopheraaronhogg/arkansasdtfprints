@@ -398,8 +398,14 @@ const PrintUI = {
                     </div>
                     <div class="notes-input">
                         <label>Notes:</label>
-                        <textarea class="notes" 
-                            style="background-color: #fff3cd; border: 1px solid #ffeeba; color: #856404; width: 100%; padding: 8px; border-radius: 4px;"
+                        <textarea class="notes info-value notes-text" 
+                            style="background-color: #fff3cd !important; 
+                                   border: 1px solid #ffeeba !important; 
+                                   color: #856404 !important; 
+                                   width: 100% !important;
+                                   padding: 8px !important;
+                                   border-radius: 4px !important;
+                                   font-size: 14px !important;"
                             placeholder="Add any special instructions...">${imageState.notes}</textarea>
                     </div>
                     <div class="cost-display">
