@@ -185,7 +185,8 @@ def upload_file():
                 status='pending'
             )
             db.session.add(order)
-            logger.info(f"Created new order: {order.order_number}")
+            db.session.flush()  # This assigns the ID to the order
+            logger.info(f"Created new order: {order.order_number} with ID: {order.id}")
 
             # Process each file
             for file, details in zip(files, order_details):
@@ -208,7 +209,7 @@ def upload_file():
 
                     # Create order item
                     order_item = OrderItem(
-                        order_id=order.id,
+                        order_id=order.id,  # Now we have a valid order ID
                         file_key=filename,
                         width_inches=details['width'],
                         height_inches=details['height'],
