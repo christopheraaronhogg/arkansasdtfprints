@@ -437,6 +437,11 @@ body {
     border-top: 1px solid var(--border-color);
     padding: 1rem;
     background: var(--surface-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: space-between;
+    align-items: center;
 }
 
 /* Modal */
@@ -474,11 +479,27 @@ body {
     .info-cards-grid {
         grid-template-columns: repeat(2, 1fr);
     }
+    header .d-flex.gap-2 {
+        flex-wrap: wrap;
+        gap: 0.5rem !important;
+        justify-content: flex-start;
+    }
 }
 
 @media (max-width: 576px) {
     .info-cards-grid {
         grid-template-columns: 1fr;
+    }
+    header.d-flex {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    header .d-flex.gap-2 {
+        width: 100%;
+    }
+    .upload-btn {
+        width: 100%;
+        justify-content: center;
     }
     .status-card form {
         flex-direction: column;
@@ -647,6 +668,51 @@ body {
 
 .action-btn:hover {
     background: var(--primary-dark);
+}
+
+/* Add these styles to fix button wrapping */
+header.d-flex {
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* Update button styles to handle wrapping better */
+.upload-btn {
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    min-width: auto;
+}
+
+/* Make sure details buttons don't overflow */
+.details-btn {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+}
+
+/* Update grid responsiveness */
+@media (max-width: 992px) {
+
+}
+
+@media (max-width: 576px) {
+
+}
+
+@media (max-width: 350px) {
+    .cost-display {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .details-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* Add these styles to the existing styles */
