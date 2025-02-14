@@ -1516,20 +1516,21 @@ form .submit-btn::after {
 }
 
 /* Order layout improvements */
+/* Simple order layout */
 .order-item {
     display: flex;
-    gap: 1.5rem;
+    align-items: center;
+    gap: 2rem;
     background: var(--surface-color);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 1.5rem;
     margin-bottom: 1rem;
-    align-items: flex-start;
 }
 
-/* Left column: Checkbox and order info */
+/* Left: Info section */
 .order-info {
-    width: 250px;
+    width: 200px;
     flex-shrink: 0;
     display: flex;
     gap: 1rem;
@@ -1540,36 +1541,33 @@ form .submit-btn::after {
 }
 
 .order-details {
-    flex: 1;
     min-width: 0;
 }
 
-/* Middle column: Images */
+/* Middle: Images section */
 .order-images {
     flex: 1;
-    min-width: 300px;
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    display: flex;
     gap: 0.5rem;
-    justify-content: center;
-    align-items: start;
+    overflow-x: auto;
     padding: 0.5rem;
     background: var(--background-color);
     border-radius: var(--radius-sm);
 }
 
 .order-image {
-    aspect-ratio: 1;
-    width: 100%;
+    width: 80px;
+    height: 80px;
     object-fit: contain;
+    flex-shrink: 0;
     border-radius: var(--radius-sm);
     border: 1px solid var(--border-color);
     background: white;
 }
 
-/* Right column: Controls */
+/* Right: Controls section */
 .order-controls {
-    width: 250px;
+    width: 300px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -1591,45 +1589,27 @@ form .submit-btn::after {
     white-space: nowrap;
 }
 
-/* Responsive adjustments */
-@media (max-width: 1200px) {
+/* Only stack on mobile */
+@media (max-width: 768px) {
+    .order-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding: 1rem;
+    }
+
+    .order-info,
+    .order-controls {
+        width: 100%;
+    }
+
     .order-controls {
         flex-direction: column;
         align-items: stretch;
-        gap: 0.75rem;
     }
 
     .details-btn {
         width: 100%;
-    }
-}
-
-@media (max-width: 992px) {
-    .order-item {
-        flex-direction: column;
-    }
-
-    .order-info {
-        width: 100%;
-    }
-
-    .order-images {
-        width: 100%;
-    }
-
-    .order-controls {
-        width: 100%;
-    }
-}
-
-@media (max-width: 768px) {
-    .order-item {
-        padding: 1rem;
-        gap: 1rem;
-    }
-
-    .order-images {
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     }
 }
 
