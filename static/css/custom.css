@@ -1529,10 +1529,10 @@ form .submit-btn::after {
 
 /* Left column: Checkbox and order info */
 .order-info {
-    display: flex;
-    gap: 1rem;
     width: 250px;
     flex-shrink: 0;
+    display: flex;
+    gap: 1rem;
 }
 
 .order-checkbox {
@@ -1540,20 +1540,22 @@ form .submit-btn::after {
 }
 
 .order-details {
+    flex: 1;
     min-width: 0;
-    overflow: hidden;
 }
 
 /* Middle column: Images */
 .order-images {
     flex: 1;
+    min-width: 300px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
     gap: 0.5rem;
+    justify-content: center;
+    align-items: start;
     padding: 0.5rem;
     background: var(--background-color);
     border-radius: var(--radius-sm);
-    min-width: 300px;
 }
 
 .order-image {
@@ -1567,11 +1569,11 @@ form .submit-btn::after {
 
 /* Right column: Controls */
 .order-controls {
-    width: 300px;
+    width: 250px;
     flex-shrink: 0;
     display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
+    align-items: center;
+    gap: 1rem;
 }
 
 .status-badge {
@@ -1591,6 +1593,18 @@ form .submit-btn::after {
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
+    .order-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+    }
+
+    .details-btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 992px) {
     .order-item {
         flex-direction: column;
     }
@@ -1605,26 +1619,17 @@ form .submit-btn::after {
 
     .order-controls {
         width: 100%;
-        flex-direction: row;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 1rem;
     }
 }
 
 @media (max-width: 768px) {
     .order-item {
         padding: 1rem;
+        gap: 1rem;
     }
 
-    .order-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .details-btn {
-        width: 100%;
+    .order-images {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     }
 }
 
