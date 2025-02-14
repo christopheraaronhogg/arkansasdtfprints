@@ -161,15 +161,9 @@ def upload_file():
         email = request.form.get('email')
         po_number = request.form.get('po_number')
 
-        logger.info(f"Received {len(files)} files for upload")
-        for file in files:
-            logger.info(f"File: {file.filename}, Content Type: {file.content_type}")
-
         try:
             order_details = json.loads(request.form.get('orderDetails', '[]'))
             total_cost = float(request.form.get('totalCost', 0))
-            logger.info(f"Order details: {json.dumps(order_details)}")
-            logger.info(f"Total cost: {total_cost}")
         except (json.JSONDecodeError, ValueError) as e:
             logger.error(f"Invalid order details format: {str(e)}")
             return jsonify({'error': 'Invalid order details', 'details': 'Order details are not properly formatted'}), 400
@@ -244,10 +238,7 @@ def upload_file():
                 for file, details in zip(files, order_details):
                     try:
                         if file and allowed_file(file.filename):
-                            # Get base filename without extension
-                            base_filename = secure_filename(details['filename']).rsplit('.', 1)[0]
-                            # Create new filename with QTY format
-                            filename = f"{base_filename}_QTY-{details['quantity']}.png"
+                            filename = secure_filename(file.filename)
                             logger.info(f"Processing file: {filename}")
 
                             # Store file in memory for basic format validation
@@ -257,20 +248,15 @@ def upload_file():
                             # Basic format validation only
                             try:
                                 with Image.open(file_data) as img:
-                                    logger.info(f"Image format: {img.format}, Mode: {img.mode}, Size: {img.size}")
                                     if img.format != 'PNG':
-                                        error_msg = f"Invalid image format: {img.format}. Only PNG files are supported"
-                                        logger.error(error_msg)
                                         return jsonify({
                                             'error': 'Invalid image',
-                                            'details': error_msg
+                                            'details': "Only PNG files are supported"
                                         }), 400
                                     if img.mode not in ('RGB', 'RGBA'):
-                                        error_msg = f"Invalid image mode: {img.mode}. Image must be in RGB or RGBA format"
-                                        logger.error(error_msg)
                                         return jsonify({
                                             'error': 'Invalid image',
-                                            'details': error_msg
+                                            'details': "Image must be in RGB or RGBA format"
                                         }), 400
                             except Exception as e:
                                 logger.error(f"Error validating image format: {str(e)}")
@@ -305,7 +291,7 @@ def upload_file():
                                 height_inches=details['height'],
                                 quantity=details['quantity'],
                                 cost=details['cost'],
-                                notes=details.get('notes', '')
+                                notes=details.get('notes', '')  # Add notes from details
                             )
                             db.session.add(order_item)
                             logger.info(f"Added order item for file: {filename}")
@@ -349,6 +335,174 @@ def upload_file():
             'error': 'Server error',
             'details': f'An unexpected error occurred: {str(e)}'
         }), 500
+
+@app.route('/upload-chunk', methods=['POST'])
+def upload_chunk():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file chunk provided'}), 400
+
+        chunk = request.files['file']
+        chunk_index = int(request.form.get('chunkIndex', 0))
+        total_chunks = int(request.form.get('totalChunks', 1))
+        file_index = int(request.form.get('fileIndex', 0))
+        total_files = int(request.form.get('totalFiles', 1))
+        filename = secure_filename(chunk.filename)
+        
+        # Get or create session
+        session_id = request.form.get('sessionId')
+        if chunk_index == 0 and not session_id:
+            try:
+                # Create new session with first chunk
+                email = request.form.get('email')
+                po_number = request.form.get('po_number')
+                order_details = json.loads(request.form.get('orderDetails', '[]'))
+                total_cost = float(request.form.get('totalCost', 0))
+                
+                logger.info(f"Creating session with PO number: {po_number}")
+                session_id = create_upload_session(email, order_details, total_cost, po_number)
+                logger.info(f"Created new session {session_id} for file {filename}")
+            except Exception as e:
+                logger.error(f"Failed to create session: {str(e)}")
+                return jsonify({'error': 'Failed to create upload session'}), 500
+        elif not session_id:
+            return jsonify({'error': 'No session ID provided'}), 400
+            
+        # Validate session exists and hasn't expired
+        metadata = get_upload_session(session_id)
+        if not metadata:
+            return jsonify({'error': 'Invalid or expired session'}), 400
+            
+        # Save chunk
+        temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp')
+        session_dir = os.path.join(temp_dir, session_id)
+        chunk_path = os.path.join(session_dir, f"{filename}.part{chunk_index}")
+        
+        try:
+            chunk.save(chunk_path)
+            logger.info(f"Saved chunk {chunk_index}/{total_chunks} for file {filename}")
+            
+            # Update progress
+            is_complete = update_session_file_progress(session_id, filename, chunk_index, total_chunks)
+            
+            # If file is complete, combine chunks
+            if is_complete:
+                if not combine_file_chunks(session_id, filename):
+                    return jsonify({'error': 'Failed to combine file chunks'}), 500
+                    
+                logger.info(f"Successfully combined chunks for {filename}")
+                
+                # If this was the last file, process the order
+                metadata = get_upload_session(session_id)
+                all_files_complete = all(
+                    f['is_complete'] 
+                    for f in metadata['files'].values()
+                )
+                
+                if file_index == total_files - 1 and all_files_complete:
+                    try:
+                        # Create order
+                        logger.info(f"Creating order with metadata: {metadata}")
+                        order = Order(
+                            order_number=generate_order_number(),
+                            email=metadata['email'],
+                            total_cost=metadata['totalCost'],
+                            po_number=metadata.get('po_number'),
+                            status='pending'
+                        )
+                        logger.info(f"Created order with PO number: {order.po_number}")
+                        db.session.add(order)
+                        logger.info(f"Created order: {order.order_number}")
+                        
+                        # Process all completed files
+                        processed_files = []
+                        for fname in os.listdir(session_dir):
+                            if fname == 'metadata.json' or '.part' in fname:
+                                continue
+                                
+                            file_path = os.path.join(session_dir, fname)
+                            with open(file_path, 'rb') as f:
+                                file_data = f.read()
+                                
+                            # Upload to storage
+                            if storage.upload_file(BytesIO(file_data), fname):
+                                processed_files.append(fname)
+                                logger.info(f"Uploaded {fname} to storage")
+                            else:
+                                raise Exception(f"Failed to upload {fname} to storage")
+                        
+                        logger.info(f"Successfully processed files: {processed_files}")
+                        logger.info(f"Order details: {metadata['orderDetails']}")
+                        
+                        # Create order items
+                        items_created = 0
+                        for details in metadata['orderDetails']:
+                            filename = secure_filename(details['filename'])
+                            if filename in processed_files:
+                                item = OrderItem(
+                                    order=order,
+                                    file_key=filename,
+                                    width_inches=float(details['width']),
+                                    height_inches=float(details['height']),
+                                    quantity=int(details['quantity']),
+                                    cost=float(details['cost']),
+                                    notes=details.get('notes', '')  # Add notes from details
+                                )
+                                db.session.add(item)
+                                items_created += 1
+                                logger.info(f"Added order item for {filename}")
+                            else:
+                                logger.error(f"File {filename} not found in processed files")
+                                raise Exception(f"File {filename} was not properly processed")
+                        
+                        if items_created == 0:
+                            raise Exception("No order items were created")
+                        
+                        try:
+                            # Commit the transaction
+                            db.session.commit()
+                            logger.info(f"Order {order.order_number} committed successfully with {items_created} items")
+                            
+                            # Send confirmation emails
+                            if not send_order_emails(order):
+                                logger.warning(f"Failed to send confirmation emails for order {order.order_number}")
+                            
+                            # Only clean up after successful commit
+                            cleanup_session(session_id)
+                            
+                            # Return success response with redirect
+                            response = {
+                                'success': True,
+                                'message': 'Order submitted successfully',
+                                'order': order.to_dict(),
+                                'redirect': url_for('success')
+                            }
+                            logger.info(f"Returning success response: {response}")
+                            return jsonify(response)
+                        except Exception as e:
+                            logger.error(f"Error committing order: {str(e)}")
+                            db.session.rollback()
+                            raise Exception(f"Failed to commit order: {str(e)}")
+                            
+                    except Exception as e:
+                        logger.error(f"Error processing order: {str(e)}")
+                        db.session.rollback()
+                        return jsonify({'error': f'Error processing order: {str(e)}'}), 500
+            
+            # Return success for this chunk
+            return jsonify({
+                'success': True,
+                'message': 'Chunk uploaded successfully',
+                'sessionId': session_id
+            })
+            
+        except Exception as e:
+            logger.error(f"Error saving chunk: {str(e)}")
+            return jsonify({'error': f'Error saving chunk: {str(e)}'}), 500
+            
+    except Exception as e:
+        logger.error(f"Error in upload_chunk: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/admin')
 def admin():
@@ -616,6 +770,139 @@ def get_dimensions():
     except Exception as e:
         logger.error(f"Error getting dimensions: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+# Session management functions
+def create_upload_session(email, order_details, total_cost, po_number):
+    """Create a new upload session with metadata"""
+    session_id = str(uuid.uuid4())
+    temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp')
+    session_dir = os.path.join(temp_dir, session_id)
+    
+    try:
+        os.makedirs(session_dir, exist_ok=True)
+        metadata = {
+            'email': email,
+            'orderDetails': order_details,
+            'totalCost': total_cost,
+            'po_number': po_number,
+            'files': {},
+            'created_at': datetime.utcnow().isoformat()
+        }
+        
+        with open(os.path.join(session_dir, 'metadata.json'), 'w') as f:
+            json.dump(metadata, f)
+        
+        logger.info(f"Created upload session {session_id} with metadata: {json.dumps(metadata)}")
+        return session_id
+    except Exception as e:
+        logger.error(f"Error creating upload session: {str(e)}")
+        if os.path.exists(session_dir):
+            shutil.rmtree(session_dir)
+        raise
+
+def get_upload_session(session_id):
+    """Get session metadata and validate it hasn't expired"""
+    temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp')
+    session_dir = os.path.join(temp_dir, session_id)
+    metadata_path = os.path.join(session_dir, 'metadata.json')
+    
+    if not os.path.exists(metadata_path):
+        return None
+        
+    try:
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+            
+        # Check for session timeout (30 minutes)
+        created_at = datetime.fromisoformat(metadata['created_at'])
+        if datetime.utcnow() - created_at > timedelta(minutes=30):
+            cleanup_session(session_id)
+            return None
+            
+        return metadata
+    except Exception as e:
+        logger.error(f"Error reading session metadata: {str(e)}")
+        return None
+
+def update_session_file_progress(session_id, filename, chunk_index, total_chunks):
+    """Update file progress in session metadata"""
+    temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp')
+    session_dir = os.path.join(temp_dir, session_id)
+    metadata_path = os.path.join(session_dir, 'metadata.json')
+    
+    try:
+        with open(metadata_path, 'r') as f:
+            metadata = json.load(f)
+        
+        if filename not in metadata['files']:
+            metadata['files'][filename] = {
+                'chunks_received': [],
+                'total_chunks': total_chunks,
+                'is_complete': False
+            }
+        
+        # Add chunk to received list if not already present
+        if chunk_index not in metadata['files'][filename]['chunks_received']:
+            metadata['files'][filename]['chunks_received'].append(chunk_index)
+        
+        # Check if file is complete
+        is_complete = len(metadata['files'][filename]['chunks_received']) == total_chunks
+        metadata['files'][filename]['is_complete'] = is_complete
+        
+        with open(metadata_path, 'w') as f:
+            json.dump(metadata, f)
+            
+        return is_complete
+    except Exception as e:
+        logger.error(f"Error updating session progress: {str(e)}")
+        return False
+
+def cleanup_session(session_id):
+    """Clean up session directory and files"""
+    temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp')
+    session_dir = os.path.join(temp_dir, session_id)
+    
+    try:
+        if os.path.exists(session_dir):
+            shutil.rmtree(session_dir)
+            logger.info(f"Cleaned up session directory: {session_id}")
+    except Exception as e:
+        logger.error(f"Error cleaning up session: {str(e)}")
+
+def combine_file_chunks(session_id, filename):
+    """Combine chunks into complete file and validate"""
+    temp_dir = os.path.join(app.config['UPLOAD_FOLDER'], 'temp')
+    session_dir = os.path.join(temp_dir, session_id)
+    final_path = os.path.join(session_dir, filename)
+    
+    try:
+        metadata = get_upload_session(session_id)
+        if not metadata or filename not in metadata['files']:
+            raise Exception("Invalid session or file")
+            
+        file_meta = metadata['files'][filename]
+        if not file_meta['is_complete']:
+            raise Exception("File is not complete")
+            
+        # Combine chunks
+        with open(final_path, 'wb') as outfile:
+            for i in range(file_meta['total_chunks']):
+                chunk_path = os.path.join(session_dir, f"{filename}.part{i}")
+                with open(chunk_path, 'rb') as infile:
+                    outfile.write(infile.read())
+                os.remove(chunk_path)
+        
+        # Validate combined file
+        with Image.open(final_path) as img:
+            if img.format != 'PNG' or img.mode not in ('RGB', 'RGBA'):
+                raise Exception("Invalid image format")
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error combining chunks for {filename}: {str(e)}")
+        if os.path.exists(final_path):
+            os.remove(final_path)
+        return False
 
 @app.route('/update-invoice-number', methods=['POST'])
 def update_invoice_number():

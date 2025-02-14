@@ -452,67 +452,191 @@ const PrintUI = {
             const formData = new FormData(this.form);
             const orderDetails = [];
             let totalImages = 0;
-            
+            let totalSize = 0;
+            const files = [];
+            let sessionId = null;
+
             // Collect files and details
             document.querySelectorAll('.size-inputs').forEach((container) => {
                 const id = container.dataset.imageId;
                 const imageState = PrintCalculator.getImageState(id);
                 if (imageState) {
-                    formData.append('file', imageState.file);
+                    totalSize += imageState.file.size;
+                    files.push(imageState.file);
                     const details = {
                         width: imageState.current.width,
                         height: imageState.current.height,
                         quantity: imageState.quantity,
                         cost: imageState.cost,
-                        filename: imageState.file.name,
+                        filename: imageState.file.name.replace('.png', `.${imageState.quantity}.png`),
                         notes: imageState.notes
                     };
                     orderDetails.push(details);
                     totalImages++;
+                    console.log(`Added file to order: ${imageState.file.name}`, details);
                 }
             });
 
-            formData.append('orderDetails', JSON.stringify(orderDetails));
-            formData.append('totalCost', PrintCalculator.getTotalCost());
+            let retryCount = 0;
+            const maxRetries = 3;
+            const chunkSize = 1024 * 1024; // 1MB chunks
+            const origin = window.location.origin;
 
-            LoadingManager.updateProgress(50, 'Uploading files...');
-
-            const response = await fetch('/upload', {
-                method: 'POST',
-                body: formData
+            console.log('Starting upload with:', {
+                totalFiles: files.length,
+                orderDetails,
+                totalCost: PrintCalculator.getTotalCost()
             });
 
-            if (!response.ok) {
-                const result = await response.json();
-                console.error('Upload failed:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    result
-                });
-                throw new Error(result.error || result.details || `Upload failed: ${response.statusText}`);
-            }
+            while (retryCount < maxRetries) {
+                try {
+                    let totalUploaded = 0;
+                    const uploadStartTime = Date.now();
+                    let lastChunkTime = uploadStartTime;
+                    let lastUploadedBytes = 0;
 
-            const result = await response.json();
-            console.log('Upload succeeded:', result);
-            
-            if (result.redirect) {
-                LoadingManager.updateProgress(100, 'Upload complete! Processing...');
-                this.showAlert(
-                    `Order successfully submitted with ${totalImages} image${totalImages !== 1 ? 's' : ''}! Check your email for confirmation.`,
-                    'success'
-                );
-                // Add a small delay before redirecting to ensure the alert is shown
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                window.location.href = result.redirect;
-                return;
+                    // Upload each file in chunks
+                    for (let fileIndex = 0; fileIndex < files.length; fileIndex++) {
+                        const file = files[fileIndex];
+                        const totalChunks = Math.ceil(file.size / chunkSize);
+                        
+                        console.log(`Starting upload of file ${fileIndex + 1}/${files.length}: ${file.name} (${file.size} bytes in ${totalChunks} chunks)`);
+
+                        for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+                            const start = chunkIndex * chunkSize;
+                            const end = Math.min(start + chunkSize, file.size);
+                            const chunk = file.slice(start, end);
+                            
+                            const chunkFormData = new FormData();
+                            const modifiedFilename = file.name.replace('.png', `.${orderDetails[fileIndex].quantity}.png`);
+                            chunkFormData.append('file', chunk, modifiedFilename);
+                            chunkFormData.append('chunkIndex', chunkIndex);
+                            chunkFormData.append('totalChunks', totalChunks);
+                            chunkFormData.append('fileIndex', fileIndex);
+                            chunkFormData.append('totalFiles', files.length);
+                            
+                            // Always send session ID if we have one
+                            if (sessionId) {
+                                chunkFormData.append('sessionId', sessionId);
+                            }
+                            
+                            if (chunkIndex === 0) {
+                                // Send metadata with first chunk
+                                chunkFormData.append('email', formData.get('email'));
+                                chunkFormData.append('po_number', formData.get('po_number'));
+                                chunkFormData.append('orderDetails', JSON.stringify(orderDetails));
+                                chunkFormData.append('totalCost', PrintCalculator.getTotalCost());
+                                console.log('Sending metadata with first chunk');
+                            }
+
+                            let chunkRetries = 0;
+                            const maxChunkRetries = 3;
+                            
+                            while (chunkRetries < maxChunkRetries) {
+                                try {
+                                    const response = await fetch(`${origin}/upload-chunk`, {
+                            method: 'POST',
+                                        body: chunkFormData
+                                    });
+
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    }
+
+                                    const result = await response.json();
+                                    
+                                    if (result.error) {
+                                        throw new Error(result.error);
+                                    }
+
+                                    // Store session ID if provided
+                                    if (result.sessionId) {
+                                        sessionId = result.sessionId;
+                                        console.log(`Using session ID: ${sessionId}`);
+                                    }
+
+                                    // Handle completion - moved before progress update
+                                    if (result.redirect) {
+                                        LoadingManager.updateProgress(100, 'Upload complete! Processing...');
+                                        this.showAlert(
+                                            `Order successfully submitted with ${totalImages} image${totalImages !== 1 ? 's' : ''}! Check your email for confirmation.`,
+                                            'success'
+                                        );
+                                        console.log('Order completed successfully:', result);
+                                        // Add a small delay before redirecting to ensure the alert is shown
+                                        await new Promise(resolve => setTimeout(resolve, 1000));
+                                        window.location.href = result.redirect;
+                                        return;
+                                    }
+                                    
+                                    // Update progress
+                                    totalUploaded += chunk.size;
+                                    const totalProgress = (totalUploaded / totalSize) * 100;
+                                    
+                                    // Calculate upload speed
+                                    const currentTime = Date.now();
+                                    const timeDiff = (currentTime - lastChunkTime) / 1000;
+                                    const bytesDiff = totalUploaded - lastUploadedBytes;
+                                    const uploadSpeed = bytesDiff / timeDiff;
+                                    
+                                    lastChunkTime = currentTime;
+                                    lastUploadedBytes = totalUploaded;
+                                    
+                                    let speedText;
+                                    if (uploadSpeed >= 1024 * 1024) {
+                                        speedText = `${(uploadSpeed / (1024 * 1024)).toFixed(1)} MB/s`;
+                                    } else if (uploadSpeed >= 1024) {
+                                        speedText = `${(uploadSpeed / 1024).toFixed(1)} KB/s`;
+                        } else {
+                                        speedText = `${Math.round(uploadSpeed)} B/s`;
+                                    }
+                                    
+                                    console.log(`Chunk ${chunkIndex + 1}/${totalChunks} of file ${fileIndex + 1}/${files.length} uploaded (${speedText})`);
+                                    
+                                    LoadingManager.updateProgress(
+                                        Math.round(totalProgress),
+                                        `Uploading: ${(totalUploaded / (1024 * 1024)).toFixed(1)}MB / ${(totalSize / (1024 * 1024)).toFixed(1)}MB (${speedText})`
+                                    );
+                                    
+                                    break; // Successful chunk upload
+                                } catch (error) {
+                                    chunkRetries++;
+                                    console.error(`Chunk upload error (attempt ${chunkRetries}):`, error);
+                                    
+                                    if (chunkRetries === maxChunkRetries) {
+                                        throw new Error(`Failed to upload chunk after ${maxChunkRetries} attempts: ${error.message}`);
+                                    }
+                                    
+                                    LoadingManager.updateProgress(
+                                        Math.round((totalUploaded / totalSize) * 100),
+                                        `Upload failed. Retrying in 1 second... (${error.message})`
+                                    );
+                                    
+                                    await new Promise(resolve => setTimeout(resolve, 1000));
+                                }
+                            }
+                        }
+                    }
+                    
+                    break; // Successfully uploaded all files
+                } catch (error) {
+                    retryCount++;
+                    console.error('Upload error:', error);
+                    
+                    if (retryCount === maxRetries) {
+                        this.showAlert(
+                            `Failed to upload files: ${error.message}. Please try again or contact support if the issue persists.`,
+                            'error'
+                        );
+                        break;
+                    }
+
+                    LoadingManager.updateProgress(0, 'Upload failed. Retrying in 2 seconds...');
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
             }
-            
         } catch (error) {
-            console.error('Fatal error:', {
-                message: error.message,
-                error: error,
-                stack: error.stack
-            });
+            console.error('Fatal error:', error);
             this.showAlert(
                 `An unexpected error occurred: ${error.message}. Please try again or contact support if the issue persists.`,
                 'error'
