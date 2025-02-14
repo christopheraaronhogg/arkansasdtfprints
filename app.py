@@ -206,7 +206,7 @@ def upload_file():
 
         try:
             # Get existing order
-            order = Order.query.get(order_id)
+            order = Order.query.get(int(order_id))  # Ensure order_id is converted to int
             if not order:
                 return jsonify({'error': 'Order not found', 'details': 'Invalid order ID'}), 404
 

@@ -525,12 +525,8 @@ const PrintUI = {
             }
 
             // Create a single order first
-            const createOrderResponse = await fetch('/create-order', {
-                method: 'POST',
-                body: formData,
-            });
-            const orderData = await createOrderResponse.json();
-            const orderId = orderData.orderId; // Assuming the server returns an order ID
+            const orderData = await createOrder(formData);
+            const orderId = orderData.orderId;
 
             // Upload files one by one using the same order ID
             const uploadedFiles = [];
@@ -548,7 +544,7 @@ const PrintUI = {
                 // Add order ID
                 singleFormData.append('orderId', orderId);
 
-                // Add order details for all files
+                // Add order details
                 singleFormData.append('orderDetails', JSON.stringify(orderDetails));
                 singleFormData.append('totalCost', PrintCalculator.getTotalCost());
 
@@ -560,10 +556,7 @@ const PrintUI = {
                     const response = await fetch('/upload', {
                         method: 'POST',
                         body: singleFormData,
-                        signal: AbortSignal.timeout(30000), // 30 second timeout per file
-                        headers: {
-                            'Connection': 'keep-alive'
-                        }
+                        signal: AbortSignal.timeout(30000) // 30 second timeout per file
                     });
 
                     const result = await response.json();
@@ -702,6 +695,18 @@ const PrintUI = {
         this.updateTotalDisplay();
     }
 };
+
+async function createOrder(formData) {
+    const response = await fetch('/create-order', {
+        method: 'POST',
+        body: formData
+    });
+    const result = await response.json();
+    if (!response.ok || !result.success) {
+        throw new Error(result.details || result.error || 'Failed to create order');
+    }
+    return result;
+}
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => PrintUI.init());
