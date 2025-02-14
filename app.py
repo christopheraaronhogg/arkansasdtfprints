@@ -294,15 +294,27 @@ def get_order_image(order_id, filename):
 @app.route('/admin/order/<int:order_id>/download/<path:filename>')
 def download_order_image(order_id, filename):
     order = Order.query.get_or_404(order_id)
+    # Find the order item for this file to get its quantity
+    order_item = OrderItem.query.filter_by(order_id=order_id, file_key=filename).first()
+    if not order_item:
+        logger.error(f"Order item not found for file: {filename}")
+        return "Image not found", 404
+
     file_data = storage.get_file(filename)
     if file_data is None:
         logger.error(f"Image file not found in storage: {filename}")
         return "Image not found", 404
 
+    # Split filename and extension
+    name, ext = os.path.splitext(filename)
+
+    # Add quantity to filename
+    qty_suffix = f"(qty-{order_item.quantity})"
+    download_filename = f"{name}{qty_suffix}{ext}"
+
     # Prepend invoice number if it exists
-    download_filename = filename
     if order.invoice_number and order.invoice_number.strip():
-        download_filename = f"{order.invoice_number}_{filename}"
+        download_filename = f"{order.invoice_number}_{download_filename}"
 
     return Response(
         file_data,
@@ -321,10 +333,17 @@ def download_all_images(order_id):
             try:
                 file_data = storage.get_file(item.file_key)
                 if file_data:
+                    # Split filename and extension
+                    name, ext = os.path.splitext(item.file_key)
+
+                    # Add quantity to filename
+                    qty_suffix = f"(qty-{item.quantity})"
+                    zip_filename = f"{name}{qty_suffix}{ext}"
+
                     # Add invoice number to filename if it exists
-                    zip_filename = item.file_key
                     if order.invoice_number and order.invoice_number.strip():
-                        zip_filename = f"{order.invoice_number}_{item.file_key}"
+                        zip_filename = f"{order.invoice_number}_{zip_filename}"
+
                     # Add file to zip with modified filename
                     zf.writestr(zip_filename, file_data)
             except Exception as e:
