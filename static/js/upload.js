@@ -488,7 +488,6 @@ const PrintUI = {
 
     async handleSubmit() {
         try {
-            LoadingManager.show('Preparing your files...', 0);
             const formData = new FormData(this.form);
             const orderDetails = [];
             const files = [];
@@ -520,86 +519,108 @@ const PrintUI = {
                     `Total upload size (${(totalSize / (1024 * 1024)).toFixed(1)}MB) exceeds the maximum allowed size of 32MB`,
                     'error'
                 );
-                LoadingManager.hide();
                 return;
             }
 
-            // Upload files one by one
-            const uploadedFiles = [];
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const singleFormData = new FormData();
+            LoadingManager.show('Creating your order...', 0);
 
-                // Add the current file
-                singleFormData.append('file', file);
+            // First create the order
+            const orderFormData = new FormData();
+            orderFormData.append('email', formData.get('email'));
+            orderFormData.append('po_number', formData.get('po_number'));
+            orderFormData.append('orderDetails', JSON.stringify(orderDetails));
+            orderFormData.append('totalCost', PrintCalculator.getTotalCost());
 
-                // Add email and PO number
-                singleFormData.append('email', formData.get('email'));
-                singleFormData.append('po_number', formData.get('po_number'));
+            try {
+                const response = await fetch('/create-order', {
+                    method: 'POST',
+                    body: orderFormData
+                });
 
-                // Add order details for this file only
-                singleFormData.append('orderDetails', JSON.stringify([orderDetails[i]]));
-                singleFormData.append('totalCost', orderDetails[i].cost);
-
-                // Update progress
-                const progress = ((i + 1) / files.length) * 100;
-                LoadingManager.show(`Uploading file ${i + 1} of ${files.length}: ${file.name}`, progress);
-
-                try {
-                    const response = await fetch('/upload', {
-                        method: 'POST',
-                        body: singleFormData,
-                        signal: AbortSignal.timeout(30000), // 30 second timeout per file
-                        headers: {
-                            'Connection': 'keep-alive'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        const result = await response.json();
-                        throw new Error(result.details || 'Upload failed');
-                    }
-
+                if (!response.ok) {
                     const result = await response.json();
-                    if (result.success) {
-                        uploadedFiles.push(file.name);
-                    } else {
-                        throw new Error(result.error || 'Upload failed');
-                    }
-                } catch (error) {
-                    if (error.name === 'AbortError') {
-                        this.showAlert(
-                            `Upload timed out for file ${file.name}. Please try again.`,
-                            'error'
-                        );
-                    } else {
-                        this.showAlert(
-                            `Failed to upload ${file.name}: ${error.message}`,
-                            'error'
-                        );
-                    }
-                    LoadingManager.hide();
-                    return;
+                    throw new Error(result.details || 'Failed to create order');
                 }
+
+                const orderResult = await response.json();
+                const orderId = orderResult.order_id;
+
+                // Upload files one by one
+                const uploadedFiles = [];
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const singleFormData = new FormData();
+
+                    // Add the current file
+                    singleFormData.append('file', file);
+                    singleFormData.append('order_id', orderId);
+                    singleFormData.append('fileDetails', JSON.stringify(orderDetails[i]));
+
+                    // Mark if this is the last file
+                    if (i === files.length - 1) {
+                        singleFormData.append('is_last_file', 'true');
+                    }
+
+                    // Update progress
+                    const progress = ((i + 1) / files.length) * 100;
+                    LoadingManager.show(`Uploading file ${i + 1} of ${files.length}: ${file.name}`, progress);
+
+                    try {
+                        const response = await fetch('/upload', {
+                            method: 'POST',
+                            body: singleFormData,
+                            signal: AbortSignal.timeout(30000), // 30 second timeout per file
+                            headers: {
+                                'Connection': 'keep-alive'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            const result = await response.json();
+                            throw new Error(result.details || 'Upload failed');
+                        }
+
+                        const result = await response.json();
+                        if (result.success) {
+                            uploadedFiles.push(file.name);
+                        } else {
+                            throw new Error(result.error || 'Upload failed');
+                        }
+                    } catch (error) {
+                        if (error.name === 'AbortError') {
+                            this.showAlert(
+                                `Upload timed out for file ${file.name}. Please try again.`,
+                                'error'
+                            );
+                        } else {
+                            this.showAlert(
+                                `Failed to upload ${file.name}: ${error.message}`,
+                                'error'
+                            );
+                        }
+                        LoadingManager.hide();
+                        return;
+                    }
+                }
+
+                // All files uploaded successfully
+                LoadingManager.updateProgress(100, 'Upload complete!');
+                this.showAlert(
+                    `Successfully uploaded ${uploadedFiles.length} files! Check your email for confirmation.`,
+                    'success'
+                );
+
+                // Add a small delay before redirecting
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                window.location.href = '/success';
+
+            } catch (error) {
+                console.error('Fatal error:', error);
+                this.showAlert(
+                    `An unexpected error occurred: ${error.message}. Please try again or contact support if the issue persists.`,
+                    'error'
+                );
             }
-
-            // All files uploaded successfully
-            LoadingManager.updateProgress(100, 'Upload complete!');
-            this.showAlert(
-                `Successfully uploaded ${uploadedFiles.length} files! Check your email for confirmation.`,
-                'success'
-            );
-
-            // Add a small delay before redirecting
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            window.location.href = '/success';
-
-        } catch (error) {
-            console.error('Fatal error:', error);
-            this.showAlert(
-                `An unexpected error occurred: ${error.message}. Please try again or contact support if the issue persists.`,
-                'error'
-            );
         } finally {
             LoadingManager.hide();
         }

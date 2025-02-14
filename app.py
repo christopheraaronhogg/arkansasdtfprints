@@ -133,6 +133,45 @@ def index():
 def success():
     return render_template('success.html')
 
+@app.route('/create-order', methods=['POST'])
+def create_order():
+    """Create an order and return its ID for subsequent file uploads"""
+    try:
+        email = request.form.get('email')
+        po_number = request.form.get('po_number')
+        try:
+            order_details = json.loads(request.form.get('orderDetails', '[]'))
+            total_cost = float(request.form.get('totalCost', 0))
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Invalid order details format: {str(e)}")
+            return jsonify({'error': 'Invalid order details'}), 400
+
+        if not email:
+            return jsonify({'error': 'Missing email'}), 400
+
+        # Create order
+        order = Order(
+            order_number=generate_order_number(),
+            email=email,
+            po_number=po_number,
+            total_cost=total_cost,
+            status='pending'
+        )
+        db.session.add(order)
+        db.session.commit()
+        logger.info(f"Created new order: {order.order_number} with ID: {order.id}")
+
+        return jsonify({
+            'success': True,
+            'order_id': order.id,
+            'order_number': order.order_number
+        })
+
+    except Exception as e:
+        logger.error(f"Error creating order: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': 'Failed to create order'}), 500
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     try:
@@ -140,109 +179,80 @@ def upload_file():
 
         if 'file' not in request.files:
             logger.error("No file provided in request")
-            return jsonify({'error': 'No file provided', 'details': 'Please select at least one file to upload'}), 400
+            return jsonify({'error': 'No file provided'}), 400
 
-        files = request.files.getlist('file')
-        email = request.form.get('email')
-        po_number = request.form.get('po_number')
+        order_id = request.form.get('order_id')
+        if not order_id:
+            return jsonify({'error': 'Missing order ID'}), 400
 
+        # Get existing order
+        order = Order.query.get(order_id)
+        if not order:
+            return jsonify({'error': 'Invalid order ID'}), 404
+
+        file = request.files['file']
         try:
-            order_details = json.loads(request.form.get('orderDetails', '[]'))
-            total_cost = float(request.form.get('totalCost', 0))
-        except (json.JSONDecodeError, ValueError) as e:
-            logger.error(f"Invalid order details format: {str(e)}")
-            return jsonify({'error': 'Invalid order details', 'details': 'Order details are not properly formatted'}), 400
+            file_details = json.loads(request.form.get('fileDetails', '{}'))
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid file details format: {str(e)}")
+            return jsonify({'error': 'Invalid file details'}), 400
 
-        # Check individual file sizes
-        for file in files:
-            file_size = 0
-            file.seek(0, 2)  # Seek to end of file
-            file_size = file.tell()  # Get current position (file size)
-            file.seek(0)  # Reset to beginning
+        # Check file size
+        file.seek(0, 2)
+        file_size = file.tell()
+        file.seek(0)
 
-            logger.info(f"Processing file: {file.filename}, Size: {file_size / (1024 * 1024):.1f}MB")
+        if file_size > 32 * 1024 * 1024:  # 32MB limit
+            return jsonify({
+                'error': 'File too large',
+                'details': f'File {file.filename} is too large. Maximum allowed size is 32MB'
+            }), 413
 
-            if file_size > 32 * 1024 * 1024:  # 32MB limit
-                logger.error(f"File too large: {file.filename} ({file_size / (1024 * 1024):.1f}MB)")
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            logger.info(f"Processing file: {filename}")
+
+            try:
+                if not storage.upload_file(file, filename):
+                    error_msg = f"Failed to upload file {filename} to storage"
+                    logger.error(error_msg)
+                    raise Exception(error_msg)
+
+                logger.info(f"Successfully uploaded {filename} to storage")
+
+                # Create order item
+                order_item = OrderItem(
+                    order_id=order.id,
+                    file_key=filename,
+                    width_inches=file_details.get('width', 0),
+                    height_inches=file_details.get('height', 0),
+                    quantity=file_details.get('quantity', 1),
+                    cost=file_details.get('cost', 0),
+                    notes=file_details.get('notes', '')
+                )
+                db.session.add(order_item)
+                db.session.commit()
+                logger.info(f"Added order item for file: {filename}")
+
+                # Only send emails after the last file
+                if request.form.get('is_last_file') == 'true':
+                    if not send_order_emails(order):
+                        logger.warning(f"Failed to send emails for order {order.order_number}")
+
                 return jsonify({
-                    'error': 'File too large',
-                    'details': f'File {file.filename} is {file_size / (1024 * 1024):.1f}MB. Maximum allowed size is 32MB'
-                }), 413
+                    'success': True,
+                    'message': 'File uploaded successfully',
+                    'order': order.to_dict()
+                }), 200
 
-        if not email:
-            return jsonify({'error': 'Missing email', 'details': 'Email address is required'}), 400
-
-        if not files:
-            return jsonify({'error': 'No files', 'details': 'No files were selected'}), 400
-
-        try:
-            # Create order
-            order = Order(
-                order_number=generate_order_number(),
-                email=email,
-                po_number=po_number,
-                total_cost=total_cost,
-                status='pending'
-            )
-            db.session.add(order)
-            db.session.flush()  # This assigns the ID to the order
-            logger.info(f"Created new order: {order.order_number} with ID: {order.id}")
-
-            # Process each file
-            for file, details in zip(files, order_details):
-                if file and allowed_file(file.filename):
-                    filename = secure_filename(file.filename)
-                    logger.info(f"Processing file: {filename}")
-
-                    # Upload to storage
-                    try:
-                        if not storage.upload_file(file, filename):
-                            error_msg = f"Failed to upload file {filename} to storage"
-                            logger.error(error_msg)
-                            raise Exception(error_msg)
-
-                        logger.info(f"Successfully uploaded {filename} to storage")
-
-                    except Exception as e:
-                        logger.error(f"Storage error for {filename}: {str(e)}")
-                        raise Exception(f"Storage error: {str(e)}")
-
-                    # Create order item
-                    order_item = OrderItem(
-                        order_id=order.id,
-                        file_key=filename,
-                        width_inches=details['width'],
-                        height_inches=details['height'],
-                        quantity=details['quantity'],
-                        cost=details['cost'],
-                        notes=details.get('notes', '')
-                    )
-                    db.session.add(order_item)
-                    logger.info(f"Added order item for file: {filename}")
-
-            db.session.commit()
-            logger.info(f"Order {order.order_number} committed to database successfully")
-
-            # Send emails
-            if not send_order_emails(order):
-                logger.warning(f"Failed to send emails for order {order.order_number}")
-                # Continue anyway as this is not critical
-
-            return jsonify({
-                'success': True,
-                'message': 'Order submitted successfully',
-                'order': order.to_dict(),
-                'redirect': url_for('success')
-            }), 200
-
-        except Exception as e:
-            db.session.rollback()
-            error_msg = str(e)
-            logger.error(f"Error processing order: {error_msg}")
-            return jsonify({
-                'error': 'Operation failed',
-                'details': f'Failed to process your order: {error_msg}'
-            }), 500
+            except Exception as e:
+                db.session.rollback()
+                error_msg = str(e)
+                logger.error(f"Error processing file: {error_msg}")
+                return jsonify({
+                    'error': 'Operation failed',
+                    'details': f'Failed to process your file: {error_msg}'
+                }), 500
 
     except Exception as e:
         logger.error(f"Unexpected error in upload_file: {str(e)}")
