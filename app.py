@@ -209,21 +209,31 @@ def upload_file():
             }), 413
 
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            logger.info(f"Processing file: {filename}")
+            # Get number of existing items for this order to create sequence number
+            sequence_number = len(order.items) + 1
+
+            # Get the original filename and extension
+            original_filename = secure_filename(file.filename)
+            name, ext = os.path.splitext(original_filename)
+
+            # Create new filename with order number, sequence, and quantity
+            quantity = file_details.get('quantity', 1)
+            new_filename = f"{order.order_number}-{sequence_number}_{name}(qty-{quantity}){ext}"
+
+            logger.info(f"Processing file: {new_filename}")
 
             try:
-                if not storage.upload_file(file, filename):
-                    error_msg = f"Failed to upload file {filename} to storage"
+                if not storage.upload_file(file, new_filename):
+                    error_msg = f"Failed to upload file {new_filename} to storage"
                     logger.error(error_msg)
                     raise Exception(error_msg)
 
-                logger.info(f"Successfully uploaded {filename} to storage")
+                logger.info(f"Successfully uploaded {new_filename} to storage")
 
-                # Create order item
+                # Create order item with new filename
                 order_item = OrderItem(
                     order_id=order.id,
-                    file_key=filename,
+                    file_key=new_filename,
                     width_inches=file_details.get('width', 0),
                     height_inches=file_details.get('height', 0),
                     quantity=file_details.get('quantity', 1),
@@ -232,7 +242,7 @@ def upload_file():
                 )
                 db.session.add(order_item)
                 db.session.commit()
-                logger.info(f"Added order item for file: {filename}")
+                logger.info(f"Added order item for file: {new_filename}")
 
                 # Only send emails after the last file
                 if request.form.get('is_last_file') == 'true':
@@ -305,16 +315,13 @@ def download_order_image(order_id, filename):
         logger.error(f"Image file not found in storage: {filename}")
         return "Image not found", 404
 
-    # Split filename and extension
-    name, ext = os.path.splitext(filename)
-
-    # Add quantity to filename
-    qty_suffix = f"(qty-{order_item.quantity})"
-    download_filename = f"{name}{qty_suffix}{ext}"
+    # The filename already includes the quantity, so we can use it directly
+    download_filename = filename
 
     # Prepend invoice number if it exists
     if order.invoice_number and order.invoice_number.strip():
-        download_filename = f"{order.invoice_number}_{download_filename}"
+        name, ext = os.path.splitext(download_filename)
+        download_filename = f"{order.invoice_number}_{name}{ext}"
 
     return Response(
         file_data,
@@ -333,18 +340,15 @@ def download_all_images(order_id):
             try:
                 file_data = storage.get_file(item.file_key)
                 if file_data:
-                    # Split filename and extension
-                    name, ext = os.path.splitext(item.file_key)
-
-                    # Add quantity to filename
-                    qty_suffix = f"(qty-{item.quantity})"
-                    zip_filename = f"{name}{qty_suffix}{ext}"
+                    # Use the file_key directly as it already contains the sequence number and quantity
+                    zip_filename = item.file_key
 
                     # Add invoice number to filename if it exists
                     if order.invoice_number and order.invoice_number.strip():
-                        zip_filename = f"{order.invoice_number}_{zip_filename}"
+                        name, ext = os.path.splitext(zip_filename)
+                        zip_filename = f"{order.invoice_number}_{name}{ext}"
 
-                    # Add file to zip with modified filename
+                    # Add file to zip
                     zf.writestr(zip_filename, file_data)
             except Exception as e:
                 logger.error(f"Error adding {item.file_key} to zip: {str(e)}")
