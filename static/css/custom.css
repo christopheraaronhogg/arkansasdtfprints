@@ -1439,7 +1439,7 @@ form .submit-btn::after {
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem;
+    padding: 0rem;
     background: var(--surface-color);
 }
 
@@ -1748,6 +1748,7 @@ form .submit-btn::after {
     margin: 0;
     background: none;
     border-radius: 0;
+    min-width:210px;
 }
 
 /* Status Select Styling */

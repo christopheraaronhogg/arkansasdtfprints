@@ -1,0 +1,73 @@
+i think we need to generate small thumbnail versions of every image for the admin page previews so it's not a huuuuge download every time you want to load the admin page.
+
+could we have like a chron job on replit that does that every hour, and if a -min version of a file exists, use that as the thumbnail, if not use the big one?
+
+startLine: 508
+endLine: 533
+
+Update the route to:
+@app.route('/admin/order/<int:order_id>/thumbnail/<path:filename>')
+def get_order_thumbnail(order_id, filename):
+    # Check for existing thumbnail first
+    thumbnail_key = get_thumbnail_key(filename)
+    if storage.file_exists(thumbnail_key):
+        file_data = storage.get_file(thumbnail_key)
+        return Response(
+            file_data,
+            mimetype='image/jpeg',
+            headers={'Content-Disposition': f'inline; filename=thumb_{filename}'}
+        )
+    
+    # Fallback to generating thumbnail
+    file_data = storage.get_file(filename)
+    if file_data is None:
+        return "Image not found", 404
+        
+    image = Image.open(io.BytesIO(file_data))
+    image.thumbnail((300, 300), Image.Resampling.LANCZOS)
+    
+    thumb_io = io.BytesIO()
+    image.save(thumb_io, 'JPEG', quality=85)
+    thumb_io.seek(0)
+    
+    # Save thumbnail for future requests
+    storage.upload_file(thumb_io, thumbnail_key, content_type='image/jpeg')
+    
+    return Response(
+        thumb_io.getvalue(),
+        mimetype='image/jpeg',
+        headers={'Content-Disposition': f'inline; filename=thumb_{filename}'}
+    )
+
+
+Add a scheduled task using apscheduler:
+from apscheduler.schedulers.background import BackgroundScheduler
+
+def generate_thumbnails_task():
+    with app.app_context():
+        logger.info("Starting thumbnail generation task")
+        # Get orders from last 7 days
+        recent_orders = Order.query.filter(
+            Order.created_at >= datetime.now() - timedelta(days=7)
+        ).all()
+        
+        for order in recent_orders:
+            for item in order.items:
+                thumbnail_key = get_thumbnail_key(item.file_key)
+                if not storage.file_exists(thumbnail_key):
+                    try:
+                        file_data = storage.get_file(item.file_key)
+                        if file_data:
+                            thumb_data = generate_thumbnail(file_data)
+                            storage.upload_file(thumb_data, thumbnail_key, content_type='image/jpeg')
+                    except Exception as e:
+                        logger.error(f"Error generating thumbnail for {item.file_key}: {str(e)}")
+
+# Initialize scheduler
+scheduler = BackgroundScheduler()
+scheduler.add_job(generate_thumbnails_task, 'interval', hours=1)
+scheduler.start()
+
+
+Add this to your requirements.txt:
+    
