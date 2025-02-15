@@ -179,7 +179,7 @@
 </div>
 
 <style>
-::root {
+:root {
     --primary-color: #333333;
     --primary-dark: #1a1a1a;
     --primary-light: #666666;
@@ -288,6 +288,8 @@ body {
     background-repeat: no-repeat;
     background-position: right 0.75rem center;
     background-size: 16px 12px;
+    min-width: unset; /* Remove min-width constraint */
+    max-width: unset; /* Remove max-width constraint */
 }
 
 /* Status-specific select styling */
