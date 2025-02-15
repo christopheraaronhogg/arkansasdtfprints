@@ -218,7 +218,7 @@ def upload_file():
 
             # Create new filename with order number, sequence, and quantity
             quantity = file_details.get('quantity', 1)
-            new_filename = f"{order.order_number}-{sequence_number}_{name}(qty-{quantity}){ext}"
+            new_filename = f"{order.order_number}-{sequence_number}_{name}_qty-{quantity}{ext}"
 
             logger.info(f"Processing file: {new_filename}")
 
