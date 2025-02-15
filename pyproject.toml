@@ -21,4 +21,5 @@ dependencies = [
     "flask-login>=0.6.3",
     "flask-wtf>=1.2.2",
     "twilio>=9.4.4",
+    "apscheduler>=3.11.0",
 ]

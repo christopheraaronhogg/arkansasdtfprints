@@ -20,6 +20,7 @@ from PIL import Image
 import io
 import uuid
 import shutil
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # Set longer timeout for the server
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -41,6 +42,40 @@ except Exception as e:
     logger.error(f"Failed to initialize ObjectStorage: {str(e)}")
     raise
 
+# Add after storage initialization
+scheduler = BackgroundScheduler()
+
+def generate_thumbnails_task():
+    """Background task to pre-generate thumbnails for recent orders"""
+    with app.app_context():
+        try:
+            # Get orders from last 7 days
+            recent_orders = Order.query.filter(
+                Order.created_at >= datetime.now() - timedelta(days=7)
+            ).all()
+
+            logger.info(f"Starting thumbnail generation for {len(recent_orders)} recent orders")
+
+            for order in recent_orders:
+                for item in order.items:
+                    thumbnail_key = get_thumbnail_key(item.file_key)
+                    if not storage.file_exists(thumbnail_key):
+                        try:
+                            file_data = storage.get_file(item.file_key)
+                            if file_data:
+                                thumb_data = generate_thumbnail(file_data)
+                                if thumb_data:
+                                    storage.upload_file(
+                                        BytesIO(thumb_data),
+                                        thumbnail_key,
+                                        content_type='image/jpeg'
+                                    )
+                                    logger.info(f"Generated thumbnail for {item.file_key}")
+                        except Exception as e:
+                            logger.error(f"Error generating thumbnail for {item.file_key}: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error in thumbnail generation task: {str(e)}")
+
 app = Flask(__name__)
 app.config.from_object('config.Config')
 
@@ -58,7 +93,7 @@ db.init_app(app)
 mail.init_app(app)
 
 from models import Order, OrderItem
-from utils import allowed_file, generate_order_number, calculate_cost, get_image_dimensions
+from utils import allowed_file, generate_order_number, calculate_cost, get_image_dimensions, generate_thumbnail, get_thumbnail_key
 
 with app.app_context():
     db.create_all()
@@ -509,28 +544,50 @@ def export_orders():
 
 @app.route('/admin/order/<int:order_id>/thumbnail/<path:filename>')
 def get_order_thumbnail(order_id, filename):
-    file_data = storage.get_file(filename)
-    if file_data is None:
-        logger.error(f"Image file not found in storage: {filename}")
-        return "Image not found", 404
+    """Get thumbnail for order image, using pre-generated thumbnail if available"""
+    try:
+        thumbnail_key = get_thumbnail_key(filename)
 
-    # Create thumbnail
-    image = Image.open(io.BytesIO(file_data))
+        # Try to get pre-generated thumbnail
+        if storage.file_exists(thumbnail_key):
+            thumb_data = storage.get_file(thumbnail_key)
+            if thumb_data:
+                return Response(
+                    thumb_data,
+                    mimetype='image/jpeg',
+                    headers={'Content-Disposition': f'inline; filename=thumb_{filename}'}
+                )
 
-    # Calculate thumbnail size while maintaining aspect ratio
-    max_size = (100, 100)
-    image.thumbnail(max_size, Image.Resampling.LANCZOS)
+        # If no thumbnail exists, generate one on the fly
+        file_data = storage.get_file(filename)
+        if file_data is None:
+            logger.error(f"Image file not found in storage: {filename}")
+            return "Image not found", 404
 
-    # Save thumbnail to bytes
-    thumb_io = io.BytesIO()
-    image.save(thumb_io, 'PNG', quality=85)
-    thumb_io.seek(0)
+        thumb_data = generate_thumbnail(file_data)
+        if thumb_data:
+            # Save the generated thumbnail for future use
+            try:
+                storage.upload_file(
+                    BytesIO(thumb_data),
+                    thumbnail_key,
+                    content_type='image/jpeg'
+                )
+                logger.info(f"Generated and saved thumbnail for {filename}")
+            except Exception as e:
+                logger.warning(f"Could not save thumbnail for {filename}: {str(e)}")
 
-    return Response(
-        thumb_io.getvalue(),
-        mimetype='image/png',
-        headers={'Content-Disposition': f'inline; filename=thumb_{filename}'}
-    )
+            return Response(
+                thumb_data,
+                mimetype='image/jpeg',
+                headers={'Content-Disposition': f'inline; filename=thumb_{filename}'}
+            )
+
+        return "Error generating thumbnail", 500
+
+    except Exception as e:
+        logger.error(f"Error in get_order_thumbnail: {str(e)}")
+        return str(e), 500
 
 @app.route('/get-dimensions', methods=['POST'])
 def get_dimensions():
@@ -598,3 +655,7 @@ def bulk_invoice_update():
         logger.error(f"Error in bulk invoice update: {str(e)}")
         db.session.rollback()
         return jsonify({'error': 'Failed to update orders'}), 500
+
+# Start scheduler after app initialization
+scheduler.add_job(generate_thumbnails_task, 'interval', hours=1)
+scheduler.start()
