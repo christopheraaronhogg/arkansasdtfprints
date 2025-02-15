@@ -64,31 +64,32 @@
         <div class="order-item" 
              data-status="{{ order.status }}"
              data-date="{{ order.created_at.strftime('%Y-%m-%d') }}">
-            <!-- Selection Checkbox -->
-            <div class="order-select">
-                <input type="checkbox" class="form-check-input order-checkbox" 
-                       data-order-id="{{ order.id }}">
-            </div>
-
-            <!-- Order Info -->
-            <div class="order-details">
-                <h5 class="order-number mb-1">{{ order.order_number }}</h5>
-                <div class="order-meta text-muted">
-                    {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }} <br>
-                    {{ order.email }}
-                    <br>
-                    <button class="invoice-button" onclick="showSingleInvoiceModal({{ order.id }}, '{{ order.invoice_number or '' }}')">
-                        <i class="fas fa-file-invoice me-1"></i>
-                        {% if order.invoice_number %}
-                        Invoice: {{ order.invoice_number }}
-                        {% else %}
-                        Add Invoice Number
-                        {% endif %}
-                    </button>
+            
+            <!-- Left Column: Checkbox & Order Info -->
+            <div class="info-container">
+                <div class="order-select">
+                    <input type="checkbox" class="form-check-input order-checkbox" 
+                           data-order-id="{{ order.id }}">
+                </div>
+                <div class="order-details">
+                    <h5 class="order-number mb-1">{{ order.order_number }}</h5>
+                    <div class="order-meta text-muted">
+                        {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }} <br>
+                        {{ order.email }}
+                        <br>
+                        <button class="invoice-button" onclick="showSingleInvoiceModal({{ order.id }}, '{{ order.invoice_number or '' }}')">
+                            <i class="fas fa-file-invoice me-1"></i>
+                            {% if order.invoice_number %}
+                            Invoice: {{ order.invoice_number }}
+                            {% else %}
+                            Add Invoice Number
+                            {% endif %}
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            <!-- Image Previews -->
+            <!-- Middle Column: Images -->
             <div class="order-images">
                 {% for item in order.items %}
                 <div class="img-container">
@@ -101,19 +102,15 @@
                 {% endfor %}
             </div>
 
-            <!-- Status and Actions -->
+            <!-- Right Column: Status & Actions -->
             <div class="order-actions">
-                <!-- Status Badge -->
-                <div class="status-select-wrapper">
-                    <select class="form-select status-select" 
-                     data-order-id="{{ order.id }}"
-                            value="{{ order.status }}">
-                        <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
-                        <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
-                        <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
-                    </select>
-                    <div class="status-indicator"></div>
-                </div>
+                <select class="form-select status-select" 
+                        data-order-id="{{ order.id }}"
+                        value="{{ order.status }}">
+                    <option value="pending" {% if order.status == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="processing" {% if order.status == 'processing' %}selected{% endif %}>Processing</option>
+                    <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
+                </select>
                 <div class="order-cost">${{ "%.2f"|format(order.total_cost) }}</div>
                 <a href="{{ url_for('view_order', order_id=order.id) }}" class="details-btn">
                     <i class="fas fa-eye me-1" style="color: white !important;"></i>Details
@@ -271,16 +268,27 @@
 
 .img-count-badge {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    background: var(--primary-color);
+    top: 6px;
+    left: 6px;
+    background: rgba(0, 0, 0, 0.75);
     color: white;
-    padding: 2px 6px;
+    padding: 4px 8px;
     border-radius: var(--radius-sm);
     font-size: 0.75rem;
     font-weight: 600;
     z-index: 2;
-    box-shadow: var(--shadow-sm);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .img-count-badge {
+        font-size: 0.7rem;
+        padding: 3px 6px;
+    }
 }
 
 /* Filter bar and bulk actions styling */
@@ -416,15 +424,23 @@
     }
 
     .order-images {
-        justify-content: flex-start;
-        padding: 0;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
         overflow-x: auto;
+        padding-bottom: 0.5rem;
+        -webkit-overflow-scrolling: touch;
     }
 
     .order-actions {
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 0.5rem;
+        margin-left: 0;
+        width: 100%;
+        flex-direction: column;
+        gap: 0.75rem;
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+        margin-top: 0.5rem;
+        text-align: center;
     }
 
     .status-badge,
@@ -433,9 +449,10 @@
     }
 
     .img-container {
-        min-width: 60px;
+        flex: 0 0 60px;
         width: 60px;
         height: 60px;
+        padding-bottom: 0;
     }
 }
 
@@ -487,13 +504,52 @@ body {
 
 
 .order-actions {
-    margin-left: auto;   
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-shrink: 0;
-    overflow: visible;
-    width: auto !important;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 200px;
+    justify-self: end;  /* This ensures right alignment in grid */
+}
+
+.status-select,
+.order-cost,
+.details-btn {
+    width: 100%;
+}
+
+.order-cost {
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--success-color);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 992px) {
+    .order-item {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .order-actions {
+        width: 100%;
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+        margin-top: 0.5rem;
+    }
+    
+    .status-select,
+    .order-cost,
+    .details-btn {
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .order-cost {
+        text-align: center;  /* Center text on narrow screens */
+    }
 }
 
 .status-select-wrapper {
@@ -513,14 +569,6 @@ body {
 
 .status-indicator.show {
     display: block;
-}
-
-.order-cost {
-    font-weight: 600;
-    font-size: 1.1rem;
-    color: var(--success-color);
-    margin-left: 0;
-    margin-right: 0.5rem;
 }
 
 .badge {
@@ -784,189 +832,103 @@ body {
 
 /* Order item layout */
 .order-item {
-    position: relative;
-    z-index: 1; 
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    padding: 1.25rem;
+    display: grid;
+    grid-template-columns: 280px 1fr 200px;
+    gap: 1.5rem;
     background: var(--surface-color);
-    border: 1px solid var(--border-color);
+    padding: 1.5rem;
     border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    overflow: visible;
-    transition: box-shadow 0.2s ease; 
-}
-
-.order-item:hover {
-    box-shadow: var(--shadow-md);
-}
-
-.order-item.dropdown-active {
-    z-index: 9999; 
-}
-
-.order-select {
-    display: flex;
-    align-items: center;
-    padding-right: 1rem;
-}
-
-.form-check-input {
-    width: 1.2rem;
-    height: 1.2rem;
-    cursor: pointer;
-    border-color: var(--border-color);
-}
-
-.form-check-input:checked {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-}
-
-/* Adjust order item layout for proper alignment */
-.order-item {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    padding: 1.25rem;
-    background: var(--surface-color);
     border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    transition: all 0.2s ease;
-    position: relative; 
-    overflow: visible;
-    z-index: 1;
+    align-items: start;
+    width: 100%;
 }
 
-/* Left section: checkbox and order details */
-.order-select {
-    flex-shrink: 0;
-    padding-right: 0;
-}
-
-.order-details {
-    color: var(--text-primary);  
-    font-size: 1rem;
-    margin: 0;
-    width: auto !important;
-}
-
-/* Center section: images */
+/* Middle Column - Images */
 .order-images {
-    display: flex;
-    gap: 0.75rem;
-    justify-content: center;
-    flex: 2;
-    flex-wrap: wrap;
-    padding: 0 1rem;
-}
-
-/* Right section: status, price, details button */
-.order-actions {
-    margin-left: auto;   
-    display: flex;
-    align-items: center;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 70px);
     gap: 0.5rem;
-    flex-shrink: 0;
-    overflow: visible;
-    width: auto !important;
+    align-items: start;
+    width: 100%;
+    justify-content: start;
 }
 
 .img-container {
-    width: 70px;
-    min-width: 70px;
-    height: 70px;
-    flex-shrink: 0;
-    border: 1px solid var(--border-color);
+    position: relative;
+    width: 100%;
+    padding-bottom: 100%;  /* This creates a square aspect ratio */
     border-radius: var(--radius-sm);
     overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    cursor: pointer;
-    transition: all 0.2s ease;
+    border: 1px solid var(--border-color);
 }
 
 .img-container img {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: opacity 0.2s;
 }
 
-.img-container:hover {
-    box-shadow: var(--shadow-md);
+/* Right Column - Actions */
+.order-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    width: 200px;
+    justify-self: end;  /* This ensures right alignment in grid */
 }
 
-.img-container img:hover {
-    opacity: 0.9;
+.status-select,
+.order-cost,
+.details-btn {
+    width: 100%;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
+.order-cost {
+    text-align: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--success-color);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 992px) {
     .order-item {
+        display: flex;
         flex-direction: column;
-        align-items: flex-start;
         gap: 1rem;
+        padding: 1rem;
     }
+    
 
-    .order-details,
-    .order-images,
+    
     .order-actions {
         width: 100%;
-    }
-
-    .order-images {
-        justify-content: flex-start;
-        padding: 0;
-    }
-
-    .order-actions {
-        justify-content: flex-start;
+        margin-left: 0;
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+        margin-top: 0.5rem;
+        align-items: center;
     }
 }
 
-/* Prevent image squishing */
-.order-images {
-    display: flex;
-    gap: 0.75rem;
-    width: auto;
-    flex-wrap: wrap;
-}
-
-.btn-danger {
-    background-color: #dc3545 !important;
-    border-color: #dc3545 !important;
-}
-
-.btn-danger:hover {
-    background-color: #bb2d3b !important;
-    border-color: #bb2d3b !important;
-}
-
-#deleteConfirmModal .modal-content {
-    max-width: 500px;
-    background: white;
-    padding: 1.5rem;
-    border-radius: var(--radius-md);
-}
-
-#deleteConfirmModal .modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-#deleteConfirmModal .modal-footer {
-    display: flex;
-    justify-content: flex-end;
-    gap: 1rem;
-    margin-top: 1.5rem;
+@media (max-width: 768px) {
+    .img-container {
+        min-width: 60px;
+        width: 60px;
+        height: 60px;
+        padding-bottom: 0;  /* Remove the padding-bottom for mobile */
+    }
+    
+    .img-container img {
+        position: relative;  /* Reset position for mobile */
+    }
 }
 
 /* Status Select Styling */
-.status-select.form-select {
+.status-select {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
     border-radius: var(--radius-sm);
@@ -974,124 +936,36 @@ body {
     min-width: 140px;
     font-weight: 500;
     transition: all 0.2s ease;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 0.75rem center;
-    background-size: 16px 12px;
 }
 
 /* Status-specific select styling */
-.status-select.form-select option {
+.status-select option {
     background: white;
     color: var(--text-primary);
 }
 
-.status-select.form-select[value="completed"],
-.status-select.form-select option[value="completed"],
-.status-select.form-select:has(option[value="completed"]:checked) {
+.status-select[value="completed"],
+.status-select option[value="completed"],
+.status-select:has(option[value="completed"]:checked) {
     background-color: rgba(34, 197, 94, 0.1);
     color: var(--success-color);
     border-color: var(--success-color);
 }
 
-.status-select.form-select[value="processing"],
-.status-select.form-select option[value="processing"],
-.status-select.form-select:has(option[value="processing"]:checked) {
+.status-select[value="processing"],
+.status-select option[value="processing"],
+.status-select:has(option[value="processing"]:checked) {
     background-color: rgba(59, 130, 246, 0.1);
     color: #3b82f6;
     border-color: #3b82f6;
 }
 
-.status-select.form-select[value="pending"],
-.status-select.form-select option[value="pending"],
-.status-select.form-select:has(option[value="pending"]:checked) {
+.status-select[value="pending"],
+.status-select option[value="pending"],
+.status-select:has(option[value="pending"]:checked) {
     background-color: rgba(245, 158, 11, 0.1);
     color: var(--warning-color);
     border-color: var(--warning-color);
-}
-
-/* Loading state */
-.status-select.form-select.loading {
-    background-image: none;
-    padding-right: 2.5rem; /* Keep space for spinner */
-}
-
-.status-select-wrapper {
-    position: relative;
-    display: inline-block;
-}
-
-.status-indicator {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    display: none;
-}
-
-.status-indicator.show {
-    display: block;
-}
-
-/* Status feedback styling */
-.status-feedback {
-    min-width: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.status-feedback i {
-    font-size: 1.1rem;
-}
-
-.text-success {
-    color: var(--success-color) !important;
-}
-
-.text-danger {
-    color: #dc3545 !important;
-}
-
-/* Add invoice number styling */
-.invoice-number {
-    display: inline-flex;
-    align-items: center;
-    color: var(--primary-color);
-    font-weight: 500;
-    font-size: 0.85rem;
-    margin-top: 0.25rem;
-}
-
-.invoice-number i {
-    font-size: 0.9rem;
-    color: var(--primary-color);
-}
-
-/* Add invoice button styling */
-.invoice-button {
-    display: inline-flex;
-    align-items: center;
-    background: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 0.25rem 0.75rem;
-    font-size: 0.85rem;
-    color: var(--primary-color);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-top: 0.25rem;
-}
-
-.invoice-button:hover {
-    background: var(--background-color);
-    border-color: var(--primary-color);
-}
-
-.invoice-button i {
-    font-size: 0.9rem;
-    color: var(--primary-color);
 }
 </style>
 
