@@ -75,11 +75,11 @@
             <div class="card-icon"><i class="fas fa-calendar-alt"></i></div>
             <div class="info-label">Order Date</div>
             <div class="info-value">
-                {{ order.created_at|to_central }}
+                {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}
             </div>
         </div>
 
-        <!-- 6: Total Cost -->
+        <!-- 5: Total Cost -->
         <div class="info-card">
             <div class="card-icon text-success"><i class="fas fa-dollar-sign"></i></div>
             <div class="info-label">Total Cost</div>
@@ -204,7 +204,7 @@ body {
 /* Info Cards Grid */
 .info-cards-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(5, 1fr);
     gap: 1rem;
     margin-bottom: 2rem;
 }
@@ -265,6 +265,17 @@ body {
     width: 100%;
 }
 
+.status-price {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.status-price .text-success {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* Status Select Styling */
 .status-select.form-select {
     padding: 0.5rem 1rem;
     font-size: 0.9rem;
@@ -273,30 +284,113 @@ body {
     width: 100%;
     font-weight: 500;
     transition: all 0.2s ease;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    min-width: unset; /* Remove min-width constraint */
+    max-width: unset; /* Remove max-width constraint */
 }
 
-/* Add these styles */
-.invoice-button {
-    width: 100%;
-    text-align: center;
-    background: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    padding: 0.5rem;
-    font-size: 0.95rem;
+/* Status-specific select styling */
+.status-select.form-select option {
+    background: white;
     color: var(--text-primary);
-    cursor: pointer;
-    transition: all 0.2s ease;
 }
 
-.invoice-button:hover {
-    background: var(--background-color);
-    border-color: var(--primary-color);
+.status-select.form-select[value="completed"],
+.status-select.form-select option[value="completed"],
+.status-select.form-select:has(option[value="completed"]:checked) {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: var(--success-color);
+    border-color: var(--success-color);
 }
 
-.invoice-button .text-muted {
+.status-select.form-select[value="processing"],
+.status-select.form-select option[value="processing"],
+.status-select.form-select:has(option[value="processing"]:checked) {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.status-select.form-select[value="pending"],
+.status-select.form-select option[value="pending"],
+.status-select.form-select:has(option[value="pending"]:checked) {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+    border-color: var(--warning-color);
+}
+
+/* Loading state */
+.status-select.form-select.loading {
+    background-image: none;
+    padding-right: 2.5rem; /* Keep space for spinner */
+}
+
+.status-select-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.status-indicator {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    display: none;
+}
+
+.status-indicator.show {
+    display: block;
+}
+
+/* Buttons */
+.upload-btn,
+.submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--primary-color);
+    color: #ffffff !important;
+    padding: 0.5rem 1.25rem;
     font-size: 0.9rem;
-    font-weight: normal;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+    text-decoration: none;
+    cursor: pointer;
+    min-width: 120px;
+}
+
+.upload-btn:hover,
+.submit-btn:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px);
+    color: #ffffff !important;
+    text-decoration: none;
+}
+
+.submit-btn i {
+    color: #ffffff !important;
+    margin: 0;
+}
+
+/* Ensure the price display only appears on the main form submit button */
+.submit-btn::after {
+    display: none;
+    content: none;
+}
+
+/* Images Grid */
+.images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
 }
 
 /* Preview Section */
@@ -370,7 +464,6 @@ body {
     background-color: var(--primary-color);
     color: white;
     text-decoration: none;
-    width: 100%;
 }
 
 .download-btn:hover {
@@ -393,12 +486,115 @@ body {
     z-index: 1000;
 }
 
+.modal-image {
+    max-width: 90%;
+    max-height: 80vh;
+    object-fit: contain;
+}
+
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Layout */
+@media (max-width: 992px) {
+    .info-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    header .d-flex.gap-2 {
+        flex-wrap: wrap;
+        gap: 0.5rem !important;
+        justify-content: flex-start;
+    }
+    .cost-display {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .details-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .info-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    header.d-flex {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    header .d-flex.gap-2 {
+        width: 100%;
+    }
+    .upload-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    .status-card form {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .status-select,
+    .submit-btn {
+        width: 100%;
+    }
+    .cost-display {
+        padding: 0.75rem;
+        gap: 0.5rem;
+    }
+    .details-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 350px) {
+    .cost-display {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 0.5rem;
+    }
+    .details-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Add these styles */
+.invoice-button {
+    width: 100%;
+    text-align: center;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.invoice-button:hover {
+    background: var(--background-color);
+    border-color: var(--primary-color);
+}
+
+.invoice-button .text-muted {
+    font-size: 0.9rem;
+    font-weight: normal;
+}
+
+/* Modal styles */
 .modal-content {
     max-width: 500px;
     width: 90%;
-    background: var(--surface-color);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-lg);
 }
 
 .modal-header {
@@ -426,81 +622,152 @@ body {
     gap: 0.75rem;
 }
 
-.modal-image {
-    max-width: 90%;
-    max-height: 80vh;
-    object-fit: contain;
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
-.close-modal {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    color: #fff;
-    font-size: 2rem;
+.form-control {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(51, 51, 51, 0.1);
+}
+
+.feedback {
+    font-size: 0.85rem;
+}
+
+.feedback.error {
+    color: #ef4444;
+}
+
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
     cursor: pointer;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+    background: var(--primary-color);
+    color: white;
 }
 
-/* Responsive Layout */
-@media (max-width: 992px) {
-    .info-cards-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    header .d-flex.gap-2 {
-        flex-wrap: wrap;
-        gap: 0.5rem !important;
-        justify-content: flex-start;
-    }
-
-    .cost-display {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .details-btn {
-        width: 100%;
-        justify-content: center;
-    }
+.action-btn:hover {
+    background: var(--primary-dark);
 }
 
-@media (max-width: 576px) {
-    .info-cards-grid {
-        grid-template-columns: 1fr;
-    }
+/* Add these styles to fix button wrapping */
+header.d-flex {
+    flex-wrap: wrap;
+    gap: 1rem;
+}
 
-    header.d-flex {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+/* Update button styles to handle wrapping better */
+.upload-btn {
+    margin-bottom: 0.5rem;
+    white-space: nowrap;
+    min-width: auto;
+}
 
-    header .d-flex.gap-2 {
-        width: 100%;
-    }
 
-    .upload-btn {
-        width: 100%;
-        justify-content: center;
-    }
+/* Add these styles to the existing styles */
+.notes-alert {
+    background: #fff3cd;
+    border: 1px solid #ffeeba;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.notes-alert .alert-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: #856404;
+}
+
+.notes-alert i {
+    font-size: 1.25rem;
+}
+
+.notes-alert span {
+    font-weight: 500;
+}
+
+/* Update the notes text styling to match the requested color scheme */
+.info-value.notes-text {
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    padding: 0.75rem;
+    border-radius: var(--radius-sm);
+    margin-top: 0.25rem;
 }
 </style>
 
 <script>
+let currentOrderId = null;
+
 function showFullSizePreview(src) {
     const modal = document.getElementById('previewModal');
     const modalImg = document.getElementById('modalImage');
     modal.style.display = 'flex';
     modalImg.src = src;
+
+    modal.onclick = function(e) {
+        if (e.target === modal || e.target.className === 'close-modal') {
+            modal.style.display = 'none';
+        }
+    };
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize status select
+    // Initialize status select styling
     const statusSelect = document.querySelector('.status-select');
+
     if (statusSelect) {
+        // Wrap select in a container if not already wrapped
+        if (!statusSelect.parentElement.classList.contains('status-select-wrapper')) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'status-select-wrapper';
+            statusSelect.parentNode.insertBefore(wrapper, statusSelect);
+            wrapper.appendChild(statusSelect);
+        }
+
+        // Create status indicator if it doesn't exist
+        let statusIndicator = statusSelect.nextElementSibling;
+        if (!statusIndicator || !statusIndicator.classList.contains('status-indicator')) {
+            statusIndicator = document.createElement('div');
+            statusIndicator.className = 'status-indicator';
+            statusSelect.parentNode.appendChild(statusIndicator);
+        }
+
+        // Set initial value
+        statusSelect.setAttribute('value', statusSelect.value);
+
+        // Update value when changed
         statusSelect.addEventListener('change', async function() {
             const newStatus = this.value;
             const orderId = this.dataset.orderId;
+
+            // Always show loading state, regardless of status change
+            this.classList.add('loading');
+            statusIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            statusIndicator.classList.add('show');
 
             try {
                 const response = await fetch(`/admin/order/${orderId}/status`, {
@@ -511,17 +778,82 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: `status=${newStatus}`
                 });
 
-                if (!response.ok) {
+                if (response.ok) {
+                    // Update the select's value attribute for styling
+                    this.setAttribute('value', newStatus);
+
+                    // Show success feedback briefly
+                    statusIndicator.innerHTML = '<i class="fas fa-check text-success"></i>';
+
+                    // Reset after delay
+                    setTimeout(() => {
+                        this.classList.remove('loading');
+                        statusIndicator.classList.remove('show');
+                    }, 1000);
+                } else {
                     throw new Error('Failed to update status');
                 }
             } catch (error) {
                 console.error('Error updating status:', error);
+                // Show error feedback
+                statusIndicator.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i>';
+
+                // Reset after delay
+                setTimeout(() => {
+                    this.classList.remove('loading');
+                    statusIndicator.classList.remove('show');
+                }, 2000);
             }
+        });
+    }
+
+    // Handle invoice number updates
+    const invoiceInput = document.querySelector('.invoice-input');
+    if (invoiceInput) {
+        let timeout;
+
+        invoiceInput.addEventListener('input', function() {
+            clearTimeout(timeout);
+            const feedback = this.nextElementSibling;
+
+            timeout = setTimeout(() => {
+                const orderId = this.dataset.orderId;
+                const invoiceNumber = this.value.trim();
+
+                fetch('/update-invoice-number', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        order_id: orderId,
+                        invoice_number: invoiceNumber
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        feedback.textContent = data.error;
+                        feedback.className = 'invoice-feedback error';
+                    } else {
+                        feedback.textContent = 'Saved';
+                        feedback.className = 'invoice-feedback success';
+                        setTimeout(() => {
+                            feedback.textContent = '';
+                        }, 2000);
+                    }
+                })
+                .catch(error => {
+                    feedback.textContent = 'Failed to save';
+                    feedback.className = 'invoice-feedback error';
+                });
+            }, 500);
         });
     }
 });
 
 function showInvoiceModal(orderId, currentInvoiceNumber) {
+    currentOrderId = orderId;
     const modal = document.getElementById('invoiceModal');
     const input = document.getElementById('invoiceNumber');
     const feedback = document.getElementById('invoiceFeedback');
@@ -531,7 +863,6 @@ function showInvoiceModal(orderId, currentInvoiceNumber) {
     feedback.className = 'feedback mt-2';
 
     modal.style.display = 'flex';
-    currentOrderId = orderId;
 }
 
 function closeInvoiceModal() {
@@ -562,11 +893,16 @@ async function updateInvoiceNumber() {
         const data = await response.json();
 
         if (response.ok) {
+            // Update the button text
             const button = document.querySelector('.invoice-button');
             if (button) {
-                button.innerHTML = invoiceNumber || '<span class="text-muted">Add Invoice Number</span>';
+                button.innerHTML = invoiceNumber ?
+                    invoiceNumber :
+                    '<span class="text-muted">Add Invoice Number</span>';
             }
+
             closeInvoiceModal();
+            showToast('Invoice number updated successfully', 'success');
         } else {
             feedback.textContent = data.error || 'Failed to update invoice number';
             feedback.className = 'feedback error mt-2';
@@ -578,17 +914,35 @@ async function updateInvoiceNumber() {
     }
 }
 
-// Close modal when clicking outside
-document.getElementById('previewModal').addEventListener('click', function(e) {
-    if (e.target === this || e.target.className === 'close-modal') {
-        this.style.display = 'none';
-    }
-});
+// Add toast notification function if not already present
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} toast-icon"></i>
+            <span class="toast-message">${message}</span>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
 
-document.getElementById('invoiceModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeInvoiceModal();
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'toast-container';
+        document.body.appendChild(container);
     }
-});
+
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('toast-showing'));
+
+    setTimeout(() => {
+        toast.classList.remove('toast-showing');
+        toast.classList.add('toast-hiding');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 </script>
 {% endblock %}
