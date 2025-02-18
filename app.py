@@ -50,7 +50,8 @@ central = pytz.timezone('US/Central')
 # Add after storage initialization but before app initialization
 def get_central_time():
     """Get current time in US Central timezone"""
-    return datetime.now(central)
+    utc_now = datetime.now(pytz.UTC)  # Get current time in UTC
+    return utc_now.astimezone(central)  # Convert to Central time
 
 scheduler = BackgroundScheduler()
 
