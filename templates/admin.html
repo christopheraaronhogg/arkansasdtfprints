@@ -16,7 +16,10 @@
 
     <!-- Filter Bar -->
     <div class="filter-bar mb-4">
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="search-container flex-grow-1">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search orders (order #, PO #, amount...)" oninput="filterOrders()">
+            </div>
             <div class="status-toggle">
                 <div class="toggle-track">
                     <div class="toggle-slider"></div>
@@ -965,6 +968,33 @@ body {
     color: var(--warning-color);
     border-color: var(--warning-color);
 }
+
+.search-container {
+    position: relative;
+    flex: 1;
+    min-width:250px;}
+
+.search-container .form-control {
+    width: 100%;
+    padding-right: 2.5rem;
+}
+
+@media (max-width: 768px) {
+    .filter-bar .d-flex {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .search-container {
+        width: 100%;
+    }
+
+    .status-toggle,
+    .form-control,
+    .action-btn {
+        width: 100% !important;
+    }
+}
 </style>
 
 <script>
@@ -1096,6 +1126,7 @@ function clearFilters() {
 
     document.getElementById('startDate').value = '';
     document.getElementById('endDate').value = '';
+    document.getElementById('searchInput').value = '';
     applyFilters('open');
 }
 
@@ -1400,6 +1431,7 @@ function animateAndMove(row, clonedRow, targetView) {
                 clonedRow.style.display = 'flex';
                 clonedRow.style.opacity = '0';
                 clonedRow.style.transform = 'translateX(10px)'; // Reduced movement
+
 
                 // Immediate animation for same-tab transitions
                 requestAnimationFrame(() => {
@@ -1764,5 +1796,67 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+function filterOrders() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const orders = document.querySelectorAll('.order-item');
+
+    orders.forEach(order => {
+        // Get all searchable text content from the order
+        const orderNumber = order.querySelector('.order-number').textContent.toLowerCase();
+        const orderMeta = order.querySelector('.order-meta').textContent.toLowerCase();
+        const cost = order.querySelector('.order-cost').textContent.toLowerCase();
+
+        // Get file names from all images
+        const fileNames = Array.from(order.querySelectorAll('.img-container img'))
+            .map(img => img.getAttribute('alt').toLowerCase());
+
+        // Combine all searchable content
+        const searchableContent = [
+            orderNumber,
+            orderMeta,
+            cost,
+            ...fileNames
+        ].join(' ');
+
+        const matchesSearch = !searchTerm || searchableContent.includes(searchTerm);
+
+        // Get current status and date filters
+        const currentStatus = document.querySelector('.toggle-option.active').dataset.value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        const orderStatus = order.dataset.status;
+        const orderDate = order.dataset.date;
+
+        const matchesStatus = !currentStatus || 
+            (currentStatus === 'open' && orderStatus !== 'completed') ||
+            (currentStatus === 'closed' && orderStatus === 'completed');
+
+        const matchesDate = (!startDate || orderDate >= startDate) && 
+            (!endDate || orderDate <= endDate);
+
+        // Update visibility based on all filters
+        order.style.display = (matchesSearch && matchesStatus && matchesDate) ? 'grid' : 'none';
+    });
+}
+
+// Update the existing event listeners to use the new filter function
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners for all filter inputs
+    document.getElementById('startDate').addEventListener('change', filterOrders);
+    document.getElementById('endDate').addEventListener('change', filterOrders);
+    document.getElementById('searchInput').addEventListener('input', filterOrders);
+});
+
+// Update existing status toggle handling
+document.querySelectorAll('.toggle-option').forEach(option => {
+    option.addEventListener('click', function() {
+        document.querySelectorAll('.toggle-option').forEach(opt => opt.classList.remove('active'));
+        this.classList.add('active');
+        filterOrders();
+    });
+});
+
 </script>
 {% endblock %}
