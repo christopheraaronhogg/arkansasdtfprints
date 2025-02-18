@@ -17,7 +17,7 @@
 
                     <div class="order-details p-4 bg-dark border rounded">
                         <h3 class="mb-4">Order Details</h3>
-                        
+
                         <div class="row mb-3">
                             <div class="col-sm-4">
                                 <strong>Order Number:</strong>
@@ -68,7 +68,7 @@
                                 <strong>Order Date:</strong>
                             </div>
                             <div class="col-sm-8">
-                                {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}
+                                {{ order.created_at|to_central }}
                             </div>
                         </div>
                     </div>
