@@ -49,9 +49,11 @@ central = pytz.timezone('US/Central')
 
 # Add after storage initialization but before app initialization
 def get_central_time():
-    """Get current time in US Central timezone"""
-    utc_now = datetime.now(pytz.UTC)  # Get current time in UTC
-    return utc_now.astimezone(central)  # Convert to Central time
+    """Get current time in Central timezone"""
+    # Get current UTC time and make it timezone-aware
+    utc_dt = datetime.utcnow().replace(tzinfo=pytz.UTC)
+    # Convert to Central time
+    return utc_dt.astimezone(central)
 
 scheduler = BackgroundScheduler()
 
@@ -191,7 +193,8 @@ def send_order_emails(order):
 # Add this after initializing app but before routes
 @app.context_processor
 def utility_processor():
-    return {'central': central}  # Make central timezone available in templates
+    """Make central timezone available in templates"""
+    return {'central': central}
 
 @app.route('/')
 def index():
