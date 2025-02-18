@@ -129,4 +129,4 @@ def generate_thumbnail(image_data, max_size=(300, 300)):
 def get_thumbnail_key(file_key):
     """Generate the storage key for a thumbnail"""
     name, ext = os.path.splitext(file_key)
-    return f"{name}_thumb.jpg"
+    return f"{name}-min.jpg"

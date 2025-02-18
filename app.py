@@ -49,7 +49,7 @@ def generate_thumbnails_task():
     """Background task to pre-generate thumbnails for recent orders"""
     with app.app_context():
         try:
-            # Get orders from last 7 days
+            # Get orders from last 7 days that might need thumbnails
             recent_orders = Order.query.filter(
                 Order.created_at >= datetime.now() - timedelta(days=7)
             ).all()
@@ -59,20 +59,25 @@ def generate_thumbnails_task():
             for order in recent_orders:
                 for item in order.items:
                     thumbnail_key = get_thumbnail_key(item.file_key)
-                    if not storage.file_exists(thumbnail_key):
-                        try:
+
+                    # Try to get the thumbnail first
+                    try:
+                        if not storage.get_file(thumbnail_key):
+                            # Only generate if thumbnail doesn't exist
                             file_data = storage.get_file(item.file_key)
                             if file_data:
                                 thumb_data = generate_thumbnail(file_data)
                                 if thumb_data:
+                                    # Upload without content_type parameter
                                     storage.upload_file(
                                         BytesIO(thumb_data),
-                                        thumbnail_key,
-                                        content_type='image/jpeg'
+                                        thumbnail_key
                                     )
                                     logger.info(f"Generated thumbnail for {item.file_key}")
-                        except Exception as e:
-                            logger.error(f"Error generating thumbnail for {item.file_key}: {str(e)}")
+                    except Exception as e:
+                        logger.error(f"Error processing thumbnail for {item.file_key}: {str(e)}")
+                        continue
+
         except Exception as e:
             logger.error(f"Error in thumbnail generation task: {str(e)}")
 
@@ -555,11 +560,10 @@ def get_order_thumbnail(order_id, filename):
                 return Response(
                     thumb_data,
                     mimetype='image/jpeg',
-                    headers={'Content-Disposition': f'inline; filename=thumb_{filename}'}
+                    headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
                 )
         except Exception as e:
             logger.debug(f"No pre-generated thumbnail found for {filename}: {str(e)}")
-            # Continue to generate thumbnail on-the-fly
 
         # If no thumbnail exists or failed to retrieve, generate one on the fly
         file_data = storage.get_file(filename)
@@ -569,9 +573,12 @@ def get_order_thumbnail(order_id, filename):
 
         thumb_data = generate_thumbnail(file_data)
         if thumb_data:
-            # Save the generated thumbnail for future use
+            # Save the generated thumbnail for future use - without content_type
             try:
-                storage.upload_file(BytesIO(thumb_data), thumbnail_key, content_type='image/jpeg')
+                storage.upload_file(
+                    BytesIO(thumb_data),
+                    thumbnail_key
+                )
                 logger.info(f"Generated and saved thumbnail for {filename}")
             except Exception as e:
                 logger.warning(f"Could not save thumbnail for {filename}: {str(e)}")
@@ -579,7 +586,7 @@ def get_order_thumbnail(order_id, filename):
             return Response(
                 thumb_data,
                 mimetype='image/jpeg',
-                headers={'Content-Disposition': f'inline; filename=thumb_{filename}'}
+                headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
             )
 
         return "Error generating thumbnail", 500
