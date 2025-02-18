@@ -330,10 +330,19 @@ const PrintUI = {
         const uploadLoading = document.querySelector('.upload-loading');
         const currentFileSpan = document.getElementById('currentFile');
         const totalFilesSpan = document.getElementById('totalFiles');
+        const dropZone = document.getElementById('dropZone');
 
-        // Show loading state
-        uploadContent.style.display = 'none';
-        uploadLoading.style.display = 'flex';
+        // Show loading state with animation
+        uploadContent.style.opacity = '0';
+        setTimeout(() => {
+            uploadContent.style.display = 'none';
+            uploadLoading.style.display = 'flex';
+            requestAnimationFrame(() => {
+                uploadLoading.classList.add('show');
+            });
+        }, 300);
+
+        dropZone.classList.add('processing');
         totalFilesSpan.textContent = files.length;
 
         let successCount = 0;
@@ -356,9 +365,16 @@ const PrintUI = {
             }
         }
 
-        // Hide loading state
-        uploadContent.style.display = 'block';
-        uploadLoading.style.display = 'none';
+        // Hide loading state with animation
+        uploadLoading.classList.remove('show');
+        setTimeout(() => {
+            uploadLoading.style.display = 'none';
+            uploadContent.style.display = 'block';
+            dropZone.classList.remove('processing');
+            requestAnimationFrame(() => {
+                uploadContent.style.opacity = '1';
+            });
+        }, 300);
 
         // Show summary toast for successful uploads
         if (successCount > 0) {

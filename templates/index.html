@@ -22,8 +22,10 @@
                         </label>
                     </div>
                     <div class="upload-loading" style="display: none;">
-                        <div class="spinner"></div>
-                        <p>Processing files...</p>
+                        <div class="spinner-container">
+                            <div class="spinner"></div>
+                        </div>
+                        <p class="processing-text">Processing files...</p>
                         <p class="upload-progress">Analyzing file <span id="currentFile">1</span> of <span id="totalFiles">0</span></p>
                     </div>
                 </div>
@@ -97,22 +99,43 @@
     align-items: center;
     justify-content: center;
     z-index: 10;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.upload-loading.show {
+    opacity: 1;
+}
+
+.spinner-container {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid #f3f3f3;
+    border: 3px solid rgba(51, 51, 51, 0.1);
     border-top: 3px solid var(--primary-color);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 1rem;
+    animation: spin 0.8s linear infinite;
+}
+
+.processing-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
 }
 
 .upload-progress {
     font-size: 0.9rem;
     color: var(--text-secondary);
-    margin-top: 0.5rem;
+    margin-top: 0.75rem;
 }
 
 @keyframes spin {
@@ -120,6 +143,22 @@
     100% { transform: rotate(360deg); }
 }
 
+.upload-content {
+    position: relative;
+    z-index: 5;
+    transition: opacity 0.3s ease;
+}
+
+.upload-area {
+    position: relative;
+    min-height: 200px;
+    transition: all 0.3s ease;
+}
+
+.upload-area.processing {
+    border-color: var(--primary-color);
+    background-color: rgba(255, 255, 255, 0.5);
+}
 .upload-content {
     position: relative;
     z-index: 5;
