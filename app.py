@@ -549,7 +549,7 @@ def get_order_thumbnail(order_id, filename):
         thumbnail_key = get_thumbnail_key(filename)
 
         # Try to get pre-generated thumbnail
-        if storage.file_exists(thumbnail_key):
+        try:
             thumb_data = storage.get_file(thumbnail_key)
             if thumb_data:
                 return Response(
@@ -557,8 +557,11 @@ def get_order_thumbnail(order_id, filename):
                     mimetype='image/jpeg',
                     headers={'Content-Disposition': f'inline; filename=thumb_{filename}'}
                 )
+        except Exception as e:
+            logger.debug(f"No pre-generated thumbnail found for {filename}: {str(e)}")
+            # Continue to generate thumbnail on-the-fly
 
-        # If no thumbnail exists, generate one on the fly
+        # If no thumbnail exists or failed to retrieve, generate one on the fly
         file_data = storage.get_file(filename)
         if file_data is None:
             logger.error(f"Image file not found in storage: {filename}")
@@ -568,11 +571,7 @@ def get_order_thumbnail(order_id, filename):
         if thumb_data:
             # Save the generated thumbnail for future use
             try:
-                storage.upload_file(
-                    BytesIO(thumb_data),
-                    thumbnail_key,
-                    content_type='image/jpeg'
-                )
+                storage.upload_file(BytesIO(thumb_data), thumbnail_key, content_type='image/jpeg')
                 logger.info(f"Generated and saved thumbnail for {filename}")
             except Exception as e:
                 logger.warning(f"Could not save thumbnail for {filename}: {str(e)}")
