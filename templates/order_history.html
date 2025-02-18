@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <header class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 class="page-title"><i class="fas fa-history me-2"></i>Your Order History</h1>
+            <p class="subtitle mb-0">View your past DTF print orders</p>
+        </div>
+    </header>
+
+    <!-- Email Input Form -->
+    <div class="filter-bar mb-4">
+        <div class="d-flex align-items-center gap-3 w-100">
+            <div class="email-input w-100">
+                <input type="email" id="emailFilter" class="form-control" 
+                       placeholder="Enter your email address" 
+                       value="{{ email if email else '' }}">
+            </div>
+            <button onclick="searchOrders()" class="action-btn">
+                <i class="fas fa-search me-1" style="color: white !important;"></i>View Orders
+            </button>
+        </div>
+    </div>
+
+    {% if email %}
+    <div class="order-list">
+        {% for order in orders %}
+        <div class="order-item">
+            <!-- Left Column: Order Info -->
+            <div class="info-container">
+                <div class="order-details">
+                    <h5 class="order-number mb-1">{{ order.order_number }}</h5>
+                    <div class="order-meta text-muted">
+                        {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}
+                        {% if order.po_number %}
+                        <br>PO Number: {{ order.po_number }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Middle Column: Images -->
+            <div class="order-images">
+                {% for item in order.items %}
+                <div class="img-container">
+                    <div class="img-count-badge">{{ item.quantity }}x</div>
+                    <img src="{{ url_for('get_order_thumbnail', order_id=order.id, filename=item.file_key) }}"
+                         alt="Preview of {{ item.file_key }}"
+                         data-full-image="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
+                         onclick="showFullSizePreview(this)">
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Right Column: Status & Cost -->
+            <div class="order-actions">
+                <div class="status-badge" data-status="{{ order.status }}">
+                    {{ order.status|title }}
+                </div>
+                <div class="order-cost">${{ "%.2f"|format(order.total_cost) }}</div>
+                <a href="{{ url_for('view_order', order_id=order.id) }}" class="details-btn">
+                    <i class="fas fa-eye me-1" style="color: white !important;"></i>Details
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Image Preview Modal -->
+<div id="previewModal" class="modal preview-modal">
+    <span class="close-modal" onclick="closePreviewModal()">&times;</span>
+    <img id="modalImage" class="modal-image" src="" alt="Full size preview">
+</div>
+
+<script>
+function searchOrders() {
+    const email = document.getElementById('emailFilter').value;
+    if (email) {
+        window.location.href = `/order-history?email=${encodeURIComponent(email)}`;
+    }
+}
+
+// Handle enter key in email input
+document.getElementById('emailFilter').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchOrders();
+    }
+});
+
+function showFullSizePreview(img) {
+    const modal = document.getElementById('previewModal');
+    const modalImg = document.getElementById('modalImage');
+    modal.style.display = "flex";
+    modalImg.src = img.dataset.fullImage;
+}
+
+function closePreviewModal() {
+    document.getElementById('previewModal').style.display = "none";
+}
+</script>

@@ -679,6 +679,14 @@ def bulk_invoice_update():
         db.session.rollback()
         return jsonify({'error': 'Failed to update orders'}), 500
 
+@app.route('/order-history')
+def order_history():
+    email = request.args.get('email')
+    orders = []
+    if email:
+        orders = Order.query.filter_by(email=email).order_by(Order.created_at.desc()).all()
+    return render_template('order_history.html', orders=orders, email=email)
+
 # Start scheduler after app initialization
 scheduler.add_job(generate_thumbnails_task, 'interval', hours=1)
 scheduler.start()
