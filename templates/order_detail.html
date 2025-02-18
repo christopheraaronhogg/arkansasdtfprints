@@ -79,22 +79,13 @@
             </div>
         </div>
 
-        <!-- 5: Total Cost -->
+        <!-- 6: Total Cost -->
         <div class="info-card">
             <div class="card-icon text-success"><i class="fas fa-dollar-sign"></i></div>
             <div class="info-label">Total Cost</div>
             <div class="info-value text-success">
                 ${{ "%.2f"|format(order.total_cost) }}
             </div>
-        </div>
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-sm-4">
-            <strong>Order Date:</strong>
-        </div>
-        <div class="col-sm-8">
-            {{ order.created_at|to_central }}
         </div>
     </div>
 
@@ -188,10 +179,416 @@
 </div>
 
 <style>
-/*Existing Styles*/
+:root {
+    --primary-color: #333333;
+    --primary-dark: #1a1a1a;
+    --primary-light: #666666;
+    --secondary-color: #64748b;
+    --background-color: #f1f5f9;
+    --surface-color: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #64748b;
+    --border-color: #d1d5db;
+    --success-color: #22c55e;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+    --shadow-hover: 0 8px 12px rgba(0, 0, 0, 0.1);
+    --radius-sm: 6px;
+    --radius-md: 8px;
+}
+
+body {
+    background-color: var(--background-color);
+}
+
+/* Info Cards Grid */
+.info-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* Info Card */
+.info-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.info-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* Card Icon */
+.card-icon {
+    font-size: 1.6rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.card-icon.text-success {
+    color: var(--success-color);
+}
+
+/* Card Content */
+.info-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.info-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+}
+
+/* Status Card */
+.status-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 1rem;
+    width: 100%;
+}
+
+.status-select.form-select {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+    border-color: var(--border-color);
+    width: 100%;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+/* Add these styles */
+.invoice-button {
+    width: 100%;
+    text-align: center;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.invoice-button:hover {
+    background: var(--background-color);
+    border-color: var(--primary-color);
+}
+
+.invoice-button .text-muted {
+    font-size: 0.9rem;
+    font-weight: normal;
+}
+
+/* Preview Section */
+.preview-section {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f8fafc;
+    border-radius: var(--radius-sm);
+    padding: 0.5rem;
+    overflow: hidden;
+}
+
+.preview-image {
+    max-width: 100%;
+    max-height: 250px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.preview-image:hover {
+    transform: scale(1.02);
+}
+
+/* Quantity Badge */
+.quantity-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--primary-color);
+    color: white;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-weight: 600;
+    z-index: 2;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Cost Display */
+.cost-display {
+    border-top: 1px solid var(--border-color);
+    padding: 1rem;
+    background: var(--surface-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    align-items: center;
+    width: 100%;
+}
+
+/* Details Button */
+.details-btn {
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    max-width: 100%;
+}
+
+.download-btn {
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    width: 100%;
+}
+
+.download-btn:hover {
+    background-color: var(--primary-dark);
+    color: white;
+    text-decoration: none;
+}
+
+/* Modal */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    max-width: 500px;
+    width: 90%;
+    background: var(--surface-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.modal-image {
+    max-width: 90%;
+    max-height: 80vh;
+    object-fit: contain;
+}
+
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: #fff;
+    font-size: 2rem;
+    cursor: pointer;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive Layout */
+@media (max-width: 992px) {
+    .info-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    header .d-flex.gap-2 {
+        flex-wrap: wrap;
+        gap: 0.5rem !important;
+        justify-content: flex-start;
+    }
+
+    .cost-display {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .details-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 576px) {
+    .info-cards-grid {
+        grid-template-columns: 1fr;
+    }
+
+    header.d-flex {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    header .d-flex.gap-2 {
+        width: 100%;
+    }
+
+    .upload-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
 </style>
 
 <script>
-/*Existing Script*/
+function showFullSizePreview(src) {
+    const modal = document.getElementById('previewModal');
+    const modalImg = document.getElementById('modalImage');
+    modal.style.display = 'flex';
+    modalImg.src = src;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize status select
+    const statusSelect = document.querySelector('.status-select');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', async function() {
+            const newStatus = this.value;
+            const orderId = this.dataset.orderId;
+
+            try {
+                const response = await fetch(`/admin/order/${orderId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `status=${newStatus}`
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update status');
+                }
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        });
+    }
+});
+
+function showInvoiceModal(orderId, currentInvoiceNumber) {
+    const modal = document.getElementById('invoiceModal');
+    const input = document.getElementById('invoiceNumber');
+    const feedback = document.getElementById('invoiceFeedback');
+
+    input.value = currentInvoiceNumber;
+    feedback.textContent = '';
+    feedback.className = 'feedback mt-2';
+
+    modal.style.display = 'flex';
+    currentOrderId = orderId;
+}
+
+function closeInvoiceModal() {
+    const modal = document.getElementById('invoiceModal');
+    modal.style.display = 'none';
+    currentOrderId = null;
+}
+
+async function updateInvoiceNumber() {
+    if (!currentOrderId) return;
+
+    const input = document.getElementById('invoiceNumber');
+    const feedback = document.getElementById('invoiceFeedback');
+    const invoiceNumber = input.value.trim();
+
+    try {
+        const response = await fetch('/update-invoice-number', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                order_id: currentOrderId,
+                invoice_number: invoiceNumber
+            })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            const button = document.querySelector('.invoice-button');
+            if (button) {
+                button.innerHTML = invoiceNumber || '<span class="text-muted">Add Invoice Number</span>';
+            }
+            closeInvoiceModal();
+        } else {
+            feedback.textContent = data.error || 'Failed to update invoice number';
+            feedback.className = 'feedback error mt-2';
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        feedback.textContent = 'Failed to update invoice number';
+        feedback.className = 'feedback error mt-2';
+    }
+}
+
+// Close modal when clicking outside
+document.getElementById('previewModal').addEventListener('click', function(e) {
+    if (e.target === this || e.target.className === 'close-modal') {
+        this.style.display = 'none';
+    }
+});
+
+document.getElementById('invoiceModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeInvoiceModal();
+    }
+});
 </script>
 {% endblock %}
