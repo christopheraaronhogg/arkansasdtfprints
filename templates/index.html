@@ -38,12 +38,12 @@
                 <div class="email-submit-row">
                     <div class="email-input">
                         <i class="fas fa-envelope"></i>
-                        <input type="email" id="email" name="email" required 
+                        <input type="email" id="email" name="email" required
                                placeholder="Enter your email">
                     </div>
                     <div class="po-input">
                         <i class="fas fa-file-alt"></i>
-                        <input type="text" id="po_number" name="po_number" 
+                        <input type="text" id="po_number" name="po_number"
                                placeholder="PO Number (optional)">
                     </div>
                     <button type="submit" class="submit-btn" data-total="$0.00">
@@ -101,6 +101,7 @@
     z-index: 10;
     opacity: 0;
     transition: opacity 0.3s ease;
+    padding: 2rem;
 }
 
 .upload-loading.show {
@@ -153,20 +154,14 @@
     position: relative;
     min-height: 200px;
     transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .upload-area.processing {
     border-color: var(--primary-color);
     background-color: rgba(255, 255, 255, 0.5);
-}
-.upload-content {
-    position: relative;
-    z-index: 5;
-}
-
-.upload-area {
-    position: relative;
-    min-height: 200px;
 }
 </style>
 
