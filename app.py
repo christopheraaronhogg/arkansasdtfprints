@@ -197,12 +197,23 @@ def send_order_emails(order):
 def to_central_filter(dt):
     """Convert UTC datetime to Central time"""
     if dt is None:
+        logger.debug("DateTime is None")
         return ""
+
+    logger.debug(f"Original datetime: {dt}, tzinfo: {dt.tzinfo}")
+
     # Make the datetime timezone-aware (UTC)
     utc_dt = dt.replace(tzinfo=pytz.UTC)
+    logger.debug(f"After UTC assignment: {utc_dt}, tzinfo: {utc_dt.tzinfo}")
+
     # Convert to Central time
     central_dt = utc_dt.astimezone(central)
-    return central_dt.strftime('%B %d, %Y %I:%M %p') + ' CST'
+    logger.debug(f"After conversion to Central: {central_dt}, tzinfo: {central_dt.tzinfo}")
+
+    formatted = central_dt.strftime('%B %d, %Y %I:%M %p') + ' CST'
+    logger.debug(f"Final formatted string: {formatted}")
+
+    return formatted
 
 @app.context_processor
 def utility_processor():
