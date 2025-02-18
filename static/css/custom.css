@@ -779,7 +779,8 @@ form .submit-btn::after {
     width: 100%;
     padding-top: 75%; /* 4:3 aspect ratio */
     overflow: hidden;
-    background: var(--surface-color);
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: var(--radius-md);
 }
 
 .preview-image {
