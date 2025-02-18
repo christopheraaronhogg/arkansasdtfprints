@@ -21,7 +21,6 @@ import io
 import uuid
 import shutil
 from apscheduler.schedulers.background import BackgroundScheduler
-import pytz
 
 # Set longer timeout for the server
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -171,6 +170,7 @@ def success():
 
 @app.route('/create-order', methods=['POST'])
 def create_order():
+    """Create an order and return its ID for subsequent file uploads"""
     try:
         email = request.form.get('email')
         po_number = request.form.get('po_number')
@@ -184,15 +184,13 @@ def create_order():
         if not email:
             return jsonify({'error': 'Missing email'}), 400
 
-        # Create order with CST timezone
-        now = datetime.now(Config.TIMEZONE)
+        # Create order
         order = Order(
             order_number=generate_order_number(),
             email=email,
             po_number=po_number,
             total_cost=total_cost,
-            status='pending',
-            created_at=now
+            status='pending'
         )
         db.session.add(order)
         db.session.commit()
@@ -498,16 +496,15 @@ def export_orders():
         # Base query
         query = Order.query
 
-        # Apply filters with timezone awareness
-        if start_date:
-            start = Config.TIMEZONE.localize(datetime.strptime(start_date, '%Y-%m-%d'))
-            query = query.filter(Order.created_at >= start)
-        if end_date:
-            # Add one day to include the entire end date
-            end = Config.TIMEZONE.localize(datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1))
-            query = query.filter(Order.created_at < end)
+        # Apply filters
         if status:
             query = query.filter(Order.status == status)
+        if start_date:
+            query = query.filter(Order.created_at >= datetime.strptime(start_date, '%Y-%m-%d'))
+        if end_date:
+            # Add one day to include the entire end date
+            end = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Order.created_at < end)
 
         # Get filtered orders
         orders = query.order_by(Order.created_at.desc()).all()
@@ -517,13 +514,13 @@ def export_orders():
         writer = csv.writer(si)
 
         # Write headers
-        writer.writerow(['Order Number', 'Date (CST)', 'Email', 'Status', 'Total Cost', 'Number of Items'])
+        writer.writerow(['Order Number', 'Date', 'Email', 'Status', 'Total Cost', 'Number of Items'])
 
-        # Write order data with CST timezone
+        # Write order data
         for order in orders:
             writer.writerow([
                 order.order_number,
-                order.created_at.astimezone(Config.TIMEZONE).strftime('%Y-%m-%d %I:%M %p CST'),
+                order.created_at.strftime('%Y-%m-%d %H:%M:%S'),
                 order.email,
                 order.status,
                 f"${order.total_cost:.2f}",
