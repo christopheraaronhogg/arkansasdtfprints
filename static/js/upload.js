@@ -18,6 +18,9 @@ const LoadingManager = {
             // Insert after email-submit-row
             const emailSubmitRow = document.querySelector('.email-submit-row');
             emailSubmitRow.parentNode.insertBefore(container, emailSubmitRow.nextSibling);
+
+            // Force a reflow before adding the show class
+            container.offsetHeight;
         }
 
         // Show the container with animation
@@ -30,9 +33,9 @@ const LoadingManager = {
     },
 
     updateProgress(progress, message = '') {
+        const container = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
         const progressText = document.getElementById('progress-text');
-        const statusDiv = document.querySelector('.progress-status');
 
         if (progressBar && progressText) {
             // Round progress to nearest integer
@@ -42,9 +45,15 @@ const LoadingManager = {
             progressBar.style.width = `${roundedProgress}%`;
             progressText.textContent = `${roundedProgress}%`;
 
+            // Add progress to data attribute for CSS styling
+            progressBar.setAttribute('data-progress', `${roundedProgress}%`);
+
             // Update status message if provided
-            if (message && statusDiv) {
-                statusDiv.textContent = message;
+            if (message) {
+                const statusDiv = document.querySelector('.progress-status');
+                if (statusDiv) {
+                    statusDiv.textContent = message;
+                }
             }
 
             // Add animation class when progress is increasing
@@ -60,7 +69,10 @@ const LoadingManager = {
         const container = document.getElementById('progress-container');
         if (container) {
             container.classList.remove('show');
-            setTimeout(() => container.remove(), 300);
+            // Remove the container after animation
+            setTimeout(() => {
+                container.remove();
+            }, 300);
         }
     }
 };

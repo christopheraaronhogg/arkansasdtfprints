@@ -38,12 +38,12 @@
                 <div class="email-submit-row">
                     <div class="email-input">
                         <i class="fas fa-envelope"></i>
-                        <input type="email" id="email" name="email" required
+                        <input type="email" id="email" name="email" required 
                                placeholder="Enter your email">
                     </div>
                     <div class="po-input">
                         <i class="fas fa-file-alt"></i>
-                        <input type="text" id="po_number" name="po_number"
+                        <input type="text" id="po_number" name="po_number" 
                                placeholder="PO Number (optional)">
                     </div>
                     <button type="submit" class="submit-btn" data-total="$0.00">
@@ -89,7 +89,10 @@
 /* Add loading animation styles */
 .upload-loading {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
     background: rgba(255, 255, 255, 0.95);
     display: flex;
     flex-direction: column;
@@ -108,6 +111,9 @@
     width: 50px;
     height: 50px;
     margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .spinner {
@@ -137,30 +143,35 @@
     100% { transform: rotate(360deg); }
 }
 
+.upload-content {
+    position: relative;
+    z-index: 5;
+    transition: opacity 0.3s ease;
+}
+
 .upload-area {
     position: relative;
     min-height: 200px;
     transition: all 0.3s ease;
 }
 
-.upload-content {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.3s ease;
-}
-
 .upload-area.processing {
     border-color: var(--primary-color);
     background-color: rgba(255, 255, 255, 0.5);
 }
+.upload-content {
+    position: relative;
+    z-index: 5;
+}
+
+.upload-area {
+    position: relative;
+    min-height: 200px;
+}
 </style>
+
+{% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/upload.js') }}"></script>
 {% endblock %}
-
-{% endblock content %}
