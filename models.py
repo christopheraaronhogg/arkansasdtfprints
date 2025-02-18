@@ -1,5 +1,6 @@
 from datetime import datetime
 from app import db
+from config import Config
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -12,6 +13,10 @@ class Order(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
+    def get_created_at_cst(self):
+        """Return the created_at time in CST"""
+        return self.created_at.astimezone(Config.TIMEZONE)
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -21,7 +26,7 @@ class Order(db.Model):
             'email': self.email,
             'total_cost': f"${self.total_cost:.2f}",
             'status': self.status,
-            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            'created_at': self.get_created_at_cst().strftime('%Y-%m-%d %I:%M %p CST')
         }
 
 class OrderItem(db.Model):

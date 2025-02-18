@@ -1,4 +1,6 @@
 import os
+from datetime import timezone
+import pytz
 
 class Config:
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'dev-key-123')
@@ -9,6 +11,9 @@ class Config:
     MAX_FILE_SIZE = 524288000  # 500MB max individual file size (in bytes)
     REQUEST_TIMEOUT = 1200  # 20 minutes timeout for large uploads
     ALLOWED_EXTENSIONS = {'png'}
+
+    # Timezone configuration
+    TIMEZONE = pytz.timezone('America/Chicago')  # Central Time
 
     # Proxy settings
     PROXY_FIX = True
