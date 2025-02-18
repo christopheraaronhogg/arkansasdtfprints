@@ -21,6 +21,7 @@ import io
 import uuid
 import shutil
 from apscheduler.schedulers.background import BackgroundScheduler
+import threading
 
 # Set longer timeout for the server
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -80,6 +81,25 @@ def generate_thumbnails_task():
 
         except Exception as e:
             logger.error(f"Error in thumbnail generation task: {str(e)}")
+
+def generate_thumbnail_for_file(file_key):
+    """Generate and store thumbnail for a single file"""
+    try:
+        thumbnail_key = get_thumbnail_key(file_key)
+
+        # Check if thumbnail already exists
+        if not storage.get_file(thumbnail_key):
+            file_data = storage.get_file(file_key)
+            if file_data:
+                thumb_data = generate_thumbnail(file_data)
+                if thumb_data:
+                    storage.upload_file(
+                        BytesIO(thumb_data),
+                        thumbnail_key
+                    )
+                    logger.info(f"Generated thumbnail for new upload: {file_key}")
+    except Exception as e:
+        logger.error(f"Error generating thumbnail for {file_key}: {str(e)}")
 
 app = Flask(__name__)
 app.config.from_object('config.Config')
@@ -283,6 +303,10 @@ def upload_file():
                 db.session.add(order_item)
                 db.session.commit()
                 logger.info(f"Added order item for file: {new_filename}")
+
+                # Generate thumbnail in background
+                thread = threading.Thread(target=generate_thumbnail_for_file, args=(new_filename,))
+                thread.start()
 
                 # Only send emails after the last file
                 if request.form.get('is_last_file') == 'true':
