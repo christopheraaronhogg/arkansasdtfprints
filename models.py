@@ -1,6 +1,7 @@
 from datetime import datetime
 from app import db
 
+
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     order_number = db.Column(db.String(20), unique=True, nullable=False)
@@ -9,7 +10,7 @@ class Order(db.Model):
     email = db.Column(db.String(120), nullable=False)
     total_cost = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Keep UTC storage
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow)  # Added timezone=True
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
     def to_dict(self):

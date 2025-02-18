@@ -193,6 +193,17 @@ def send_order_emails(order):
         return False
 
 # Add this after initializing app but before routes
+@app.template_filter('to_central')
+def to_central_filter(dt):
+    """Convert UTC datetime to Central time"""
+    if dt is None:
+        return ""
+    # Make the datetime timezone-aware (UTC)
+    utc_dt = dt.replace(tzinfo=pytz.UTC)
+    # Convert to Central time
+    central_dt = utc_dt.astimezone(central)
+    return central_dt.strftime('%B %d, %Y %I:%M %p') + ' CST'
+
 @app.context_processor
 def utility_processor():
     """Make timezone objects available in templates"""
