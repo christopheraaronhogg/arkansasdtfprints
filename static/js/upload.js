@@ -326,10 +326,23 @@ const PrintUI = {
     },
 
     async handleFiles(files) {
+        const uploadContent = document.querySelector('.upload-content');
+        const uploadLoading = document.querySelector('.upload-loading');
+        const currentFileSpan = document.getElementById('currentFile');
+        const totalFilesSpan = document.getElementById('totalFiles');
+
+        // Show loading state
+        uploadContent.style.display = 'none';
+        uploadLoading.style.display = 'flex';
+        totalFilesSpan.textContent = files.length;
+
         let successCount = 0;
         let errorCount = 0;
 
-        for (const file of files) {
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            currentFileSpan.textContent = i + 1;
+
             try {
                 const { img, dimensions } = await this.loadImage(file);
                 const id = PrintCalculator.addImage(file, img, dimensions);
@@ -342,6 +355,10 @@ const PrintUI = {
                 this.showAlert(`Failed to process ${file.name}: ${error.message}`, 'error');
             }
         }
+
+        // Hide loading state
+        uploadContent.style.display = 'block';
+        uploadLoading.style.display = 'none';
 
         // Show summary toast for successful uploads
         if (successCount > 0) {
