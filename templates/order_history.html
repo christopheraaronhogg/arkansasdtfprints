@@ -55,13 +55,10 @@
 
             <!-- Right Column: Status & Cost -->
             <div class="order-actions">
-                <div class="status-badge" data-status="{{ order.status }}">
+                <span class="status-badge" data-status="{{ order.status }}">
                     {{ order.status|title }}
-                </div>
+                </span>
                 <div class="order-cost">${{ "%.2f"|format(order.total_cost) }}</div>
-                <a href="{{ url_for('view_order', order_id=order.id) }}" class="details-btn">
-                    <i class="fas fa-eye me-1" style="color: white !important;"></i>Details
-                </a>
             </div>
         </div>
         {% endfor %}
@@ -74,6 +71,115 @@
     <span class="close-modal" onclick="closePreviewModal()">&times;</span>
     <img id="modalImage" class="modal-image" src="" alt="Full size preview">
 </div>
+
+<style>
+/* Status badge styles */
+.status-badge {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 30px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.status-badge[data-status="pending"] {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.status-badge[data-status="processing"] {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.status-badge[data-status="completed"] {
+    background-color: #22c55e;
+    color: white;
+}
+
+/* Order cost styling */
+.order-cost {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #22c55e;
+    text-align: center;
+}
+
+/* Order item layout */
+.order-item {
+    display: grid;
+    grid-template-columns: 280px 1fr 150px;
+    gap: 1.5rem;
+    background: var(--surface-color);
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    align-items: start;
+    margin-bottom: 1rem;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .order-item {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    .order-images {
+        overflow-x: auto;
+        display: flex;
+        gap: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .img-container {
+        flex: 0 0 80px;
+        height: 80px;
+    }
+
+    .order-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+        margin-top: 0.5rem;
+    }
+}
+
+/* Preview modal styling */
+.preview-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-image {
+    max-width: 90vw;
+    max-height: 90vh;
+    object-fit: contain;
+}
+
+.close-modal {
+    position: absolute;
+    top: 20px;
+    right: 30px;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    z-index: 1001;
+}
+</style>
 
 <script>
 function searchOrders() {
