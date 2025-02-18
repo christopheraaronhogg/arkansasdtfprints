@@ -86,18 +86,12 @@ def generate_thumbnail_for_file(file_key):
     """Generate and store thumbnail for a single file"""
     try:
         thumbnail_key = get_thumbnail_key(file_key)
-
-        # Check if thumbnail already exists
         if not storage.get_file(thumbnail_key):
             file_data = storage.get_file(file_key)
             if file_data:
                 thumb_data = generate_thumbnail(file_data)
                 if thumb_data:
-                    storage.upload_file(
-                        BytesIO(thumb_data),
-                        thumbnail_key
-                    )
-                    logger.info(f"Generated thumbnail for new upload: {file_key}")
+                    storage.upload_file(BytesIO(thumb_data), thumbnail_key)
     except Exception as e:
         logger.error(f"Error generating thumbnail for {file_key}: {str(e)}")
 
@@ -253,8 +247,7 @@ def upload_file():
         file = request.files['file']
         try:
             file_details = json.loads(request.form.get('fileDetails', '{}'))
-        except json.JSONDecodeError as e:
-            logger.error(f"Invalid file details format: {str(e)}")
+        except json.JSONDecodeError:
             return jsonify({'error': 'Invalid file details'}), 400
 
         # Check file size

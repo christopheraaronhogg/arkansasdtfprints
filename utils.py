@@ -98,29 +98,27 @@ def validate_image(file_data):
     except Exception as e:
         return False, f"Error validating image: {str(e)}"
 
-def generate_thumbnail(image_data, max_size=(300, 300)):
-    """Generate a thumbnail from image data while maintaining aspect ratio"""
+def generate_thumbnail(image_data, max_size=(100, 100)):
+    """Generate a lightweight thumbnail from image data"""
     try:
         img = Image.open(BytesIO(image_data))
-        
+
         # Convert RGBA to RGB if necessary
         if img.mode == 'RGBA':
-            # Create a white background
             background = Image.new('RGB', img.size, (255, 255, 255))
-            # Paste using alpha channel as mask
             background.paste(img, mask=img.split()[3])
             img = background
         elif img.mode != 'RGB':
             img = img.convert('RGB')
-        
+
         # Calculate thumbnail size while maintaining aspect ratio
         img.thumbnail(max_size, Image.Resampling.LANCZOS)
-        
-        # Save thumbnail to bytes
+
+        # Save thumbnail with high compression
         thumb_io = BytesIO()
-        img.save(thumb_io, 'JPEG', quality=85, optimize=True)
+        img.save(thumb_io, 'JPEG', quality=65, optimize=True)
         thumb_io.seek(0)
-        
+
         return thumb_io.getvalue()
     except Exception as e:
         logger.error(f"Error generating thumbnail: {str(e)}")
