@@ -1,6 +1,8 @@
 import os
 import logging
 import json
+import pytz
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
@@ -13,7 +15,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
 from storage import ObjectStorage
 import zipfile
-from datetime import datetime, timedelta
 from werkzeug.serving import WSGIRequestHandler
 from config import Config
 from PIL import Image
@@ -43,7 +44,14 @@ except Exception as e:
     logger.error(f"Failed to initialize ObjectStorage: {str(e)}")
     raise
 
-# Add after storage initialization
+# Initialize timezone
+central = pytz.timezone('US/Central')
+
+# Add after storage initialization but before app initialization
+def get_central_time():
+    """Get current time in US Central timezone"""
+    return datetime.now(central)
+
 scheduler = BackgroundScheduler()
 
 def generate_thumbnails_task():
@@ -203,13 +211,14 @@ def create_order():
         if not email:
             return jsonify({'error': 'Missing email'}), 400
 
-        # Create order
+        # Create order with Central time
         order = Order(
             order_number=generate_order_number(),
             email=email,
             po_number=po_number,
             total_cost=total_cost,
-            status='pending'
+            status='pending',
+            created_at=get_central_time()
         )
         db.session.add(order)
         db.session.commit()

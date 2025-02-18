@@ -32,7 +32,7 @@
                 <div class="order-details">
                     <h5 class="order-number mb-1">{{ order.order_number }}</h5>
                     <div class="order-meta text-muted">
-                        {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}
+                        {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }} CST
                         {% if order.po_number %}
                         <br>PO Number: {{ order.po_number }}
                         {% endif %}
