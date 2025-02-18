@@ -162,6 +162,7 @@ body {
     border-radius: var(--radius-md);
     margin-bottom: 1rem;
     align-items: center;
+    border: 1px solid var(--border-color)
 }
 
 .filter-bar > * {

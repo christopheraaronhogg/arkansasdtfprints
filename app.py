@@ -188,6 +188,11 @@ def send_order_emails(order):
         logger.error(f"Error preparing emails: {str(e)}")
         return False
 
+# Add this after initializing app but before routes
+@app.context_processor
+def utility_processor():
+    return {'central': central}  # Make central timezone available in templates
+
 @app.route('/')
 def index():
     return render_template('index.html')
