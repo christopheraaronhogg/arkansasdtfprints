@@ -17,9 +17,6 @@
     <!-- Filter Bar -->
     <div class="filter-bar mb-4">
         <div class="d-flex flex-wrap align-items-center gap-3">
-            <div class="search-container flex-grow-1">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search orders (order #, PO #, amount...)" oninput="filterOrders()">
-            </div>
             <div class="status-toggle">
                 <div class="toggle-track">
                     <div class="toggle-slider"></div>
@@ -29,6 +26,9 @@
                         <span class="toggle-option" data-value="">All</span>
                     </div>
                 </div>
+            </div>
+            <div class="search-container flex-grow-1">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search orders (order #, PO #, amount...)" oninput="filterOrders()">
             </div>
             <input type="date" id="startDate" class="form-control" style="width: auto;" placeholder="Start Date">
             <input type="date" id="endDate" class="form-control" style="width: auto;" placeholder="End Date">
