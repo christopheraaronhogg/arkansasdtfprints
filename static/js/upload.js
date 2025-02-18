@@ -337,12 +337,12 @@ const PrintUI = {
         setTimeout(() => {
             uploadContent.style.display = 'none';
             uploadLoading.style.display = 'flex';
+            dropZone.classList.add('processing');
             requestAnimationFrame(() => {
-                uploadLoading.classList.add('show');
+                uploadLoading.style.opacity = '1';
             });
         }, 300);
 
-        dropZone.classList.add('processing');
         totalFilesSpan.textContent = files.length;
 
         let successCount = 0;
@@ -366,10 +366,10 @@ const PrintUI = {
         }
 
         // Hide loading state with animation
-        uploadLoading.classList.remove('show');
+        uploadLoading.style.opacity = '0';
         setTimeout(() => {
             uploadLoading.style.display = 'none';
-            uploadContent.style.display = 'block';
+            uploadContent.style.display = 'flex';
             dropZone.classList.remove('processing');
             requestAnimationFrame(() => {
                 uploadContent.style.opacity = '1';
