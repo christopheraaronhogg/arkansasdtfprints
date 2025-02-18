@@ -9,7 +9,7 @@ class Order(db.Model):
     email = db.Column(db.String(120), nullable=False)
     total_cost = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default='pending')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)  # Keep UTC storage
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
     def to_dict(self):

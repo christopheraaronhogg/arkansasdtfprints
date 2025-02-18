@@ -45,7 +45,9 @@ except Exception as e:
     raise
 
 # Initialize timezone
+import pytz
 central = pytz.timezone('US/Central')
+utc = pytz.UTC
 
 # Add after storage initialization but before app initialization
 def get_central_time():
@@ -193,8 +195,11 @@ def send_order_emails(order):
 # Add this after initializing app but before routes
 @app.context_processor
 def utility_processor():
-    """Make central timezone available in templates"""
-    return {'central': central}
+    """Make timezone objects available in templates"""
+    return {
+        'central': central,
+        'utc': utc
+    }
 
 @app.route('/')
 def index():
@@ -204,6 +209,7 @@ def index():
 def success():
     return render_template('success.html')
 
+# Remove created_at from order creation to use UTC default
 @app.route('/create-order', methods=['POST'])
 def create_order():
     """Create an order and return its ID for subsequent file uploads"""
@@ -220,14 +226,13 @@ def create_order():
         if not email:
             return jsonify({'error': 'Missing email'}), 400
 
-        # Create order with Central time
+        # Create order with default UTC time
         order = Order(
             order_number=generate_order_number(),
             email=email,
             po_number=po_number,
             total_cost=total_cost,
-            status='pending',
-            created_at=get_central_time()
+            status='pending'
         )
         db.session.add(order)
         db.session.commit()
