@@ -75,7 +75,7 @@
             <div class="card-icon"><i class="fas fa-calendar-alt"></i></div>
             <div class="info-label">Order Date</div>
             <div class="info-value">
-                {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }}
+                {{ order.created_at|to_central }}
             </div>
         </div>
 

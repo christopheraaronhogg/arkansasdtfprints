@@ -74,7 +74,7 @@
                 <div class="order-details">
                     <h5 class="order-number mb-1">{{ order.order_number }}</h5>
                     <div class="order-meta text-muted">
-                        {{ order.created_at.strftime('%B %d, %Y %I:%M %p') }} <br>
+                        {{ order.created_at|to_central }} <br>
                         {{ order.email }}
                         <br>
                         <button class="invoice-button" onclick="showSingleInvoiceModal({{ order.id }}, '{{ order.invoice_number or '' }}')">
@@ -902,7 +902,6 @@ body {
         padding: 1rem;
     }
 
-
     .order-actions {
         width: 100%;
         margin-left: 0;
@@ -977,7 +976,7 @@ function updateSelectedCount() {
     bulkActions.style.display = selectedCount > 0 ? 'block' : 'none';
 }
 
-// Update selected orders' status
+// Update selected orders'status
 async function updateSelectedStatus() {
     const selectedStatus = document.getElementById('bulkStatus').value;
     if (!selectedStatus) return;
