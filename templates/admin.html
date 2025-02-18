@@ -64,7 +64,7 @@
         <div class="order-item" 
              data-status="{{ order.status }}"
              data-date="{{ order.created_at.strftime('%Y-%m-%d') }}">
-            
+
             <!-- Left Column: Checkbox & Order Info -->
             <div class="info-container">
                 <div class="order-select">
@@ -532,21 +532,21 @@ body {
         gap: 1rem;
         padding: 1rem;
     }
-    
+
     .order-actions {
         width: 100%;
         border-top: 1px solid var(--border-color);
         padding-top: 1rem;
         margin-top: 0.5rem;
     }
-    
+
     .status-select,
     .order-cost,
     .details-btn {
         width: 100%;
         max-width: 100%;
     }
-    
+
     .order-cost {
         text-align: center;  /* Center text on narrow screens */
     }
@@ -901,9 +901,8 @@ body {
         gap: 1rem;
         padding: 1rem;
     }
-    
 
-    
+
     .order-actions {
         width: 100%;
         margin-left: 0;
@@ -921,7 +920,7 @@ body {
         height: 60px;
         padding-bottom: 0;  /* Remove the padding-bottom for mobile */
     }
-    
+
     .img-container img {
         position: relative;  /* Reset position for mobile */
     }
@@ -1042,7 +1041,7 @@ function applyFilters(statusOverride) {
                     order.style.display = 'flex';
                     order.style.opacity = '0';
                     order.style.transform = 'translateX(10px)';
-                    
+
                     requestAnimationFrame(() => {
                         order.style.transition = 'opacity 200ms ease, transform 200ms ease';
                         order.style.opacity = '1';
@@ -1054,7 +1053,7 @@ function applyFilters(statusOverride) {
                     order.style.transition = 'opacity 200ms ease, transform 200ms ease';
                     order.style.opacity = '0';
                     order.style.transform = 'translateX(-10px)';
-                    
+
                     setTimeout(() => {
                         order.style.display = 'none';
                     }, 200);
@@ -1125,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', function() {
             statusSelect.parentNode.insertBefore(wrapper, statusSelect);
             wrapper.appendChild(statusSelect);
         }
-        
+
         // Create status indicator if it doesn't exist
         let statusIndicator = statusSelect.nextElementSibling;
         if (!statusIndicator || !statusIndicator.classList.contains('status-indicator')) {
@@ -1133,22 +1132,22 @@ document.addEventListener('DOMContentLoaded', function() {
             statusIndicator.className = 'status-indicator';
             statusSelect.parentNode.appendChild(statusIndicator);
         }
-        
+
         // Set initial value
         statusSelect.setAttribute('value', statusSelect.value);
-        
+
         // Update value when changed
         statusSelect.addEventListener('change', async function() {
             const newStatus = this.value;
             const orderId = this.dataset.orderId;
             const orderItem = this.closest('.order-item');
             const oldStatus = orderItem.dataset.status;
-            
+
             // Always show loading state
             this.classList.add('loading');
             statusIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             statusIndicator.classList.add('show');
-            
+
             try {
                 const response = await fetch(`/admin/order/${orderId}/status`, {
                     method: 'POST',
@@ -1161,44 +1160,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok) {
                     // Update the select's value attribute for styling
                     this.setAttribute('value', newStatus);
-                    
+
                     // Show success feedback briefly
                     statusIndicator.innerHTML = '<i class="fas fa-check text-success"></i>';
-                    
+
                     // Update the order item's dataset
                     orderItem.dataset.status = newStatus;
-                    
+
                     // Get current filter state
                     const currentFilter = document.querySelector('.toggle-option.active').dataset.value;
-                    
+
                     // Determine if we need to move the order
                     const wasOpen = ['pending', 'processing'].includes(oldStatus);
                     const isClosed = newStatus === 'completed';
-                    
+
                     // Wait for the success indicator to be shown before moving
                     await new Promise(resolve => setTimeout(resolve, 500));
-                    
+
                     // Reset loading state before moving
                     this.classList.remove('loading');
                     statusIndicator.classList.remove('show');
-                    
+
                     if ((wasOpen && isClosed && currentFilter === 'open') || 
                         (!wasOpen && !isClosed && currentFilter === 'closed')) {
                         // Clone the row with updated status
                         const clonedRow = orderItem.cloneNode(true);
-                        
+
                         // Update the cloned row's status select and attributes
                         const clonedSelect = clonedRow.querySelector('.status-select');
                         if (clonedSelect) {
                             clonedSelect.value = newStatus;
                             clonedSelect.setAttribute('value', newStatus);
-                            
+
                             // Update selected state of options
                             clonedSelect.querySelectorAll('option').forEach(option => {
                                 option.selected = option.value === newStatus;
                             });
                         }
-                        
+
                         animateAndMove(orderItem, clonedRow, isClosed ? 'closed' : 'open');
                         // Reattach event listeners to cloned row
                         attachEventListeners(clonedRow);
@@ -1210,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error updating status:', error);
                 // Show error feedback
                 statusIndicator.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i>';
-                
+
                 // Reset after delay
                 setTimeout(() => {
                     this.classList.remove('loading');
@@ -1226,12 +1225,12 @@ function showFullSizePreview(imgElement) {
     const modal = document.getElementById('previewModal');
     const modalImg = document.getElementById('modalImage');
     const spinner = modal.querySelector('.loading-spinner');
-    
+
     // Show modal with spinner
     modal.style.display = 'flex';
     spinner.style.display = 'block';
     modalImg.style.display = 'none';
-    
+
     // Create new image to preload
     const fullImage = new Image();
     fullImage.onload = function() {
@@ -1315,14 +1314,14 @@ function toggleStatusDropdown(badge) {
 
                     // Get current filter state
                     const currentFilter = document.querySelector('.toggle-option.active').dataset.value;
-                    
+
                     // Determine visibility in current and other views
                     const isOpenOrder = ['pending', 'processing'].includes(newStatus);
                     const isClosedOrder = newStatus === 'completed';
-                    
+
                     // Clone the row for potential movement to another tab
                     const clonedRow = row.cloneNode(true);
-                    
+
                     // Handle visibility based on current view and new status
                     if (currentFilter === 'open' && !isOpenOrder) {
                         // Moving from open to closed
@@ -1359,36 +1358,36 @@ function toggleStatusDropdown(badge) {
 function animateAndMove(row, clonedRow, targetView) {
     // Shorter animation duration for smoother transitions
     const animationDuration = 200;
-    
+
     // Fade out from current view
     row.style.transition = `opacity ${animationDuration}ms ease, transform ${animationDuration}ms ease`;
     row.style.opacity = '0';
     row.style.transform = 'translateX(-10px)'; // Reduced movement for snappier feel
-    
+
     // Handle the transition sooner
     setTimeout(() => {
         // Remove from current view
         row.remove();
-        
+
         // Add to new view but keep it hidden until that tab is selected
         const orderList = document.querySelector('.order-list');
         if (orderList) {
             // Set initial styles for the cloned row
             clonedRow.style.display = 'none';
-            
+
             // Position the cloned row at the top of the list
             if (orderList.firstChild) {
                 orderList.insertBefore(clonedRow, orderList.firstChild);
             } else {
                 orderList.appendChild(clonedRow);
             }
-            
+
             // Update the display property based on the current view
             const currentFilter = document.querySelector('.toggle-option.active').dataset.value;
             const status = clonedRow.dataset.status;
             const isOpenOrder = ['pending', 'processing'].includes(status);
             const isClosedOrder = status === 'completed';
-            
+
             let shouldShow = false;
             if (currentFilter === 'open') {
                 shouldShow = isOpenOrder;
@@ -1397,12 +1396,12 @@ function animateAndMove(row, clonedRow, targetView) {
             } else {
                 shouldShow = true; // 'all' view
             }
-            
+
             if (shouldShow) {
                 clonedRow.style.display = 'flex';
                 clonedRow.style.opacity = '0';
                 clonedRow.style.transform = 'translateX(10px)'; // Reduced movement
-                
+
                 // Immediate animation for same-tab transitions
                 requestAnimationFrame(() => {
                     clonedRow.style.transition = `opacity ${animationDuration}ms ease, transform ${animationDuration}ms ease`;
@@ -1421,13 +1420,13 @@ function attachEventListeners(clonedRow) {
     if (statusBadge) {
         statusBadge.onclick = () => toggleStatusDropdown(statusBadge);
     }
-    
+
     // Reattach checkbox change handler
     const checkbox = clonedRow.querySelector('.order-checkbox');
     if (checkbox) {
         checkbox.onchange = () => updateSelectedCount();
     }
-    
+
     // Reattach image preview handlers
     const images = clonedRow.querySelectorAll('img[onclick]');
     images.forEach(img => {
@@ -1444,7 +1443,7 @@ function attachEventListeners(clonedRow) {
             statusSelect.parentNode.insertBefore(wrapper, statusSelect);
             wrapper.appendChild(statusSelect);
         }
-        
+
         // Create or get status indicator
         let statusIndicator = statusSelect.nextElementSibling;
         if (!statusIndicator || !statusIndicator.classList.contains('status-indicator')) {
@@ -1452,19 +1451,19 @@ function attachEventListeners(clonedRow) {
             statusIndicator.className = 'status-indicator';
             statusSelect.parentNode.appendChild(statusIndicator);
         }
-        
+
         // Add change event listener
         statusSelect.addEventListener('change', async function() {
             const newStatus = this.value;
             const orderId = this.dataset.orderId;
             const orderItem = this.closest('.order-item');
             const oldStatus = orderItem.dataset.status;
-            
+
             // Always show loading state
             this.classList.add('loading');
             statusIndicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             statusIndicator.classList.add('show');
-            
+
             try {
                 const response = await fetch(`/admin/order/${orderId}/status`, {
                     method: 'POST',
@@ -1477,44 +1476,44 @@ function attachEventListeners(clonedRow) {
                 if (response.ok) {
                     // Update the select's value attribute for styling
                     this.setAttribute('value', newStatus);
-                    
+
                     // Show success feedback briefly
                     statusIndicator.innerHTML = '<i class="fas fa-check text-success"></i>';
-                    
+
                     // Update the order item's dataset
                     orderItem.dataset.status = newStatus;
-                    
+
                     // Get current filter state
                     const currentFilter = document.querySelector('.toggle-option.active').dataset.value;
-                    
+
                     // Determine if we need to move the order
                     const wasOpen = ['pending', 'processing'].includes(oldStatus);
                     const isClosed = newStatus === 'completed';
-                    
+
                     // Wait for the success indicator to be shown before moving
                     await new Promise(resolve => setTimeout(resolve, 500));
-                    
+
                     // Reset loading state before moving
                     this.classList.remove('loading');
                     statusIndicator.classList.remove('show');
-                    
+
                     if ((wasOpen && isClosed && currentFilter === 'open') || 
                         (!wasOpen && !isClosed && currentFilter === 'closed')) {
                         // Clone the row with updated status
                         const clonedRow = orderItem.cloneNode(true);
-                        
+
                         // Update the cloned row's status select and attributes
                         const clonedSelect = clonedRow.querySelector('.status-select');
                         if (clonedSelect) {
                             clonedSelect.value = newStatus;
                             clonedSelect.setAttribute('value', newStatus);
-                            
+
                             // Update selected state of options
                             clonedSelect.querySelectorAll('option').forEach(option => {
                                 option.selected = option.value === newStatus;
                             });
                         }
-                        
+
                         animateAndMove(orderItem, clonedRow, isClosed ? 'closed' : 'open');
                         // Reattach event listeners to cloned row
                         attachEventListeners(clonedRow);
@@ -1526,7 +1525,7 @@ function attachEventListeners(clonedRow) {
                 console.error('Error updating status:', error);
                 // Show error feedback
                 statusIndicator.innerHTML = '<i class="fas fa-exclamation-circle text-danger"></i>';
-                
+
                 // Reset after delay
                 setTimeout(() => {
                     this.classList.remove('loading');
@@ -1563,7 +1562,7 @@ function confirmBulkDelete() {
         alert('Please select at least one order to delete.');
         return;
     }
-    
+
     document.getElementById('deleteConfirmModal').style.display = 'flex';
 }
 
@@ -1574,7 +1573,7 @@ function closeDeleteModal() {
 function executeBulkDelete() {
     const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
         .map(checkbox => checkbox.dataset.orderId);
-    
+
     if (selectedOrders.length === 0) {
         closeDeleteModal();
         return;
@@ -1600,10 +1599,10 @@ function executeBulkDelete() {
                     orderElement.remove();
                 }
             });
-            
+
             // Update bulk actions visibility
             updateSelectedCount();
-            
+
             // Show success message
             alert(`Successfully deleted ${data.deleted} orders.`);
         } else {
@@ -1625,7 +1624,7 @@ function showInvoiceModal() {
         alert('Please select at least one order to update.');
         return;
     }
-    
+
     document.getElementById('invoiceModal').style.display = 'flex';
     document.getElementById('invoiceNumber').value = '';
     document.getElementById('invoiceFeedback').textContent = '';
@@ -1638,10 +1637,10 @@ function closeInvoiceModal() {
 async function executeBulkInvoiceUpdate() {
     const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
         .map(checkbox => parseInt(checkbox.dataset.orderId));
-    
+
     const invoiceNumber = document.getElementById('invoiceNumber').value;
     const feedback = document.getElementById('invoiceFeedback');
-    
+
     try {
         const response = await fetch('/admin/bulk-invoice-update', {
             method: 'POST',
@@ -1653,9 +1652,9 @@ async function executeBulkInvoiceUpdate() {
                 invoice_number: invoiceNumber
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
             closeInvoiceModal();
             alert(`Successfully updated ${data.updated} orders with invoice number: ${invoiceNumber}`);
@@ -1678,11 +1677,11 @@ function showSingleInvoiceModal(orderId, currentInvoiceNumber) {
     const modal = document.getElementById('singleInvoiceModal');
     const input = document.getElementById('singleInvoiceNumber');
     const feedback = document.getElementById('singleInvoiceFeedback');
-    
+
     input.value = currentInvoiceNumber;
     feedback.textContent = '';
     feedback.className = 'feedback mt-2';
-    
+
     modal.style.display = 'flex';
 }
 
@@ -1694,11 +1693,11 @@ function closeSingleInvoiceModal() {
 
 async function executeSingleInvoiceUpdate() {
     if (!currentOrderId) return;
-    
+
     const input = document.getElementById('singleInvoiceNumber');
     const feedback = document.getElementById('singleInvoiceFeedback');
     const invoiceNumber = input.value.trim();
-    
+
     try {
         const response = await fetch('/update-invoice-number', {
             method: 'POST',
@@ -1710,9 +1709,9 @@ async function executeSingleInvoiceUpdate() {
                 invoice_number: invoiceNumber
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (response.ok) {
             // Update the button text in the list
             const orderItem = document.querySelector(`.order-item [onclick*="${currentOrderId}"]`);
@@ -1722,7 +1721,7 @@ async function executeSingleInvoiceUpdate() {
                     ${invoiceNumber ? `Invoice: ${invoiceNumber}` : 'Add Invoice Number'}
                 `;
             }
-            
+
             closeSingleInvoiceModal();
             showToast('Invoice number updated successfully', 'success');
         } else {
@@ -1749,17 +1748,17 @@ function showToast(message, type = 'success') {
             <i class="fas fa-times"></i>
         </button>
     `;
-    
+
     let container = document.querySelector('.toast-container');
     if (!container) {
         container = document.createElement('div');
         container.className = 'toast-container';
         document.body.appendChild(container);
     }
-    
+
     container.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('toast-showing'));
-    
+
     setTimeout(() => {
         toast.classList.remove('toast-showing');
         toast.classList.add('toast-hiding');
