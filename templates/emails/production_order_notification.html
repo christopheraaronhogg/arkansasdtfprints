@@ -53,7 +53,7 @@
             <div class="item">
                 <div class="preview-container">
                     <a href="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key, _external=True, _scheme='https') }}" target="_blank">
-                        <img class="preview-img" src="{{ url_for('get_order_thumbnail', order_id=order.id, filename=item.file_key, _external=True, _scheme='https') }}" alt="Preview of item {{ loop.index }}">
+                        <img class="preview-img" src="{{ get_smart_image_url(order.id, item.file_key) }}" alt="Preview of item {{ loop.index }}">
                     </a>
                     <span class="quantity-badge">{{ item.quantity }}x</span>
                 </div>

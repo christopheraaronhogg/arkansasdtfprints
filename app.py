@@ -215,12 +215,37 @@ def to_central_filter(dt):
 
     return formatted
 
+# Add new helper function after the existing helper functions but before routes
+def get_smart_image_url(order_id, filename, external=True, scheme='https'):
+    """
+    Get the most appropriate image URL based on thumbnail availability.
+    Returns thumbnail URL if available, otherwise returns full image URL.
+    """
+    thumbnail_key = get_thumbnail_key(filename)
+    try:
+        if storage.get_file(thumbnail_key):
+            return url_for('get_order_thumbnail', 
+                         order_id=order_id, 
+                         filename=filename, 
+                         _external=external, 
+                         _scheme=scheme)
+    except Exception as e:
+        logger.debug(f"Error checking thumbnail {thumbnail_key}: {str(e)}")
+
+    # Fallback to full image if thumbnail not available
+    return url_for('get_order_image', 
+                  order_id=order_id, 
+                  filename=filename, 
+                  _external=external, 
+                  _scheme=scheme)
+
 @app.context_processor
 def utility_processor():
-    """Make timezone objects available in templates"""
+    """Make utility functions available in templates"""
     return {
         'central': central,
-        'utc': utc
+        'utc': utc,
+        'get_smart_image_url': get_smart_image_url
     }
 
 @app.route('/')
