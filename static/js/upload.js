@@ -489,6 +489,20 @@ const PrintUI = {
         const modalImg = document.getElementById('modalImage');
         modalImg.src = src;
         modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+
+        // Remove any existing modal-content wrapper
+        const existingWrapper = modal.querySelector('.modal-content');
+        if (existingWrapper) {
+            // Move the image and close button out of the wrapper
+            modal.appendChild(modalImg);
+            const closeBtn = existingWrapper.querySelector('.close-modal');
+            if (closeBtn) {
+                modal.appendChild(closeBtn);
+            }
+            existingWrapper.remove();
+        }
 
         // Close modal handlers
         modal.querySelector('.close-modal').onclick = () => {
