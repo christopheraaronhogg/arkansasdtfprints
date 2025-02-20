@@ -233,9 +233,13 @@ const PrintUI = {
         }
         this.totalDisplay = document.getElementById('totalCost');
         this.setupEventListeners();
+    },
 
-        // Add initial checkerboard pattern to dropZone
-        if (this.dropZone) {
+    setupEventListeners() {
+        this.dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            this.dropZone.classList.add('dragover');
+            // Add checkerboard pattern only during dragover
             this.dropZone.style.backgroundImage = `
                 linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
                 linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
@@ -245,29 +249,21 @@ const PrintUI = {
             this.dropZone.style.backgroundSize = '20px 20px';
             this.dropZone.style.backgroundPosition = '0 0, 0 10px, 10px -10px, -10px 0px';
             this.dropZone.style.backgroundColor = '#f0f0f0';
-        }
-    },
-
-    setupEventListeners() {
-        this.dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            this.dropZone.classList.add('dragover');
-            // Enhance checkerboard visibility during dragover
-            this.dropZone.style.backgroundSize = '30px 30px'; // Slightly larger pattern
-            this.dropZone.style.transition = 'all 0.3s ease';
         });
 
         this.dropZone.addEventListener('dragleave', () => {
             this.dropZone.classList.remove('dragover');
-            // Reset to original pattern size
-            this.dropZone.style.backgroundSize = '20px 20px';
+            // Remove checkerboard pattern
+            this.dropZone.style.backgroundImage = 'none';
+            this.dropZone.style.backgroundColor = '';
         });
 
         this.dropZone.addEventListener('drop', async (e) => {
             e.preventDefault();
             this.dropZone.classList.remove('dragover');
-            // Reset to original pattern size
-            this.dropZone.style.backgroundSize = '20px 20px';
+            // Remove checkerboard pattern
+            this.dropZone.style.backgroundImage = 'none';
+            this.dropZone.style.backgroundColor = '';
 
             const files = [...e.dataTransfer.files].filter(f => f.type === 'image/png');
 
