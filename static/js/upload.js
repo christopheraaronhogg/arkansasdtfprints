@@ -504,6 +504,39 @@ const PrintUI = {
             existingWrapper.remove();
         }
 
+        // Style the close button to be more visible
+        const closeBtn = modal.querySelector('.close-modal');
+        if (closeBtn) {
+            closeBtn.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(255, 255, 255, 0.2);
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                font-size: 24px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background-color 0.3s;
+                z-index: 1001;
+            `;
+        }
+
+        // Add hover effect to close button
+        if (closeBtn) {
+            closeBtn.onmouseover = () => {
+                closeBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+            };
+            closeBtn.onmouseout = () => {
+                closeBtn.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+            };
+        }
+
         // Close modal handlers
         modal.querySelector('.close-modal').onclick = () => {
             modal.style.display = 'none';
