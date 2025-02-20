@@ -936,7 +936,6 @@ form .submit-btn::after {
 
 .preview-content {
     position: relative;
-    margin-bottom: 1rem;
 }
 
 .preview-image {
@@ -1357,7 +1356,7 @@ form .submit-btn::after {
 .cost-display {
     margin-top: auto;
     border-top: 1px solid var(--border-color);
-    padding: 1rem;
+    padding: 1rem 1rem 0rem 1rem;
     background: var(--surface-color);
 }
 
@@ -1770,4 +1769,35 @@ form .submit-btn::after {
 .order-detail-page .status-select {
     min-width: unset;
     width: 100%;
+}
+
+/* Add checkerboard pattern to preview sections */
+.preview-section, .img-container {
+    background-image: linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+        linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+        linear-gradient(-45deg, transparent 75%, #e0e0e0 75%) !important;
+    background-size: 20px 20px !important;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px !important;
+    background-color: #f0f0f0 !important;
+}
+
+.preview-section {
+    position: relative;
+    width: 100%;
+    padding-top: 75%; /* 4:3 aspect ratio */
+    overflow: hidden;
+    background: var(--surface-color);
+}
+
+.preview-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    padding: 1rem;
 }
