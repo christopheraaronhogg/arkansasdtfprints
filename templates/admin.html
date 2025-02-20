@@ -97,8 +97,7 @@
                     <img src="{{ url_for('get_order_thumbnail', order_id=order.id, filename=item.file_key) }}"
                          alt="Preview of {{ item.file_key }}"
                          data-full-image="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
-                         onclick="showFullSizePreview(this)"
-                         style="mix-blend-mode: multiply;">
+                         onclick="showFullSizePreview(this)">
                 </div>
                 {% endfor %}
             </div>
@@ -962,8 +961,7 @@ body {
 .status-select option[value="processing"],
 .status-select:has(option[value="processing"]:checked) {
     background-color: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
-    border-color: #3b82f6;
+    color: #3b82f6;border-color: #3b82f6;
 }
 
 .status-select[value="pending"],
