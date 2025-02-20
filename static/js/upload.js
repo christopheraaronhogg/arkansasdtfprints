@@ -512,6 +512,17 @@ const PrintUI = {
             existingWrapper.remove();
         }
 
+        // Add checkerboard pattern background to modal
+        modal.style.backgroundImage = `
+            linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+            linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+            linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+            linear-gradient(-45deg, transparent 75%, #e0e0e0 75%)
+        `;
+        modal.style.backgroundColor = '#f0f0f0';
+        modal.style.backgroundSize = '20px 20px';
+        modal.style.backgroundPosition = '0 0, 0 10px, 10px -10px, -10px 0px';
+
         // Style the close button to be more visible
         const closeBtn = modal.querySelector('.close-modal');
         if (closeBtn) {
