@@ -103,20 +103,16 @@ def generate_thumbnail(image_data, max_size=(100, 100)):
     try:
         img = Image.open(BytesIO(image_data))
 
-        # Convert RGBA to RGB if necessary
-        if img.mode == 'RGBA':
-            background = Image.new('RGB', img.size, (255, 255, 255))
-            background.paste(img, mask=img.split()[3])
-            img = background
-        elif img.mode != 'RGB':
-            img = img.convert('RGB')
+        # Keep original mode (RGBA or RGB)
+        if img.mode not in ('RGBA', 'RGB'):
+            img = img.convert('RGBA')
 
         # Calculate thumbnail size while maintaining aspect ratio
         img.thumbnail(max_size, Image.Resampling.LANCZOS)
 
-        # Save thumbnail with high compression
+        # Save thumbnail as PNG to preserve transparency
         thumb_io = BytesIO()
-        img.save(thumb_io, 'JPEG', quality=65, optimize=True)
+        img.save(thumb_io, 'PNG', optimize=True)
         thumb_io.seek(0)
 
         return thumb_io.getvalue()
@@ -127,4 +123,4 @@ def generate_thumbnail(image_data, max_size=(100, 100)):
 def get_thumbnail_key(file_key):
     """Generate the storage key for a thumbnail"""
     name, ext = os.path.splitext(file_key)
-    return f"{name}-min.jpg"
+    return f"{name}-min.png"

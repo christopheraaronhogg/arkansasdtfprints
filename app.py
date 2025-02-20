@@ -646,7 +646,7 @@ def get_order_thumbnail(order_id, filename):
             if thumb_data:
                 return Response(
                     thumb_data,
-                    mimetype='image/jpeg',
+                    mimetype='image/png',
                     headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
                 )
         except Exception as e:
@@ -660,7 +660,7 @@ def get_order_thumbnail(order_id, filename):
 
         thumb_data = generate_thumbnail(file_data)
         if thumb_data:
-            # Save the generated thumbnail for future use - without content_type
+            # Save the generated thumbnail for future use
             try:
                 storage.upload_file(
                     BytesIO(thumb_data),
@@ -672,7 +672,7 @@ def get_order_thumbnail(order_id, filename):
 
             return Response(
                 thumb_data,
-                mimetype='image/jpeg',
+                mimetype='image/png',
                 headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
             )
 
