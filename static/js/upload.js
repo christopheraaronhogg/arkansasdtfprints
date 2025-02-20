@@ -411,7 +411,15 @@ const PrintUI = {
 
         container.innerHTML = `
             <div class="preview-content">
-                <div class="preview-section">
+                <div class="preview-section" style="
+                    background-image: linear-gradient(45deg, #e0e0e0 25%, transparent 25%),
+                        linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
+                        linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
+                        linear-gradient(-45deg, transparent 75%, #e0e0e0 75%);
+                    background-size: 20px 20px;
+                    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+                    background-color: #f0f0f0;
+                ">
                     <button class="delete-btn" title="Remove image">
                         <i class="fas fa-times"></i>
                     </button>
