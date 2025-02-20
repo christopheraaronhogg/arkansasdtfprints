@@ -92,13 +92,12 @@
             <!-- Middle Column: Images -->
             <div class="order-images">
                 {% for item in order.items %}
-                <div class="img-container" style="background-size: 10px 10px !important;">
+                <div class="img-container">
                     <div class="img-count-badge">{{ item.quantity }}x</div>
                     <img src="{{ url_for('get_order_thumbnail', order_id=order.id, filename=item.file_key) }}"
                          alt="Preview of {{ item.file_key }}"
                          data-full-image="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
-                         onclick="showFullSizePreview(this)"
-                         style="mix-blend-mode: multiply;">
+                         onclick="showFullSizePreview(this)">
                 </div>
                 {% endfor %}
             </div>
@@ -854,6 +853,7 @@ body {
     justify-content: start;
 }
 
+/* Image container styling */
 .img-container {
     position: relative;
     width: 100%;
@@ -865,6 +865,7 @@ body {
         linear-gradient(-45deg, #e0e0e0 25%, transparent 25%),
         linear-gradient(45deg, transparent 75%, #e0e0e0 75%),
         linear-gradient(-45deg, transparent 75%, #e0e0e0 75%) !important;
+    background-size: 10px 10px !important;
     background-position: 0 0, 0 5px, 5px -5px, -5px 0px !important;
     background-color: #f0f0f0 !important;
 }
@@ -875,7 +876,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     padding: 4px;
 }
 
@@ -962,8 +963,7 @@ body {
 .status-select option[value="processing"],
 .status-select:has(option[value="processing"]:checked) {
     background-color: rgba(59, 130, 246, 0.1);
-    color: #3b82f6;
-    border-color: #3b82f6;
+    color: #3b82f6;    border-color: #3b82f6;
 }
 
 .status-select[value="pending"],
