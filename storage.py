@@ -4,6 +4,7 @@ from replit.object_storage import Client as ObjectStorageClient
 import time
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)  # Set to DEBUG for more detailed logs
 
 BUCKET_ID = "replit-objstore-c3fb67d8-cc58-4f6a-8303-0ada7212ebd1"
 
@@ -24,8 +25,9 @@ class ObjectStorage:
                 # Initialize with specific bucket ID
                 self.client = ObjectStorageClient(bucket_id=BUCKET_ID)
                 # Test the connection by listing bucket contents
-                self.client.list()
+                files = self.client.list()
                 logger.info(f"Successfully initialized Replit Object Storage client for bucket: {BUCKET_ID}")
+                logger.debug(f"Found {len(files)} files in bucket")
                 return
             except Exception as e:
                 last_error = e
@@ -42,6 +44,7 @@ class ObjectStorage:
         attempt = 0
         while attempt < self.max_retries:
             try:
+                logger.debug(f"Attempting to upload file: {filename}")
                 # Read file content
                 file_content = file_data.read()
                 # Upload using the client's method
@@ -66,7 +69,9 @@ class ObjectStorage:
             try:
                 logger.debug(f"Attempting to retrieve file {filename}")
                 # Download file content as bytes
-                return self.client.download_as_bytes(filename)
+                data = self.client.download_as_bytes(filename)
+                logger.info(f"Successfully retrieved file {filename} from storage")
+                return data
             except Exception as e:
                 attempt += 1
                 if attempt < self.max_retries:
@@ -93,20 +98,12 @@ class ObjectStorage:
                     logger.error(f"Error deleting file from object storage after {self.max_retries} attempts: {str(e)}")
                     return False
 
-    def delete_file_no_retry(self, filename):
-        """Delete a file from object storage without retries"""
-        try:
-            self.client.delete(filename)
-            logger.info(f"Successfully deleted file {filename} from storage")
-            return True
-        except Exception as e:
-            logger.warning(f"Could not delete file {filename}: {str(e)}")
-            return False
-
     def list_files(self):
         """List all files in the bucket"""
         try:
-            return self.client.list()
+            files = self.client.list()
+            logger.info(f"Successfully listed {len(files)} files from storage")
+            return files
         except Exception as e:
             logger.error(f"Error listing files in storage: {str(e)}")
             return []
