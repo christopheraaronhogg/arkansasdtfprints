@@ -5,7 +5,7 @@ import time
 
 logger = logging.getLogger(__name__)
 
-BUCKET_ID = "replit-objstore-b9495cba-12af-4e41-8388-3c12c11e5b8a"
+BUCKET_ID = "replit-objstore-c3fb67d8-cc58-4f6a-8303-0ada7212ebd1"
 
 class ObjectStorage:
     def __init__(self, max_retries=3, retry_delay=1):
