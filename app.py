@@ -149,7 +149,7 @@ with app.app_context():
             email='admin@appareldecorating.net',
             is_admin=True
         )
-        admin_user.set_password('admin')  # Change this password!
+        admin_user.set_password('Stitches1')  # Changed password to Stitches1
         db.session.add(admin_user)
         db.session.commit()
     logger.info("Database tables created successfully")
