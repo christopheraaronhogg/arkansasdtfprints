@@ -125,7 +125,10 @@
 <div id="previewModal" class="modal preview-modal">
     <span class="close-modal" onclick="closePreviewModal()">&times;</span>
     <img id="modalImage" class="modal-image" src="" alt="Full size preview">
-    <div class="loading-spinner" style="display: none;">Loading...</div>
+    <div id="modalLoading" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i>
+        Loading...
+    </div>
 </div>
 
 <!-- Add confirmation modal -->
@@ -775,26 +778,58 @@ body {
     margin-bottom: 0;
 }
 
-
 .preview-modal {
-    z-index: 1000;
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
 }
 
-.preview-modal img {
+.modal-image {
     max-width: 90vw;
     max-height: 90vh;
     object-fit: contain;
+    display: none;
+}
+
+.loading-spinner {
+    color: white;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.loading-spinner i {
+    font-size: 1.5rem;
 }
 
 .close-modal {
     position: absolute;
     top: 20px;
     right: 30px;
-    color: #fff;
+    color: white;
     font-size: 2rem;
     cursor: pointer;
     z-index: 1001;
+    background: rgba(255, 255, 255, 0.2);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.close-modal:hover {
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
 /* Dropdown styling */
@@ -933,10 +968,9 @@ body {
 }
 
 /* Status Select Styling */
-.status-select {
-    padding: 0.5rem 1rem;
+.status-select {    padding: 0.5rem 1rem;
     font-size: 0.9rem;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radiussm);
     border-color: var(--border-color);
     min-width: 140px;
     font-weight: 500;
@@ -970,6 +1004,11 @@ body {
     background-color: rgba(245, 158, 11, 0.1);
     color: var(--warning-color);
     border-color: var(--warning-color);
+}
+
+.loading {
+    opacity: 0.5;
+    pointer-events: none;
 }
 </style>
 
@@ -1229,35 +1268,47 @@ document.addEventListener('DOMContentLoaded', function() {
 function showFullSizePreview(imgElement) {
     const modal = document.getElementById('previewModal');
     const modalImg = document.getElementById('modalImage');
-    const spinner = modal.querySelector('.loading-spinner');
+    const loadingSpinner = document.getElementById('modalLoading');
 
     // Show modal with spinner
     modal.style.display = 'flex';
-    spinner.style.display = 'block';
+    loadingSpinner.style.display = 'flex';
     modalImg.style.display = 'none';
 
-    // Create new image to preload
-    const fullImage = new Image();
-    fullImage.onload = function() {
+    // Load the full size image
+    modalImg.src = imgElement.dataset.fullImage;
+
+    modalImg.onload = function() {
         // Hide spinner and show image once loaded
-        spinner.style.display = 'none';
-        modalImg.src = this.src;
+        loadingSpinner.style.display = 'none';
         modalImg.style.display = 'block';
     };
-    fullImage.src = imgElement.dataset.fullImage;
+
+    modalImg.onerror = function() {
+        loadingSpinner.innerHTML = '<i class="fas fa-exclamation-circle"></i> Failed to load image';
+        loadingSpinner.style.color = '#ef4444';
+    };
 }
 
 function closePreviewModal() {
-    document.getElementById('previewModal').style.display = 'none';
+    const modal = document.getElementById('previewModal');
+    const modalImg = document.getElementById('modalImage');
+    const loadingSpinner = document.getElementById('modalLoading');
+
+    modal.style.display = "none";
+    modalImg.src = "";
+    loadingSpinner.style.display = "none";
+    loadingSpinner.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+    loadingSpinner.style.color = 'inherit';
 }
 
 // Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const previewModal = document.getElementById('previewModal');
-    if (event.target === previewModal) {
-        previewModal.style.display = 'none';
+window.onclick = function(event) {
+    const modal = document.getElementById('previewModal');
+    if (event.target === modal) {
+        closePreviewModal();
     }
-});
+}
 
 
 function toggleStatusDropdown(badge) {
