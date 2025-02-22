@@ -828,64 +828,20 @@ def delete_orders():
             return jsonify({'error': 'Missing order IDs'}), 400
 
         order_ids = data['order_ids']
-        deleted_count = 0
-        errors =[]
 
-        # Process each order
-        for order_id in order_ids:
-            try:
-                order = Order.query.get(order_id)
-                if order:
-                    # Delete associated files from storage
-                    for item in order.items:
-                        try:
-                            # Delete the original file
-                            if storage.get_file(item.file_key):
-                                storage.delete_file(item.file_key)
-                                logger.info(f"Deleted file: {item.file_key}")
+        # Delete orders
+        deleted = Order.query.filter(Order.id.in_(order_ids)).delete(
+            synchronize_session=False
+        )
 
-                            # Delete the thumbnail if it exists
-                            thumbnail_key = get_thumbnail_key(item.file_key)
-                            if storage.get_file(thumbnail_key):
-                                storage.delete_file(thumbnail_key)
-                                logger.info(f"Deleted thumbnail: {thumbnail_key}")
-                        except Exception as e:
-                            logger.error(f"Error deleting files for order {order_id}, item {item.file_key}: {str(e)}")
-                            errors.append(f"Failed to delete files for order {order_id}")
-
-                    # Delete the order and its items (cascade delete will handle OrderItems)
-                    db.session.delete(order)
-                    deleted_count += 1
-                    logger.info(f"Deleted order: {order_id}")
-
-            except Exception as e:
-                logger.error(f"Error processing order {order_id}: {str(e)}")
-                errors.append(f"Failed to process order {order_id}")
-                continue
-
-        # Commit the transaction
-        try:
-            db.session.commit()
-            message = f"Successfully deleted {deleted_count} orders"
-            if errors:
-                message += f" with {len(errors)} errors"
-
-            return jsonify({
-                'success': True,
-                'message': message,
-                'deleted_count': deleted_count,
-                'errors': errors
-            })
-
-        except Exception as e:
-            logger.error(f"Error committing transaction: {str(e)}")
-            db.session.rollback()
-            return jsonify({
-                'error': 'Failed to delete orders: Database error',
-                'details': str(e)
-            }), 500
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': f'Successfully deleted {deleted} orders',
+            'deleted_count': deleted
+        })
 
     except Exception as e:
-        logger.error(f"Error in delete_orders: {str(e)}")
+        logger.error(f"Error deleting orders: {str(e)}")
         db.session.rollback()
         return jsonify({'error': f'Failed to delete orders: {str(e)}'}), 500

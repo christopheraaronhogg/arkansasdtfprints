@@ -962,7 +962,8 @@ body {
         padding-bottom: 0;  /* Remove the padding-bottom for mobile */
     }
 
-    .img-container img {        position: relative;  /* Reset position for mobile */
+    .img-container img {
+        position: relative;  /* Reset position for mobile */
     }
 }
 
@@ -1390,14 +1391,13 @@ function toggleStatusDropdown(badge) {
                     if (clonedRow.parentNode) {
                         attachEventListeners(clonedRow);
                     }
-                    } else {
-                        console.error('Failed to update status');
-                    }
-                } catch (error) {
-                    console.error('Error updating status:', error);
+                } else {
+                    console.error('Failed to update status');
                 }
-            };
-        });
+            } catch (error) {
+                console.error('Error updating status:', error);
+            }
+        };
     });
 
     // Close dropdown when clicking outside
@@ -1613,65 +1613,63 @@ function initStatusToggle() {
 }
 
 function confirmBulkDelete() {
-    document.getElementById('deleteConfirmModal').style.display = "flex";
-}
-
-function closeDeleteModal() {
-    document.getElementById('deleteConfirmModal').style.display = "none";
-}
-
-function executeBulkDelete() {
-    const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
-    const orderIds = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.orderId));
-
-    if (orderIds.length === 0) {
-        alert('Please select at least one order to delete');
+    const selectedCount = document.querySelectorAll('.order-checkbox:checked').length;
+    if (selectedCount === 0) {
+        alert('Please select at least one order to delete.');
         return;
     }
 
-    fetch('/admin/delete-orders', {
+    document.getElementById('deleteConfirmModal').style.display = 'flex';
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteConfirmModal').style.display = 'none';
+}
+
+function executeBulkDelete() {
+    const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+        .map(checkbox => checkbox.dataset.orderId);
+
+    if (selectedOrders.length === 0) {
+        closeDeleteModal();
+        return;
+    }
+
+    fetch('/admin/bulk-delete', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
         },
-        body: JSON.stringify({ order_ids: orderIds }),
-        credentials: 'same-origin'
+        body: JSON.stringify({
+            order_ids: selectedOrders
+        })
     })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(err => Promise.reject(err));
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         if (data.success) {
             // Remove deleted orders from the DOM
-            orderIds.forEach(id => {
-                const orderElement = document.querySelector(`.order-checkbox[data-order-id="${id}"]`).closest('.order-item');
+            selectedOrders.forEach(orderId => {
+                const orderElement = document.querySelector(`.order-checkbox[data-order-id="${orderId}"]`)
+                    .closest('.order-item');
                 if (orderElement) {
                     orderElement.remove();
                 }
             });
 
-            // Update the selected count
+            // Update bulk actions visibility
             updateSelectedCount();
 
-            // Close the modal
-            closeDeleteModal();
-
             // Show success message
-            alert(`Successfully deleted ${data.deleted_count} orders`);
-
-            // Refresh the page to ensure everything is up to date
-            window.location.reload();
+            alert(`Successfully deleted ${data.deleted} orders.`);
         } else {
-            alert(`Deletion failed: ${data.error}`);
+            throw new Error(data.error || 'Failed to delete orders');
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(`Failed to delete orders: ${error.message || 'Unknown error occurred'}`);
+        alert('Failed to delete orders: ' + error.message);
+    })
+    .finally(() => {
         closeDeleteModal();
     });
 }
