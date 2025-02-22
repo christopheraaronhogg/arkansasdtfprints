@@ -24,6 +24,8 @@ import shutil
 from apscheduler.schedulers.background import BackgroundScheduler
 import threading
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFProtect # Added import for CSRF protection
+
 
 # Set longer timeout for the server
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -135,6 +137,9 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 
 db.init_app(app)
 mail.init_app(app)
+
+csrf = CSRFProtect() # Initialize CSRF protection
+csrf.init_app(app) # Initialize CSRF protection
 
 from models import Order, OrderItem, User
 from utils import allowed_file, generate_order_number, calculate_cost, get_image_dimensions, generate_thumbnail, get_thumbnail_key
@@ -823,11 +828,21 @@ def delete_orders():
         return jsonify({'error': 'Unauthorized access'}), 401
 
     try:
+        if not request.is_json:
+            return jsonify({'error': 'Invalid request format'}), 400
+
         data = request.get_json()
         if not data or 'order_ids' not in data:
             return jsonify({'error': 'Missing order IDs'}), 400
 
         order_ids = data['order_ids']
+
+        # Verify that order_ids is a list and contains valid integers
+        if not isinstance(order_ids, list) or not all(isinstance(id, int) or str(id).isdigit() for id in order_ids):
+            return jsonify({'error': 'Invalid order IDs format'}), 400
+
+        # Convert string IDs to integers
+        order_ids = [int(id) for id in order_ids]
 
         # Delete orders
         deleted = Order.query.filter(Order.id.in_(order_ids)).delete(
@@ -835,6 +850,9 @@ def delete_orders():
         )
 
         db.session.commit()
+
+        logger.info(f"Successfully deleted {deleted} orders with IDs: {order_ids}")
+
         return jsonify({
             'success': True,
             'message': f'Successfully deleted {deleted} orders',

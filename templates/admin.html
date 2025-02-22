@@ -1821,5 +1821,67 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// Add this script at the end of admin.html, before the closing {% endblock %}
+
+<script>
+// Function to get CSRF token from meta tag
+function getCSRFToken() {
+    return document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+}
+
+// Function to confirm and execute bulk delete
+function confirmBulkDelete() {
+    const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+        .map(checkbox => checkbox.dataset.orderId);
+
+    if (selectedOrders.length === 0) {
+        alert('Please select at least one order to delete');
+        return;
+    }
+
+    // Show confirmation modal
+    document.getElementById('deleteConfirmModal').style.display = 'flex';
+}
+
+// Function to execute the bulk delete
+function executeBulkDelete() {
+    const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
+        .map(checkbox => checkbox.dataset.orderId);
+
+    fetch('/admin/delete-orders', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCSRFToken() // Add CSRF token to headers
+        },
+        body: JSON.stringify({
+            order_ids: selectedOrders
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Refresh the page to show updated list
+            window.location.reload();
+        } else {
+            alert(data.error || 'Failed to delete orders');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete orders. Please try again.');
+    })
+    .finally(() => {
+        closeDeleteModal();
+    });
+}
+
+// Function to close the delete confirmation modal
+function closeDeleteModal() {
+    document.getElementById('deleteConfirmModal').style.display = 'none';
+}
 </script>
+
 {% endblock %}
