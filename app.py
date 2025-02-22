@@ -809,7 +809,7 @@ def send_order_emails_api():
         order = Order.query.get(order_id)
         if not order:
             return jsonify({'error': 'Order not found'}), 404
-
+        
         success = send_order_emails(order)
         return jsonify({'success': success})
     except Exception as e:
@@ -830,7 +830,9 @@ def delete_orders():
         order_ids = data['order_ids']
 
         # Get all orders with their items
-        orders = Order.query.filter(Order.id.in_(order_ids)).all()        # Collect all file keys to delete
+        orders = Order.query.filter(Order.id.in_(order_ids)).all()
+
+        # Collect all file keys to delete
         file_keys = []
         for order in orders:
             for item in order.items:
