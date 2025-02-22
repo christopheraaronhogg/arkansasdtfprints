@@ -960,7 +960,7 @@ body {
         width: 60px;
         height: 60px;
         padding-bottom: 0;  /* Remove the padding-bottom for mobile */
-    }
+        }
 
     .img-container img {
         position: relative;  /* Reset position for mobile */
@@ -1613,63 +1613,67 @@ function initStatusToggle() {
 }
 
 function confirmBulkDelete() {
-    const selectedCount = document.querySelectorAll('.order-checkbox:checked').length;
-    if (selectedCount === 0) {
-        alert('Please select at least one order to delete.');
-        return;
-    }
-
-    document.getElementById('deleteConfirmModal').style.display = 'flex';
+    document.getElementById('deleteConfirmModal').style.display = "flex";
 }
 
 function closeDeleteModal() {
-    document.getElementById('deleteConfirmModal').style.display = 'none';
+    document.getElementById('deleteConfirmModal').style.display = "none";
 }
 
 function executeBulkDelete() {
-    const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
-        .map(checkbox => checkbox.dataset.orderId);
+    const checkedBoxes = document.querySelectorAll('.order-checkbox:checked');
+    const orderIds = Array.from(checkedBoxes).map(cb => parseInt(cb.dataset.orderId));
 
-    if (selectedOrders.length === 0) {
-        closeDeleteModal();
+    if (orderIds.length === 0) {
+        alert('Please select at least one order to delete');
         return;
     }
 
-    fetch('/admin/bulk-delete', {
+    fetch('/admin/delete-orders', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value // Add CSRF token
         },
-        body: JSON.stringify({
-            order_ids: selectedOrders
-        })
+        body: JSON.stringify({ order_ids: orderIds }),
+        credentials: 'same-origin'
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.success) {
             // Remove deleted orders from the DOM
-            selectedOrders.forEach(orderId => {
-                const orderElement = document.querySelector(`.order-checkbox[data-order-id="${orderId}"]`)
-                    .closest('.order-item');
+            orderIds.forEach(id => {
+                const orderElement = document.querySelector(`.order-item[data-order-id="${id}"]`);
                 if (orderElement) {
                     orderElement.remove();
                 }
             });
 
-            // Update bulk actions visibility
+            // Update the selected count
             updateSelectedCount();
 
+            // Close the modal
+            closeDeleteModal();
+
             // Show success message
-            alert(`Successfully deleted ${data.deleted} orders.`);
+            alert(`Successfully deleted ${data.deleted_count} orders`);
+
+            // Refresh the page to ensure everything is up to date
+            window.location.reload();
         } else {
-            throw new Error(data.error || 'Failed to delete orders');
+            // Handle errors from the server
+            alert(`Deletion failed: ${data.error}`);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert('Failed to delete orders: ' + error.message);
-    })
-    .finally(() => {
+        alert(`Failed to delete orders: ${error.message}`);
         closeDeleteModal();
     });
 }
