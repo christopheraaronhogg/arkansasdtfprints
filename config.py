@@ -2,7 +2,7 @@ import os
 
 class Config:
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'dev-key-123')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'postgresql://neondb_owner:npg_dB0gsHM7KDuI@ep-cold-glade-a54esyy3.us-east-2.aws.neon.tech/neondb?sslmode=require')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = '/tmp/uploads'
     MAX_CONTENT_LENGTH = 536870912  # 512MB max file size (in bytes)
@@ -34,15 +34,3 @@ class Config:
 
     # DTF Printing costs
     COST_PER_SQINCH = 0.02  # Cost per square inch in USD
-
-    # Database Configuration
-    POSTGRES_CONFIG = {
-        'database': os.environ.get('PGDATABASE', 'neondb'),
-        'user': os.environ.get('PGUSER', 'neondb_owner'),
-        'password': os.environ.get('PGPASSWORD', 'npg_dB0gsHM7KDuI'),
-        'host': os.environ.get('PGHOST', 'ep-cold-glade-a54esyy3.us-east-2.aws.neon.tech'),
-        'port': os.environ.get('PGPORT', '5432')
-    }
-
-    # Object Storage Configuration
-    OBJECT_STORAGE_BUCKET_ID = 'replit-objstore-c3fb67d8-cc58-4f6a-8303-0ada7212ebd1'
