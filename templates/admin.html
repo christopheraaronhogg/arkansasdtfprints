@@ -139,15 +139,24 @@
             <span class="close-modal" onclick="closeDeleteModal()">&times;</span>
         </div>
         <div class="modal-body">
-            <p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i><strong>Warning!</strong></p>
-            <p>You are about to permanently delete the selected orders and their associated files. This action cannot be undone.</p>
-            <p>Are you sure you want to proceed?</p>
+            <div id="deleteConfirmContent">
+                <p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i><strong>Warning!</strong></p>
+                <p>You are about to permanently delete the selected orders and their associated files. This action cannot be undone.</p>
+                <p>Are you sure you want to proceed?</p>
+            </div>
+            <div id="deleteLoadingContent" style="display: none;" class="text-center py-4">
+                <div class="spinner-border text-primary mb-2" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mb-0">Deleting orders and associated files...</p>
+                <p class="text-muted small">This may take a few moments</p>
+            </div>
         </div>
         <div class="modal-footer">
-            <button onclick="executeBulkDelete()" class="action-btn btn-danger">
+            <button onclick="executeBulkDelete()" class="action-btn btn-danger" id="confirmDeleteBtn">
                 <i class="fas fa-trash me-1"></i>Yes, Delete
             </button>
-            <button onclick="closeDeleteModal()" class="action-btn">Cancel</button>
+            <button onclick="closeDeleteModal()" class="action-btn" id="cancelDeleteBtn">Cancel</button>
         </div>
     </div>
 </div>
@@ -954,7 +963,7 @@ body {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width:768px) {
     .img-container {
         min-width: 60px;
         width: 60px;
@@ -1009,6 +1018,34 @@ body {
 .loading {
     opacity: 0.5;
     pointer-events: none;
+}
+
+/* Add spinner styles */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+    border-width: 0.25rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.py-4 {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+.mb-2 {
+    margin-bottom: 0.5rem;
+}
+
+.text-muted {
+    color: #6c757d;
+}
+
+.small {
+    font-size: 0.875rem;
 }
 </style>
 
@@ -1624,53 +1661,66 @@ function confirmBulkDelete() {
 
 function closeDeleteModal() {
     document.getElementById('deleteConfirmModal').style.display = 'none';
+    const confirmContent = document.getElementById('deleteConfirmContent');
+    const loadingContent = document.getElementById('deleteLoadingContent');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    const cancelBtn = document.getElementById('cancelDeleteBtn');
+
+    if (confirmContent) confirmContent.style.display = 'block';
+    if (loadingContent) loadingContent.style.display = 'none';
+    if (confirmBtn) confirmBtn.disabled = false;
+    if (cancelBtn) cancelBtn.disabled = false;
 }
 
 function executeBulkDelete() {
-    const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
-        .map(checkbox => checkbox.dataset.orderId);
-
-    if (selectedOrders.length === 0) {
-        closeDeleteModal();
+    const selectedIds = getSelectedOrderIds();
+    if (selectedIds.length === 0) {
+        alert('Please select at least one order to delete');
         return;
     }
 
-    fetch('/admin/bulk-delete', {
+    // Show loading state
+    const confirmContent = document.getElementById('deleteConfirmContent');
+    const loadingContent = document.getElementById('deleteLoadingContent');
+    const confirmBtn = document.getElementById('confirmDeleteBtn');
+    const cancelBtn = document.getElementById('cancelDeleteBtn');
+
+    if (confirmContent) confirmContent.style.display = 'none';
+    if (loadingContent) loadingContent.style.display = 'block';
+    if (confirmBtn) confirmBtn.disabled = true;
+    if (cancelBtn) cancelBtn.disabled = true;
+
+    fetch('/admin/delete-orders', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            order_ids: selectedOrders
+            order_ids: selectedIds
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Remove deleted orders from the DOM
-            selectedOrders.forEach(orderId => {
-                const orderElement = document.querySelector(`.order-checkbox[data-order-id="${orderId}"]`)
-                    .closest('.order-item');
-                if (orderElement) {
-                    orderElement.remove();
-                }
-            });
-
-            // Update bulk actions visibility
-            updateSelectedCount();
-
-            // Show success message
-            alert(`Successfully deleted ${data.deleted} orders.`);
+            // Refresh the page to show updated order list
+            window.location.reload();
         } else {
-            throw new Error(data.error || 'Failed to delete orders');
+            alert('Error: ' + (data.error || 'Failed to delete orders'));
+            // Reset modal state on error
+            if (confirmContent) confirmContent.style.display = 'block';
+            if (loadingContent) loadingContent.style.display = 'none';
+            if (confirmBtn) confirmBtn.disabled = false;
+            if (cancelBtn) cancelBtn.disabled = false;
         }
     })
     .catch(error => {
         console.error('Error:', error);
         alert('Failed to delete orders: ' + error.message);
-    })
-    .finally(() => {
-        closeDeleteModal();
+        // Reset modal state on error
+        if (confirmContent) confirmContent.style.display = 'block';
+        if (loadingContent) loadingContent.style.display = 'none';
+        if (confirmBtn) confirmBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
     });
 }
 
@@ -1904,5 +1954,4 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial count update
     updateSelectedCount();
 });
-</script>
 {% endblock %}

@@ -827,10 +827,11 @@ def delete_orders():
         if not data or 'order_ids' not in data:
             return jsonify({'error': 'Missing order IDs'}), 400
 
-        order_ids = data['order_ids']
+        order_ids = data['orderids']
 
         # Get all orders with their items
         orders = Order.query.filter(Order.id.in_(order_ids)).all()
+        logger.info(f"Starting deletion process for {len(orders)} orders")
 
         # Collect all file keys to delete
         file_keys = []
@@ -841,17 +842,33 @@ def delete_orders():
                 thumbnail_key = get_thumbnail_key(item.file_key)
                 file_keys.append(thumbnail_key)
 
+        logger.info(f"Found {len(file_keys)} files to delete")
+
         # Delete files from storage
+        deleted_files = 0
         for file_key in file_keys:
             try:
-                storage.delete_file(file_key)
-                logger.info(f"Deleted file: {file_key}")
+                if storage.get_file(file_key):  # Check if file exists first
+                    storage.delete_file(file_key)
+                    deleted_files += 1
+                    logger.info(f"Deleted file: {file_key}")
+                else:
+                    logger.warning(f"File not found in storage: {file_key}")
             except Exception as e:
-                logger.warning(f"Failed to delete file {file_key}: {str(e)}")
+                logger.error(f"Failed to delete file {file_key}: {str(e)}")
+                continue
+
+        logger.info(f"Successfully deleted {deleted_files} files from storage")
 
         # First delete all order items
         for order in orders:
-            OrderItem.query.filter_by(order_id=order.id).delete()
+            try:
+                item_count = OrderItem.query.filter_by(order_id=order.id).delete()
+                logger.info(f"Deleted {item_count} items for order {order.id}")
+            except Exception as e:
+                logger.error(f"Error deleting items for order {order.id}: {str(e)}")
+                db.session.rollback()
+                raise
 
         # Then delete the orders
         deleted = Order.query.filter(Order.id.in_(order_ids)).delete(
@@ -864,10 +881,14 @@ def delete_orders():
         return jsonify({
             'success': True,
             'message': f'Successfully deleted {deleted} orders',
-            'deleted_count': deleted
+            'deleted_count': deleted,
+            'deleted_files': deleted_files
         })
 
     except Exception as e:
         logger.error(f"Error deleting orders: {str(e)}")
         db.session.rollback()
         return jsonify({'error': f'Failed to delete orders: {str(e)}'}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
