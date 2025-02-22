@@ -98,14 +98,28 @@ def generate_thumbnail_for_file(file_key):
     """Generate and store thumbnail for a single file"""
     try:
         thumbnail_key = get_thumbnail_key(file_key)
+        logger.info(f"Generating thumbnail for {file_key} -> {thumbnail_key}")
+
         if not storage.get_file(thumbnail_key):
+            logger.info(f"No existing thumbnail found for {file_key}, generating new one")
             file_data = storage.get_file(file_key)
             if file_data:
                 thumb_data = generate_thumbnail(file_data)
                 if thumb_data:
+                    logger.info(f"Generated thumbnail data for {file_key}, uploading to storage")
                     storage.upload_file(BytesIO(thumb_data), thumbnail_key)
+                    logger.info(f"Successfully uploaded thumbnail {thumbnail_key}")
+                    return True
+                else:
+                    logger.error(f"Failed to generate thumbnail data for {file_key}")
+            else:
+                logger.error(f"Could not retrieve original file {file_key}")
+        else:
+            logger.info(f"Thumbnail already exists for {file_key}")
+            return True
     except Exception as e:
         logger.error(f"Error generating thumbnail for {file_key}: {str(e)}")
+    return False
 
 # Now initialize the scheduler
 scheduler = BackgroundScheduler()

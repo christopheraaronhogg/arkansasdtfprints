@@ -102,19 +102,19 @@ def generate_thumbnail(image_data, max_size=(100, 100)):
     """Generate a lightweight thumbnail from image data"""
     try:
         img = Image.open(BytesIO(image_data))
-
+        
         # Keep original mode (RGBA or RGB)
         if img.mode not in ('RGBA', 'RGB'):
             img = img.convert('RGBA')
-
+        
         # Calculate thumbnail size while maintaining aspect ratio
         img.thumbnail(max_size, Image.Resampling.LANCZOS)
-
+        
         # Save thumbnail as PNG to preserve transparency
         thumb_io = BytesIO()
         img.save(thumb_io, 'PNG', optimize=True)
         thumb_io.seek(0)
-
+        
         return thumb_io.getvalue()
     except Exception as e:
         logger.error(f"Error generating thumbnail: {str(e)}")
@@ -123,4 +123,6 @@ def generate_thumbnail(image_data, max_size=(100, 100)):
 def get_thumbnail_key(file_key):
     """Generate the storage key for a thumbnail"""
     name, ext = os.path.splitext(file_key)
-    return f"{name}-min.png"
+    thumbnail_key = f"{name}-min.png"
+    logger.debug(f"Generated thumbnail key: {thumbnail_key} for file: {file_key}")
+    return thumbnail_key
