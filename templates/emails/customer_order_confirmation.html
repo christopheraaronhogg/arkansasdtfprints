@@ -35,7 +35,7 @@
             <div class="item">
                 <div class="preview-container">
                     <img class="preview-img" 
-                         src="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key, _external=True, _scheme='https') }}" 
+                         src="{{ url_for('get_order_thumbnail', order_id=order.id, filename=item.file_key, _external=True, _scheme='https') }}" 
                          alt="Preview of item {{ loop.index }}">
                     <span class="quantity-badge">{{ item.quantity }}x</span>
                 </div>
