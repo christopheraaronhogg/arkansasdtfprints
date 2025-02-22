@@ -1,9 +1,16 @@
 import os
 
 class Config:
-    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'dev-key-123')
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    # Use the provided Neon PostgreSQL database URL
+    DATABASE_URL = "postgresql://neondb_owner:npg_dB0gsHM7KDuI@ep-cold-glade-a54esyy3.us-east-2.aws.neon.tech/neondb?sslmode=require"
+    SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_recycle": 300,
+        "pool_pre_ping": True,
+    }
+
+    SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'dev-key-123')
     UPLOAD_FOLDER = '/tmp/uploads'
     MAX_CONTENT_LENGTH = 536870912  # 512MB max file size (in bytes)
     MAX_FILE_SIZE = 524288000  # 500MB max individual file size (in bytes)
