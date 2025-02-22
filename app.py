@@ -704,12 +704,14 @@ def upload_file():
                 db.session.commit()
                 logger.info(f"Added order item for file: {new_filename}")
 
-                # Generate thumbnail in background
-                thread = threading.Thread(target=generate_thumbnail_for_file, args=(new_filename,))
-                thread.start()
-
-                # Only send emails after the last file
+                # Generate thumbnail synchronously before sending email
                 if request.form.get('is_last_file') == 'true':
+                    # Generate thumbnails for all items in the order
+                    for item in order.items:
+                        generate_thumbnail_for_file(item.file_key)
+                        logger.info(f"Generated thumbnail for {item.file_key}")
+
+                    # Now send the emails
                     if not send_order_emails(order):
                         logger.warning(f"Failed to send emails for order {order.order_number}")
 
