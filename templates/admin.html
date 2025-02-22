@@ -115,6 +115,9 @@
                 <a href="{{ url_for('view_order', order_id=order.id) }}" class="details-btn">
                     <i class="fas fa-eye me-1" style="color: white !important;"></i>Details
                 </a>
+                <button onclick="resendEmails({{ order.id }})" class="action-btn">
+                    <i class="fas fa-envelope me-1" style="color: white !important;"></i>Resend Emails
+                </button>
             </div>
         </div>
         {% endfor %}
@@ -959,7 +962,7 @@ body {
         min-width: 60px;
         width: 60px;
         height: 60px;
-        padding-bottom: 0;  /* Remove the padding-bottom for mobile */
+        padding-bottom: 0;  /* Remove thepadding-bottom for mobile */
     }
 
     .img-container img {
@@ -1457,8 +1460,6 @@ function animateAndMove(row, clonedRow, targetView) {
                 clonedRow.style.display = 'flex';
                 clonedRow.style.opacity = '0';
                 clonedRow.style.transform = 'translateX(10px)'; // Reduced movement
-
-                // Immediate animation for same-tab transitions
                 requestAnimationFrame(() => {
                     clonedRow.style.transition = `opacity ${animationDuration}ms ease, transform ${animationDuration}ms ease`;
                     clonedRow.style.opacity = '1';
@@ -1627,50 +1628,37 @@ function closeDeleteModal() {
 }
 
 function executeBulkDelete() {
-    const selectedOrders = Array.from(document.querySelectorAll('.order-checkbox:checked'))
-        .map(checkbox => checkbox.dataset.orderId);
-
-    if (selectedOrders.length === 0) {
-        closeDeleteModal();
+    const selectedIds = getSelectedOrderIds();
+    if (selectedIds.length === 0) {
+        alert('Please select at least one order to delete');
         return;
     }
 
-    fetch('/admin/bulk-delete', {
+    showLoading(); // Show loading overlay
+
+    fetch('/admin/delete-orders', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            order_ids: selectedOrders
+            order_ids: selectedIds
         })
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Remove deleted orders from the DOM
-            selectedOrders.forEach(orderId => {
-                const orderElement = document.querySelector(`.order-checkbox[data-order-id="${orderId}"]`)
-                    .closest('.order-item');
-                if (orderElement) {
-                    orderElement.remove();
-                }
-            });
-
-            // Update bulk actions visibility
-            updateSelectedCount();
-
-            // Show success message
-            alert(`Successfully deleted ${data.deleted} orders.`);
+            // Refresh the page to show updated order list
+            window.location.reload();
         } else {
-            throw new Error(data.error || 'Failed to delete orders');
+            hideLoading(); // Hide loading on error
+            showToast('Error: ' + (data.error || 'Failed to delete orders'), 'error');
         }
     })
     .catch(error => {
+        hideLoading(); // Hide loading on error
         console.error('Error:', error);
-        alert('Failed to delete orders: ' + error.message);
-    })
-    .finally(() => {
-        closeDeleteModal();
+        showToast('Failed to delete orders: ' + error.message, 'error');
     });
 }
 
@@ -1854,6 +1842,8 @@ function executeBulkDelete() {
         return;
     }
 
+    showLoading(); // Show loading overlay
+
     fetch('/admin/delete-orders', {
         method: 'POST',
         headers: {
@@ -1869,15 +1859,14 @@ function executeBulkDelete() {
             // Refresh the page to show updated order list
             window.location.reload();
         } else {
-            alert('Error: ' + (data.error || 'Failed to delete orders'));
+            hideLoading(); // Hide loading on error
+            showToast('Error: ' + (data.error || 'Failed to delete orders'), 'error');
         }
     })
     .catch(error => {
+        hideLoading(); // Hide loading on error
         console.error('Error:', error);
-        alert('Failed to delete orders: ' + error.message);
-    })
-    .finally(() => {
-        closeDeleteModal();
+        showToast('Failed to delete orders: ' + error.message, 'error');
     });
 }
 
@@ -1904,5 +1893,169 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial count update
     updateSelectedCount();
 });
+
+function resendEmails(orderId) {
+    if (!confirm('Are you sure you want to resend emails for this order?')) {
+        return;
+    }
+
+    showLoading(); // Show loading overlay
+
+    fetch('/send_order_emails', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            order_id: orderId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading(); // Hide loading overlay
+        if (data.success) {
+            showToast('Emails sent successfully', 'success');
+        } else {
+            showToast('Failed to send emails: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        hideLoading(); // Hide loading overlay
+        console.error('Error:', error);
+        showToast('Failed to send emails: ' + error.message, 'error');
+    });
+}
+
+// Add loading overlay
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+<!-- Add loading overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="loading-spinner-container">
+        <i class="fas fa-spinner fa-spin fa-2x"></i>
+        <p>Processing...</p>
+    </div>
+</div>
+
+<style>
+/* Loading overlay styles */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+display: flex;
+    justify-content: center;
+    align-items: center;
+    zindex: 2000;
+    backdrop-filter: blur(3px);
+}
+
+.loading-spinner-container {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--radius-md);
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+
+.loading-spinner-container i {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.loading-spinner-container p {
+    margin: 0;
+    color: var(--text-primary);
+}
+</style>
+
+<script>
+// Show/hide loading overlay
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+// Update delete function to show loading
+function executeBulkDelete() {
+    const selectedIds = getSelectedOrderIds();
+    if (selectedIds.length === 0) {
+        alert('Please select at least one order to delete');
+        return;
+    }
+
+    showLoading(); // Show loading overlay
+
+    fetch('/admin/delete-orders', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            order_ids: selectedIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Refresh the page to show updated order list
+            window.location.reload();
+        } else {
+            hideLoading(); // Hide loading on error
+            showToast('Error: ' + (data.error || 'Failed to delete orders'), 'error');
+        }
+    })
+    .catch(error => {
+        hideLoading(); // Hide loading on error
+        console.error('Error:', error);
+        showToast('Failed to delete orders: ' + error.message, 'error');
+    });
+}
+
+// Update email resend function to show loading
+function resendEmails(orderId) {
+    if (!confirm('Are you sure you want to resend emails for this order?')) {
+        return;
+    }
+
+    showLoading(); // Show loading overlay
+
+    fetch('/send_order_emails', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            order_id: orderId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideLoading(); // Hide loading overlay
+        if (data.success) {
+            showToast('Emails sent successfully', 'success');
+        } else {
+            showToast('Failed to send emails: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        hideLoading(); // Hide loading overlay
+        console.error('Error:', error);
+        showToast('Failed to send emails: ' + error.message, 'error');
+    });
+}
 </script>
+
 {% endblock %}
