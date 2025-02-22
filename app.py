@@ -849,7 +849,11 @@ def delete_orders():
             except Exception as e:
                 logger.warning(f"Failed to delete file {file_key}: {str(e)}")
 
-        # Delete orders and their items (cascade delete will handle items)
+        # First delete all order items
+        for order in orders:
+            OrderItem.query.filter_by(order_id=order.id).delete()
+
+        # Then delete the orders
         deleted = Order.query.filter(Order.id.in_(order_ids)).delete(
             synchronize_session=False
         )
