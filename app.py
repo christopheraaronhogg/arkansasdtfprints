@@ -4,15 +4,11 @@ import json
 import pytz
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response
-from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
-from sqlalchemy.orm import DeclarativeBase
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail as SGMail
 from io import BytesIO
-from sqlalchemy import create_engine
-from sqlalchemy.pool import QueuePool
 from storage import ObjectStorage
 import zipfile
 from werkzeug.serving import WSGIRequestHandler
@@ -24,6 +20,8 @@ import shutil
 from apscheduler.schedulers.background import BackgroundScheduler
 import threading
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from database import db
+from models import Order, OrderItem, User
 
 # Set longer timeout for the server
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -31,10 +29,6 @@ WSGIRequestHandler.protocol_version = "HTTP/1.1"
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-class Base(DeclarativeBase):
-    pass
-
-db = SQLAlchemy(model_class=Base)
 mail = Mail()
 login_manager = LoginManager()
 
@@ -47,7 +41,6 @@ except Exception as e:
     raise
 
 # Initialize timezone
-import pytz
 central = pytz.timezone('US/Central')
 utc = pytz.UTC
 
@@ -136,7 +129,6 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 db.init_app(app)
 mail.init_app(app)
 
-from models import Order, OrderItem, User
 from utils import allowed_file, generate_order_number, calculate_cost, get_image_dimensions, generate_thumbnail, get_thumbnail_key
 
 with app.app_context():
@@ -796,25 +788,51 @@ def send_order_emails(order):
         logger.error(f"Error preparing emails: {str(e)}")
         return False
 
-@app.route('/send_order_emails', methods=['POST'])
-def send_order_emails_api():
-    if not current_user.is_authenticated:
+# Add test_email_sending function after the existing send_order_emails function
+def test_email_sending():
+    """Test function to verify SendGrid email sending"""
+    try:
+        # Create a test email
+        test_email = SGMail(
+            from_email=('info@appareldecorating.net', 'DTF Printing'),
+            to_emails=app.config['PRODUCTION_TEAM_EMAIL'][0],  # Send to first production team email
+            subject='Test Email - DTF Printing System',
+            html_content='<p>This is a test email to verify the SendGrid integration is working properly.</p>'
+        )
+
+        sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
+        response = sg.send(test_email)
+
+        if response.status_code in [200, 201, 202]:
+            logger.info("Test email sent successfully")
+            return True, "Email sent successfully"
+        else:
+            logger.error(f"Failed to send test email. Status code: {response.status_code}")
+            return False, f"Failed to send email. Status code: {response.status_code}"
+
+    except Exception as e:
+        logger.error(f"Error sending test email: {str(e)}")
+        if hasattr(e, 'body'):
+            try:
+                error_body = e.body.decode('utf-8')
+                logger.error(f"SendGrid API error details: {error_body}")
+            except:
+                logger.error("Could not decode error body")
+        return False, f"Error sending email: {str(e)}"
+
+# Add test endpoint
+@app.route('/test-email', methods=['POST'])
+@login_required
+def test_email():
+    """Endpoint to test email sending"""
+    if not current_user.is_admin:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    try:
-        order_id = request.json.get('order_id')
-        if not order_id:
-            return jsonify({'error': 'Missing order ID'}), 400
-
-        order = Order.query.get(order_id)
-        if not order:
-            return jsonify({'error': 'Order not found'}), 404
-        
-        success = send_order_emails(order)
-        return jsonify({'success': success})
-    except Exception as e:
-        logger.error(f"Error sending emails: {str(e)}")
-        return jsonify({'error': 'Failed to send emails'}), 500
+    success, message = test_email_sending()
+    return jsonify({
+        'success': success,
+        'message': message
+    })
 
 @app.route('/admin/delete-orders', methods=['POST'])
 @login_required
