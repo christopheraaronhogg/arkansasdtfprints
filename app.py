@@ -815,3 +815,33 @@ def send_order_emails_api():
     except Exception as e:
         logger.error(f"Error sending emails: {str(e)}")
         return jsonify({'error': 'Failed to send emails'}), 500
+
+@app.route('/admin/delete-orders', methods=['POST'])
+@login_required
+def delete_orders():
+    if not current_user.is_admin:
+        return jsonify({'error': 'Unauthorized access'}), 401
+
+    try:
+        data = request.get_json()
+        if not data or 'order_ids' not in data:
+            return jsonify({'error': 'Missing order IDs'}), 400
+
+        order_ids = data['order_ids']
+
+        # Delete orders
+        deleted = Order.query.filter(Order.id.in_(order_ids)).delete(
+            synchronize_session=False
+        )
+
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': f'Successfully deleted {deleted} orders',
+            'deleted_count': deleted
+        })
+
+    except Exception as e:
+        logger.error(f"Error deleting orders: {str(e)}")
+        db.session.rollback()
+        return jsonify({'error': f'Failed to delete orders: {str(e)}'}), 500
