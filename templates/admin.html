@@ -960,10 +960,9 @@ body {
         width: 60px;
         height: 60px;
         padding-bottom: 0;  /* Remove the padding-bottom for mobile */
-        }
+    }
 
-    .img-container img {
-        position: relative;  /* Reset position for mobile */
+    .img-container img {        position: relative;  /* Reset position for mobile */
     }
 }
 
@@ -1391,13 +1390,14 @@ function toggleStatusDropdown(badge) {
                     if (clonedRow.parentNode) {
                         attachEventListeners(clonedRow);
                     }
-                } else {
-                    console.error('Failed to update status');
+                    } else {
+                        console.error('Failed to update status');
+                    }
+                } catch (error) {
+                    console.error('Error updating status:', error);
                 }
-            } catch (error) {
-                console.error('Error updating status:', error);
-            }
-        };
+            };
+        });
     });
 
     // Close dropdown when clicking outside
@@ -1633,8 +1633,7 @@ function executeBulkDelete() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value // Add CSRF token
+            'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({ order_ids: orderIds }),
         credentials: 'same-origin'
@@ -1649,7 +1648,7 @@ function executeBulkDelete() {
         if (data.success) {
             // Remove deleted orders from the DOM
             orderIds.forEach(id => {
-                const orderElement = document.querySelector(`.order-item[data-order-id="${id}"]`);
+                const orderElement = document.querySelector(`.order-checkbox[data-order-id="${id}"]`).closest('.order-item');
                 if (orderElement) {
                     orderElement.remove();
                 }
@@ -1667,13 +1666,12 @@ function executeBulkDelete() {
             // Refresh the page to ensure everything is up to date
             window.location.reload();
         } else {
-            // Handle errors from the server
             alert(`Deletion failed: ${data.error}`);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        alert(`Failed to delete orders: ${error.message}`);
+        alert(`Failed to delete orders: ${error.message || 'Unknown error occurred'}`);
         closeDeleteModal();
     });
 }
