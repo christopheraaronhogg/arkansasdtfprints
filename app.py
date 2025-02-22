@@ -829,12 +829,34 @@ def delete_orders():
 
         order_ids = data['order_ids']
 
-        # Delete orders
+        # Get all orders with their items
+        orders = Order.query.filter(Order.id.in_(order_ids)).all()
+
+        # Collect all file keys to delete
+        file_keys = []
+        for order in orders:
+            for item in order.items:
+                # Add both the original file and its thumbnail
+                file_keys.append(item.file_key)
+                thumbnail_key = get_thumbnail_key(item.file_key)
+                file_keys.append(thumbnail_key)
+
+        # Delete files from storage
+        for file_key in file_keys:
+            try:
+                storage.delete_file(file_key)
+                logger.info(f"Deleted file: {file_key}")
+            except Exception as e:
+                logger.warning(f"Failed to delete file {file_key}: {str(e)}")
+
+        # Delete orders and their items (cascade delete will handle items)
         deleted = Order.query.filter(Order.id.in_(order_ids)).delete(
             synchronize_session=False
         )
 
         db.session.commit()
+        logger.info(f"Successfully deleted {deleted} orders and their associated files")
+
         return jsonify({
             'success': True,
             'message': f'Successfully deleted {deleted} orders',

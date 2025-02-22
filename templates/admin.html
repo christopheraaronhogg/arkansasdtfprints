@@ -1821,5 +1821,88 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+function getSelectedOrderIds() {
+    const checkboxes = document.querySelectorAll('.order-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.dataset.orderId);
+}
+
+function confirmBulkDelete() {
+    const selectedIds = getSelectedOrderIds();
+    if (selectedIds.length === 0) {
+        alert('Please select at least one order to delete');
+        return;
+    }
+
+    const deleteModal = document.getElementById('deleteConfirmModal');
+    if (deleteModal) {
+        deleteModal.style.display = 'flex';
+    }
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteConfirmModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function executeBulkDelete() {
+    const selectedIds = getSelectedOrderIds();
+    if (selectedIds.length === 0) {
+        alert('Please select at least one order to delete');
+        return;
+    }
+
+    fetch('/admin/delete-orders', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            order_ids: selectedIds
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Refresh the page to show updated order list
+            window.location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Failed to delete orders'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to delete orders: ' + error.message);
+    })
+    .finally(() => {
+        closeDeleteModal();
+    });
+}
+
+// Update selected count when checkboxes change
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.order-checkbox');
+    const selectedCount = document.getElementById('selectedCount');
+    const bulkActions = document.querySelector('.bulk-actions');
+
+    function updateSelectedCount() {
+        const count = document.querySelectorAll('.order-checkbox:checked').length;
+        if (selectedCount) {
+            selectedCount.textContent = count + ' selected';
+        }
+        if (bulkActions) {
+            bulkActions.style.display = count > 0 ? 'block' : 'none';
+        }
+    }
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+
+    // Initial count update
+    updateSelectedCount();
+});
 </script>
 {% endblock %}
