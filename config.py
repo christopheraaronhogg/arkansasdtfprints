@@ -36,8 +36,8 @@ class Config:
     # SendGrid configuration
     SENDGRID_API_KEY = os.environ.get('SENDGRID_API_KEY')
 
-    # Production team email
-    PRODUCTION_TEAM_EMAIL = ['greg.stitchscreen@gmail.com', 'rickey.stitchscreen@gmail.com']
+    # Production team email - Updated with correct addresses
+    PRODUCTION_TEAM_EMAIL = ['rickey.stitchscreen@gmail.com', 'istitchscreen@gmail.com']
 
     # DTF Printing costs
     COST_PER_SQINCH = 0.02  # Cost per square inch in USD
