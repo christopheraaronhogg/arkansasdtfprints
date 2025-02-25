@@ -45,9 +45,9 @@
                 {% for item in order.items %}
                 <div class="img-container">
                     <div class="img-count-badge">{{ item.quantity }}x</div>
-                    <img src="{{ url_for('get_order_thumbnail', order_id=order.id, filename=item.file_key) }}"
+                    <img src="{{ get_public_thumbnail_url(item.file_key) }}"
                          alt="Preview of {{ item.file_key }}"
-                         data-full-image="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
+                         data-full-image="{{ get_public_image_url(item.file_key) }}"
                          onclick="showFullSizePreview(this)">
                 </div>
                 {% endfor %}
