@@ -590,13 +590,94 @@ def get_smart_image_url(order_id, filename, external=True, scheme='https'):
                   _external=external, 
                   _scheme=scheme)
 
+# Add new public routes for image access
+@app.route('/order/image/<path:filename>')
+def get_public_image(filename):
+    """Public access to order images"""
+    file_data = storage.get_file(filename)
+    if file_data is None:
+        logger.error(f"Image file not found in storage: {filename}")
+        return "Image not found", 404
+
+    return Response(
+        file_data,
+        mimetype='image/png',
+        headers={'Content-Disposition': f'inline; filename={filename}'}
+    )
+
+@app.route('/order/thumbnail/<path:filename>')
+def get_public_thumbnail(filename):
+    """Public access to image thumbnails"""
+    try:
+        thumbnail_key = get_thumbnail_key(filename)
+
+        # Try to get pre-generated thumbnail
+        try:
+            thumb_data = storage.get_file(thumbnail_key)
+            if thumb_data:
+                return Response(
+                    thumb_data,
+                    mimetype='image/png',
+                    headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
+                )
+        except Exception as e:
+            logger.debug(f"No pre-generated thumbnail found for {filename}: {str(e)}")
+
+        # If no thumbnail exists or failed to retrieve, generate one on the fly
+        file_data = storage.get_file(filename)
+        if file_data is None:
+            logger.error(f"Image file not found in storage: {filename}")
+            return "Image not found", 404
+
+        thumb_data = generate_thumbnail(file_data)
+        if thumb_data:
+            # Save the generated thumbnail for future use
+            try:
+                storage.upload_file(
+                    BytesIO(thumb_data),
+                    thumbnail_key
+                )
+                logger.info(f"Generated and saved thumbnail for {filename}")
+            except Exception as e:
+                logger.warning(f"Could not save thumbnail for {filename}: {str(e)}")
+
+            return Response(
+                thumb_data,
+                mimetype='image/png',
+                headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
+            )
+
+        return "Error generating thumbnail", 500
+
+    except Exception as e:
+        logger.error(f"Error in get_public_thumbnail: {str(e)}")
+        return str(e), 500
+
+# Update the templates to use the new public routes
+def get_public_image_url(filename, external=True, scheme='https'):
+    """Get the URL for public image access"""
+    return url_for('get_public_image', 
+                  filename=filename, 
+                  _external=external, 
+                  _scheme=scheme)
+
+def get_public_thumbnail_url(filename, external=True, scheme='https'):
+    """Get the URL for public thumbnail access"""
+    return url_for('get_public_thumbnail', 
+                  filename=filename, 
+                  _external=external, 
+                  _scheme=scheme)
+
+# Add these functions to the template context
 @app.context_processor
 def utility_processor():
     """Make utility functions available in templates"""
     return {
         'central': central,
         'utc': utc,
-        'get_smart_image_url': get_smart_image_url
+        'get_smart_image_url': get_smart_image_url,
+        'get_public_image_url': get_public_image_url,
+        'get_public_thumbnail_url': get_public_thumbnail_url
     }
 
 @app.route('/')
