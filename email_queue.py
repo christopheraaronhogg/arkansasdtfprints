@@ -11,8 +11,8 @@ from sendgrid.helpers.mail import Mail as SGMail
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Redis connection using Unix socket
-redis_conn = Redis(unix_socket_path='/tmp/redis.sock', db=0)
+# Initialize Redis connection using TCP
+redis_conn = Redis(host='localhost', port=6379, db=0)
 email_queue = Queue('emails', connection=redis_conn)
 
 def queue_order_emails(order, retry=True):

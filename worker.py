@@ -5,8 +5,8 @@ from redis import Redis
 
 listen = ['emails']
 
-# Use Unix socket for Redis connection
-redis_conn = Redis(unix_socket_path='/tmp/redis.sock', db=0)
+# Use TCP connection for Redis
+redis_conn = Redis(host='localhost', port=6379, db=0)
 
 if __name__ == '__main__':
     with redis_conn:
