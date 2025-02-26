@@ -25,6 +25,7 @@ import shutil
 from apscheduler.schedulers.background import BackgroundScheduler
 import threading
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from email_queue import queue_order_emails
 
 # Set longer timeout for the server
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
@@ -807,9 +808,16 @@ def upload_file():
                         generate_thumbnail_for_file(item.file_key)
                         logger.info(f"Generated thumbnail for {item.file_key}")
 
-                    # Now send the emails
-                    if not send_order_emails(order):
-                        logger.warning(f"Failed to send emails for order {order.order_number}")
+                    # Try queue first, fall back to direct sending
+                    try:
+                        if not queue_order_emails(order):
+                            if not send_order_emails(order):
+                                logger.warning(f"Failed to send emails for order {order.order_number}")
+                    except Exception as e:
+                        logger.error(f"Error in email queue system: {str(e)}")
+                        # Fall back to direct sending
+                        if not send_order_emails(order):
+                            logger.warning(f"Failed to send emails for order {order.order_number}")
 
                 return jsonify({
                     'success': True,
