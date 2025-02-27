@@ -1,0 +1,172 @@
+## Proposed Solution
+
+### 1. Implement a Queue-Based Email System
+
+Create a job queue system to handle emails asynchronously:
+
+```python
+# In a new file: email_queue.py
+import json
+import threading
+import time
+import queue
+import logging
+from flask import current_app
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail as SGMail
+
+logger = logging.getLogger(__name__)
+
+# Global queue for email jobs
+email_queue = queue.Queue()
+# Flag to control the worker thread
+_worker_running = False
+
+def enqueue_email(email_type, data):
+    """Add an email job to the queue"""
+    email_queue.put({
+        'type': email_type,
+        'data': data,
+        'attempts': 0,
+        'created_at': time.time()
+    })
+    logger.info(f"Email job of type {email_type} enqueued")
+    start_worker_if_needed()
+
+def start_worker_if_needed():
+    """Start the worker thread if it's not already running"""
+    global _worker_running
+    
+    if not _worker_running:
+        _worker_running = True
+        thread = threading.Thread(target=process_email_queue)
+        thread.daemon = True
+        thread.start()
+        logger.info("Started email worker thread")
+
+def process_email_queue():
+    """Worker function to process the email queue"""
+    global _worker_running
+    
+    logger.info("Email queue worker started")
+    try:
+        while not email_queue.empty():
+            try:
+                job = email_queue.get(block=False)
+                process_email_job(job)
+                email_queue.task_done()
+            except queue.Empty:
+                break
+            except Exception as e:
+                logger.error(f"Error processing email job: {str(e)}")
+    finally:
+        _worker_running = False
+        logger.info("Email queue worker stopped")
+
+def process_email_job(job):
+    """Process a single email job"""
+    from app import app  # Import here to avoid circular imports
+    
+    email_type = job['type']
+    data = job['data']
+    attempts = job['attempts']
+    
+    # Max retry limit
+    MAX_ATTEMPTS = 3
+    
+    if attempts >= MAX_ATTEMPTS:
+        logger.error(f"Email job of type {email_type} failed after {attempts} attempts: {data}")
+        return
+    
+    logger.info(f"Processing email job of type {email_type}, attempt {attempts+1}")
+    
+    try:
+        with app.app_context():
+            if email_type == 'customer_order_confirmation':
+                send_customer_email(data)
+            elif email_type == 'production_order_notification':
+                send_production_email(data)
+            else:
+                logger.error(f"Unknown email type: {email_type}")
+    except Exception as e:
+        logger.error(f"Failed to send {email_type} email: {str(e)}")
+        
+        # Increment attempt count and re-queue if under max attempts
+        job['attempts'] += 1
+        if job['attempts'] < MAX_ATTEMPTS:
+            email_queue.put(job)
+            logger.info(f"Requeued {email_type} email for retry, attempt {job['attempts']}")
+
+def send_customer_email(data):
+    """Send customer order confirmation email"""
+    from flask import render_template
+    from app import Order
+    
+    order_id = data.get('order_id')
+    order = Order.query.get(order_id)
+    
+    if not order:
+        logger.error(f"Cannot send customer email: Order {order_id} not found")
+        return
+    
+    customer_email = SGMail(
+        from_email=('info@appareldecorating.net', 'DTF Printing'),
+        to_emails=order.email,
+        subject=f'DTF Printing Order Confirmation - {order.order_number}',
+        html_content=render_template('emails/customer_order_confirmation.html', order=order)
+    )
+    
+    send_via_sendgrid(customer_email, f"customer email for order {order.order_number}")
+
+def send_production_email(data):
+    """Send production team notification email"""
+    from flask import render_template
+    from app import Order
+    from config import Config
+    
+    order_id = data.get('order_id')
+    order = Order.query.get(order_id)
+    
+    if not order:
+        logger.error(f"Cannot send production email: Order {order_id} not found")
+        return
+    
+    production_email = SGMail(
+        from_email=('info@appareldecorating.net', 'DTF Printing'),
+        to_emails=Config.PRODUCTION_TEAM_EMAIL,
+        subject=f'New DTF Printing Order - {order.order_number}',
+        html_content=render_template('emails/production_order_notification.html', order=order)
+    )
+    
+    send_via_sendgrid(production_email, f"production team email for order {order.order_number}")
+
+def send_via_sendgrid(email, description):
+    """Send an email via SendGrid API with proper error handling"""
+    from config import Config
+    
+    api_key = Config.SENDGRID_API_KEY
+    if not api_key:
+        logger.error(f"Cannot send {description}: SendGrid API key not configured")
+        raise ValueError("SendGrid API key not configured")
+    
+    try:
+        sg = SendGridAPIClient(api_key)
+        response = sg.send(email)
+        
+        if response.status_code not in [200, 201, 202]:
+            logger.error(f"Failed to send {description}. Status code: {response.status_code}")
+            logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
+            raise Exception(f"SendGrid API returned status {response.status_code}")
+        
+        logger.info(f"Successfully sent {description}")
+        
+    except Exception as e:
+        logger.error(f"SendGrid API error for {description}: {str(e)}")
+        if hasattr(e, 'body'):
+            try:
+                error_body = e.body.decode('utf-8')
+                logger.error(f"SendGrid API error details: {error_body}")
+            except:
+                logger.error("Could not decode error body")
+        raise
+```
