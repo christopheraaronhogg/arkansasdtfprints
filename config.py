@@ -44,3 +44,7 @@ class Config:
 
     # DTF Printing costs
     COST_PER_SQINCH = 0.02  # Cost per square inch in USD
+
+    # Redis Queue configuration for background jobs
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
+    RQ_DASHBOARD_REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')

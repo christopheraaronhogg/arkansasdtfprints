@@ -834,80 +834,55 @@ def upload_file():
         }), 500
 
 def send_order_emails(order):
-    """Send order confirmation emails to customer and production team"""
+    """Queue order confirmation emails to customer and production team"""
     try:
-        # Customer email
-        customer_email = SGMail(
-            from_email=('info@appareldecorating.net', 'DTF Printing'),
-            to_emails=order.email,
-            subject=f'DTF Printing Order Confirmation - {order.order_number}',
-            html_content=render_template('emails/customer_order_confirmation.html', order=order)
-        )
+        from workers import queue_email
 
-        # Production team email
-        production_email = SGMail(
-            from_email=('info@appareldecorating.net', 'DTF Printing'),
-            to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
-            subject=f'New DTF Printing Order - {order.order_number}',
-            html_content=render_template('emails/production_order_notification.html', order=order)
-        )
+        # Prepare customer email data
+        customer_email_data = {
+            'from_email': ('info@appareldecorating.net', 'DTF Printing'),
+            'to_emails': order.email,
+            'subject': f'DTF Printing Order Confirmation - {order.order_number}',
+            'html_content': render_template('emails/customer_order_confirmation.html', order=order),
+            'metadata': {
+                'type': 'customer_confirmation',
+                'order_number': order.order_number,
+                'order_id': order.id
+            }
+        }
 
-        try:
-            sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
+        # Queue customer email
+        logger.info(f"Queuing customer confirmation email for order {order.order_number}")
+        customer_job_id = queue_email(customer_email_data)
 
-            # Send customer email with detailed logging
-            logger.info(f"Attempting to send customer email for order {order.order_number}")
-            logger.debug(f"From: info@appareldecorating.net")
-            logger.debug(f"To: {order.email}")
-            logger.debug(f"Subject: DTF Printing Order Confirmation - {order.order_number}")
+        if not customer_job_id:
+            logger.error(f"Failed to queue customer email for order {order.order_number}")
 
-            for attempt in range(3):  # Try up to 3 times
-                try:
-                    response = sg.send(customer_email)
-                    if response.status_code in [200, 201, 202]:
-                        logger.info(f"Successfully sent customer email for order {order.order_number}")
-                        break
-                    else:
-                        logger.error(f"Failed to send customer email. Status code: {response.status_code}")
-                        logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
-                        if attempt < 2:  # Don't sleep on the last attempt
-                            time.sleep((attempt + 1) * 2)  # Exponential backoff: 2s, 4s
-                except Exception as e:
-                    logger.error(f"Error sending customer email (attempt {attempt + 1}): {str(e)}")
-                    if attempt < 2:
-                        time.sleep((attempt + 1) * 2)
-                    else:
-                        return False
+        # Prepare production team email data
+        production_email_data = {
+            'from_email': ('info@appareldecorating.net', 'DTF Printing'),
+            'to_emails': app.config['PRODUCTION_TEAM_EMAIL'],
+            'subject': f'New DTF Printing Order - {order.order_number}',
+            'html_content': render_template('emails/production_order_notification.html', order=order),
+            'metadata': {
+                'type': 'production_notification',
+                'order_number': order.order_number,
+                'order_id': order.id
+            }
+        }
 
-            # Send production team email
-            logger.info(f"Attempting to send production team email for order {order.order_number}")
-            logger.debug(f"To: {', '.join(app.config['PRODUCTION_TEAM_EMAIL'])}")
+        # Queue production team email
+        logger.info(f"Queuing production team email for order {order.order_number}")
+        production_job_id = queue_email(production_email_data)
 
-            for attempt in range(3):  # Try up to 3 times
-                try:
-                    response = sg.send(production_email)
-                    if response.status_code in [200, 201, 202]:
-                        logger.info(f"Successfully sent production team email for order {order.order_number}")
-                        break
-                    else:
-                        logger.error(f"Failed to send production team email. Status code: {response.status_code}")
-                        if attempt < 2:
-                            time.sleep((attempt + 1) * 2)
-                except Exception as e:
-                    logger.error(f"Error sending production team email (attempt {attempt + 1}): {str(e)}")
-                    if attempt < 2:
-                        time.sleep((attempt + 1) * 2)
-                    else:
-                        return False
+        if not production_job_id:
+            logger.error(f"Failed to queue production team email for order {order.order_number}")
 
-            return True
-
-        except Exception as e:
-            logger.error(f"SendGrid API error: {str(e)}")
-            return False
+        # If either email was successfully queued, consider it a success
+        return bool(customer_job_id or production_job_id)
 
     except Exception as e:
-        logger.error(f"General error in send_order_emails: {str(e)}")
+        logger.error(f"Error queuing order emails: {str(e)}")
         return False
 
 @app.route('/send_order_emails', methods=['POST'])
@@ -985,3 +960,28 @@ def delete_orders():
         logger.error(f"Error deleting orders: {str(e)}")
         db.session.rollback()
         return jsonify({'error': f'Failed to delete orders: {str(e)}'}), 500
+
+# Add this code near the end of the file, after all routes but before the if __name__ == "__main__" block
+
+# Start the RQ worker in a separate thread
+def start_worker():
+    """Start the RQ worker in a separate thread"""
+    import subprocess
+    import threading
+
+    def run_worker():
+        logger.info("Starting RQ worker for email processing")
+        try:
+            subprocess.run(["rq", "worker", "emails", "--url", app.config["REDIS_URL"]])
+        except Exception as e:
+            logger.error(f"RQ worker failed: {str(e)}")
+
+    # Start the worker in a daemon thread
+    worker_thread = threading.Thread(target=run_worker, daemon=True)
+    worker_thread.start()
+    logger.info("RQ worker thread started")
+
+# Initialize the worker on application startup
+if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
+    # Only start the worker in the main process, not in the reloader
+    start_worker()
