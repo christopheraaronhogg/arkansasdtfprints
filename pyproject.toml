@@ -23,6 +23,4 @@ dependencies = [
     "twilio>=9.4.4",
     "apscheduler>=3.11.0",
     "pytz>=2025.1",
-    "redis>=5.2.1",
-    "rq>=2.1.0",
 ]

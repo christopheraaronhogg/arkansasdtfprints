@@ -6,11 +6,8 @@ class Config:
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_recycle": 1800,  # Increased to 30 minutes
+        "pool_recycle": 300,
         "pool_pre_ping": True,
-        "pool_timeout": 30,
-        "pool_size": 5,
-        "max_overflow": 10
     }
 
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'dev-key-123')
@@ -44,7 +41,3 @@ class Config:
 
     # DTF Printing costs
     COST_PER_SQINCH = 0.02  # Cost per square inch in USD
-
-    # Redis Queue configuration for background jobs
-    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
-    RQ_DASHBOARD_REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')

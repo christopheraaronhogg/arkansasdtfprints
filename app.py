@@ -2,13 +2,14 @@ import os
 import logging
 import json
 import pytz
-import time
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import DeclarativeBase
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail as SGMail
 from io import BytesIO
 from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
@@ -831,52 +832,65 @@ def upload_file():
             'details': f'An unexpected error occurred: {str(e)}'
         }), 500
 
-# Update send_order_emails function to use our new background worker
 def send_order_emails(order):
-    """Queue order confirmation emails in background worker"""
+    """Send order confirmation emails to customer and production team"""
     try:
-        from email_worker import queue_email
-
         # Customer email
-        customer_email_data = {
-            'from_email': ('info@appareldecorating.net', 'DTF Printing'),
-            'to_emails': order.email,
-            'subject': f'DTF Printing Order Confirmation - {order.order_number}',
-            'html_content': render_template('emails/customer_order_confirmation.html', order=order),
-            'metadata': {
-                'type': 'customer_confirmation',
-                'order_number': order.order_number,
-                'order_id': order.id
-            }
-        }
+        customer_email = SGMail(
+            from_email=('info@appareldecorating.net', 'DTF Printing'),
+            to_emails=order.email,
+            subject=f'DTF Printing Order Confirmation - {order.order_number}',
+            html_content=render_template('emails/customer_order_confirmation.html', order=order)
+        )
 
         # Production team email
-        production_email_data = {
-            'from_email': ('info@appareldecorating.net', 'DTF Printing'),
-            'to_emails': app.config['PRODUCTION_TEAM_EMAIL'],
-            'subject': f'New DTF Printing Order - {order.order_number}',
-            'html_content': render_template('emails/production_order_notification.html', order=order),
-            'metadata': {
-                'type': 'production_notification',
-                'order_number': order.order_number,
-                'order_id': order.id
-            }
-        }
+        production_email = SGMail(
+            from_email=('info@appareldecorating.net', 'DTF Printing'),
+            to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
+            subject=f'New DTF Printing Order - {order.order_number}',
+            html_content=render_template('emails/production_order_notification.html', order=order)
+        )
 
-        # Queue emails for background processing
-        customer_queued = queue_email(customer_email_data)
-        production_queued = queue_email(production_email_data)
+        try:
+            sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
 
-        if not customer_queued:
-            logger.error(f"Failed to queue customer email for order {order.order_number}")
-        if not production_queued:
-            logger.error(f"Failed to queue production team email for order {order.order_number}")
+            # Send customer email with detailed logging
+            logger.info(f"Attempting to send customer email for order {order.order_number}")
+            logger.debug(f"From: info@appareldecorating.net")
+            logger.debug(f"To: {order.email}")
+            logger.debug(f"Subject: DTF Printing Order Confirmation - {order.order_number}")
 
-        # Return true if either email was queued successfully
-        return customer_queued or production_queued
+            response = sg.send(customer_email)
+            if response.status_code not in [200, 201, 202]:
+                logger.error(f"Failed to send customer email. Status code: {response.status_code}")
+                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
+                return False
+            logger.info(f"Successfully sent customer email for order {order.order_number}")
+
+            # Send production team email
+            logger.info(f"Attempting to send production team email for order {order.order_number}")
+            logger.debug(f"To: {', '.join(app.config['PRODUCTION_TEAM_EMAIL'])}")
+            response = sg.send(production_email)
+            if response.status_code not in [200, 201, 202]:
+                logger.error(f"Failed to send production team email. Status code: {response.status_code}")
+                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
+                return False
+            logger.info(f"Successfully sent production team email for order {order.order_number}")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"SendGrid API error: {str(e)}")
+            if hasattr(e, 'body'):
+                try:
+                    error_body = e.body.decode('utf-8')
+                    logger.error(f"SendGrid API error details: {error_body}")
+                except:
+                    logger.error("Could not decode error body")
+            return False
 
     except Exception as e:
-        logger.error(f"Error queueing order emails: {str(e)}")
+        logger.error(f"Error preparing emails: {str(e)}")
         return False
 
 @app.route('/send_order_emails', methods=['POST'])
@@ -954,18 +968,3 @@ def delete_orders():
         logger.error(f"Error deleting orders: {str(e)}")
         db.session.rollback()
         return jsonify({'error': f'Failed to delete orders: {str(e)}'}), 500
-
-# Add this code near the end of the file, after all routes but before the if __name__ == "__main__" block
-
-# Initialize the email worker on application startup
-if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
-    # Only start the worker in the main process, not in the reloader
-    try:
-        from email_worker import start_worker
-        start_worker()
-        logger.info("Email background worker initialized")
-    except Exception as e:
-        logger.error(f"Failed to initialize email worker: {str(e)}")
-
-if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')
