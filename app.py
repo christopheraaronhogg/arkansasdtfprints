@@ -9,8 +9,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
 from sqlalchemy.orm import DeclarativeBase
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail as SGMail
 from io import BytesIO
 from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
@@ -833,12 +831,13 @@ def upload_file():
             'details': f'An unexpected error occurred: {str(e)}'
         }), 500
 
+# Update send_order_emails function to use our new background worker
 def send_order_emails(order):
-    """Queue order confirmation emails to customer and production team"""
+    """Queue order confirmation emails in background worker"""
     try:
-        from workers import queue_email
+        from email_worker import queue_email
 
-        # Prepare customer email data
+        # Customer email
         customer_email_data = {
             'from_email': ('info@appareldecorating.net', 'DTF Printing'),
             'to_emails': order.email,
@@ -851,14 +850,7 @@ def send_order_emails(order):
             }
         }
 
-        # Queue customer email
-        logger.info(f"Queuing customer confirmation email for order {order.order_number}")
-        customer_job_id = queue_email(customer_email_data)
-
-        if not customer_job_id:
-            logger.error(f"Failed to queue customer email for order {order.order_number}")
-
-        # Prepare production team email data
+        # Production team email
         production_email_data = {
             'from_email': ('info@appareldecorating.net', 'DTF Printing'),
             'to_emails': app.config['PRODUCTION_TEAM_EMAIL'],
@@ -871,18 +863,20 @@ def send_order_emails(order):
             }
         }
 
-        # Queue production team email
-        logger.info(f"Queuing production team email for order {order.order_number}")
-        production_job_id = queue_email(production_email_data)
+        # Queue emails for background processing
+        customer_queued = queue_email(customer_email_data)
+        production_queued = queue_email(production_email_data)
 
-        if not production_job_id:
+        if not customer_queued:
+            logger.error(f"Failed to queue customer email for order {order.order_number}")
+        if not production_queued:
             logger.error(f"Failed to queue production team email for order {order.order_number}")
 
-        # If either email was successfully queued, consider it a success
-        return bool(customer_job_id or production_job_id)
+        # Return true if either email was queued successfully
+        return customer_queued or production_queued
 
     except Exception as e:
-        logger.error(f"Error queuing order emails: {str(e)}")
+        logger.error(f"Error queueing order emails: {str(e)}")
         return False
 
 @app.route('/send_order_emails', methods=['POST'])
@@ -963,25 +957,15 @@ def delete_orders():
 
 # Add this code near the end of the file, after all routes but before the if __name__ == "__main__" block
 
-# Start the RQ worker in a separate thread
-def start_worker():
-    """Start the RQ worker in a separate thread"""
-    import subprocess
-    import threading
-
-    def run_worker():
-        logger.info("Starting RQ worker for email processing")
-        try:
-            subprocess.run(["rq", "worker", "emails", "--url", app.config["REDIS_URL"]])
-        except Exception as e:
-            logger.error(f"RQ worker failed: {str(e)}")
-
-    # Start the worker in a daemon thread
-    worker_thread = threading.Thread(target=run_worker, daemon=True)
-    worker_thread.start()
-    logger.info("RQ worker thread started")
-
-# Initialize the worker on application startup
+# Initialize the email worker on application startup
 if not app.debug or os.environ.get("WERKZEUG_RUN_MAIN") == "true":
     # Only start the worker in the main process, not in the reloader
-    start_worker()
+    try:
+        from email_worker import start_worker
+        start_worker()
+        logger.info("Email background worker initialized")
+    except Exception as e:
+        logger.error(f"Failed to initialize email worker: {str(e)}")
+
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0')

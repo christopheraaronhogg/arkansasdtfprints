@@ -22,10 +22,6 @@ author = "agent"
 task = "workflow.run"
 args = "Flask Server"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Email Worker"
-
 [[workflows.workflow]]
 name = "Flask Server"
 author = "agent"
@@ -40,20 +36,6 @@ task = "packager.installForAll"
 task = "shell.exec"
 args = "python main.py"
 waitForPort = 5000
-
-[[workflows.workflow]]
-name = "Email Worker"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "python run_worker.py"
 
 [[ports]]
 localPort = 5000
