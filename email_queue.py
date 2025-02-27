@@ -4,7 +4,7 @@ import time
 import queue
 import logging
 from datetime import datetime, timedelta
-from flask import current_app
+from flask import current_app, render_template
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail as SGMail
 
@@ -58,7 +58,8 @@ def process_email_queue():
 
 def process_email_job(job):
     """Process a single email job"""
-    from app import app, db, EmailJob  # Import here to avoid circular imports
+    from app import app, db
+    from models import EmailJob, Order
     
     email_type = job['type']
     data = job['data']
@@ -119,45 +120,49 @@ def process_email_job(job):
 
 def send_customer_email(data):
     """Send customer order confirmation email"""
-    from flask import render_template
-    from app import app, Order
+    from app import app
+    from models import Order
     
     order_id = data.get('order_id')
-    order = Order.query.get(order_id)
     
-    if not order:
-        logger.error(f"Cannot send customer email: Order {order_id} not found")
-        return False
-    
-    customer_email = SGMail(
-        from_email=('info@appareldecorating.net', 'DTF Printing'),
-        to_emails=order.email,
-        subject=f'DTF Printing Order Confirmation - {order.order_number}',
-        html_content=render_template('emails/customer_order_confirmation.html', order=order)
-    )
-    
-    return send_via_sendgrid(customer_email, f"customer email for order {order.order_number}")
+    with app.app_context():
+        order = Order.query.get(order_id)
+        
+        if not order:
+            logger.error(f"Cannot send customer email: Order {order_id} not found")
+            return False
+        
+        customer_email = SGMail(
+            from_email=('info@appareldecorating.net', 'DTF Printing'),
+            to_emails=order.email,
+            subject=f'DTF Printing Order Confirmation - {order.order_number}',
+            html_content=render_template('emails/customer_order_confirmation.html', order=order)
+        )
+        
+        return send_via_sendgrid(customer_email, f"customer email for order {order.order_number}")
 
 def send_production_email(data):
     """Send production team notification email"""
-    from flask import render_template
-    from app import app, Order
+    from app import app 
+    from models import Order
     
     order_id = data.get('order_id')
-    order = Order.query.get(order_id)
     
-    if not order:
-        logger.error(f"Cannot send production email: Order {order_id} not found")
-        return False
-    
-    production_email = SGMail(
-        from_email=('info@appareldecorating.net', 'DTF Printing'),
-        to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
-        subject=f'New DTF Printing Order - {order.order_number}',
-        html_content=render_template('emails/production_order_notification.html', order=order)
-    )
-    
-    return send_via_sendgrid(production_email, f"production team email for order {order.order_number}")
+    with app.app_context():
+        order = Order.query.get(order_id)
+        
+        if not order:
+            logger.error(f"Cannot send production email: Order {order_id} not found")
+            return False
+        
+        production_email = SGMail(
+            from_email=('info@appareldecorating.net', 'DTF Printing'),
+            to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
+            subject=f'New DTF Printing Order - {order.order_number}',
+            html_content=render_template('emails/production_order_notification.html', order=order)
+        )
+        
+        return send_via_sendgrid(production_email, f"production team email for order {order.order_number}")
 
 def send_via_sendgrid(email, description):
     """Send an email via SendGrid API with proper error handling"""
@@ -192,7 +197,8 @@ def send_via_sendgrid(email, description):
 
 def check_for_stuck_emails():
     """Check for emails that have been stuck in the queue for too long"""
-    from app import app, db, EmailJob
+    from app import app, db
+    from models import EmailJob
     
     with app.app_context():
         # Find jobs that are still pending or processing and were created more than 15 minutes ago

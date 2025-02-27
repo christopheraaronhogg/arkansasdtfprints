@@ -124,6 +124,9 @@ def generate_thumbnail_for_file(file_key):
 # Now initialize the scheduler
 scheduler = BackgroundScheduler()
 scheduler.add_job(generate_thumbnails_task, 'interval', hours=1)
+# Add email queue monitoring job - check every 5 minutes for stuck emails
+from email_queue import check_for_stuck_emails
+scheduler.add_job(check_for_stuck_emails, 'interval', minutes=5)
 scheduler.start()
 
 app = Flask(__name__)
@@ -150,7 +153,7 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 db.init_app(app)
 mail.init_app(app)
 
-from models import Order, OrderItem, User
+from models import Order, OrderItem, User, EmailJob
 from utils import allowed_file, generate_order_number, calculate_cost, get_image_dimensions, generate_thumbnail, get_thumbnail_key
 
 with app.app_context():
@@ -541,6 +544,60 @@ def order_history():
     if email:
         orders = Order.query.filter_by(email=email).order_by(Order.created_at.desc()).all()
     return render_template('order_history.html', orders=orders, email=email)
+
+@app.route('/admin/email-jobs')
+@login_required
+def view_email_jobs():
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('index'))
+    
+    # Get filter parameters
+    status = request.args.get('status')
+    
+    # Base query
+    query = EmailJob.query
+    
+    # Apply filters
+    if status:
+        query = query.filter(EmailJob.status == status)
+    
+    # Get email jobs, newest first
+    email_jobs = query.order_by(EmailJob.created_at.desc()).all()
+    
+    return render_template('email_jobs.html', email_jobs=email_jobs, current_status=status)
+
+@app.route('/admin/email-jobs/retry/<int:job_id>', methods=['POST'])
+@login_required
+def retry_email_job(job_id):
+    if not current_user.is_admin:
+        flash('You do not have permission to access this page.')
+        return redirect(url_for('index'))
+    
+    try:
+        from email_queue import enqueue_email
+        
+        email_job = EmailJob.query.get_or_404(job_id)
+        
+        # Reset job status and attempt count
+        email_job.status = 'pending'
+        email_job.attempts = 0
+        email_job.error_message = None
+        email_job.updated_at = datetime.utcnow()
+        db.session.commit()
+        
+        # Re-enqueue the job
+        enqueue_email(email_job.email_type, {
+            'order_id': email_job.order_id,
+            'email_job_id': email_job.id
+        })
+        
+        flash('Email job has been queued for retry.')
+        return redirect(url_for('view_email_jobs'))
+    except Exception as e:
+        logger.error(f"Error retrying email job: {str(e)}")
+        flash(f'Error retrying email job: {str(e)}')
+        return redirect(url_for('view_email_jobs'))
 
 #Start scheduler after app initialization.  The scheduler is already started above.
 
