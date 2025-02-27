@@ -833,82 +833,65 @@ def upload_file():
         }), 500
 
 def send_order_emails(order):
-    """Send order confirmation emails to customer and production team using the email queue"""
+    """Send order confirmation emails to customer and production team"""
     try:
-        # Import the email queue
-        from email_queue import enqueue_email
-        
-        # Prepare customer email content
-        customer_html_content = render_template('emails/customer_order_confirmation.html', order=order)
-        customer_subject = f'DTF Printing Order Confirmation - {order.order_number}'
-        
-        # Prepare production team email content
-        production_html_content = render_template('emails/production_order_notification.html', order=order)
-        production_subject = f'New DTF Printing Order - {order.order_number}'
-        
-        # Enqueue customer email
-        logger.info(f"Enqueueing customer email for order {order.order_number}")
-        customer_task_id = enqueue_email(
-            to_email=order.email,
-            subject=customer_subject,
-            html_content=customer_html_content,
+        # Customer email
+        customer_email = SGMail(
             from_email=('info@appareldecorating.net', 'DTF Printing'),
-            task_type="customer"
+            to_emails=order.email,
+            subject=f'DTF Printing Order Confirmation - {order.order_number}',
+            html_content=render_template('emails/customer_order_confirmation.html', order=order)
         )
-        logger.info(f"Customer email enqueued with task ID: {customer_task_id}")
-        
-        # Enqueue production team email
-        logger.info(f"Enqueueing production team email for order {order.order_number}")
-        production_task_id = enqueue_email(
-            to_email=app.config['PRODUCTION_TEAM_EMAIL'],
-            subject=production_subject,
-            html_content=production_html_content,
-            from_email=('info@appareldecorating.net', 'DTF Printing'),
-            task_type="production"
-        )
-        logger.info(f"Production team email enqueued with task ID: {production_task_id}")
-        
-        # Both emails were enqueued successfully
-        return True
-        
-    except Exception as e:
-        logger.error(f"Error preparing or enqueueing emails: {str(e)}")
-        
-        # Fall back to direct sending if queueing fails
-        try:
-            logger.warning(f"Falling back to direct email sending for order {order.order_number}")
-            
-            # Customer email
-            customer_email = SGMail(
-                from_email=('info@appareldecorating.net', 'DTF Printing'),
-                to_emails=order.email,
-                subject=f'DTF Printing Order Confirmation - {order.order_number}',
-                html_content=render_template('emails/customer_order_confirmation.html', order=order)
-            )
 
-            # Production team email
-            production_email = SGMail(
-                from_email=('info@appareldecorating.net', 'DTF Printing'),
-                to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
-                subject=f'New DTF Printing Order - {order.order_number}',
-                html_content=render_template('emails/production_order_notification.html', order=order)
-            )
-            
+        # Production team email
+        production_email = SGMail(
+            from_email=('info@appareldecorating.net', 'DTF Printing'),
+            to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
+            subject=f'New DTF Printing Order - {order.order_number}',
+            html_content=render_template('emails/production_order_notification.html', order=order)
+        )
+
+        try:
             sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
-            
-            # Send customer email
-            customer_response = sg.send(customer_email)
-            customer_success = customer_response.status_code in [200, 201, 202]
-            
-            # Send production email
-            production_response = sg.send(production_email)
-            production_success = production_response.status_code in [200, 201, 202]
-            
-            return customer_success and production_success
-            
-        except Exception as direct_e:
-            logger.error(f"Direct email sending failed: {str(direct_e)}")
+
+            # Send customer email with detailed logging
+            logger.info(f"Attempting to send customer email for order {order.order_number}")
+            logger.debug(f"From: info@appareldecorating.net")
+            logger.debug(f"To: {order.email}")
+            logger.debug(f"Subject: DTF Printing Order Confirmation - {order.order_number}")
+
+            response = sg.send(customer_email)
+            if response.status_code not in [200, 201, 202]:
+                logger.error(f"Failed to send customer email. Status code: {response.status_code}")
+                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
+                return False
+            logger.info(f"Successfully sent customer email for order {order.order_number}")
+
+            # Send production team email
+            logger.info(f"Attempting to send production team email for order {order.order_number}")
+            logger.debug(f"To: {', '.join(app.config['PRODUCTION_TEAM_EMAIL'])}")
+            response = sg.send(production_email)
+            if response.status_code not in [200, 201, 202]:
+                logger.error(f"Failed to send production team email. Status code: {response.status_code}")
+                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
+                return False
+            logger.info(f"Successfully sent production team email for order {order.order_number}")
+
+            return True
+
+        except Exception as e:
+            logger.error(f"SendGrid API error: {str(e)}")
+            if hasattr(e, 'body'):
+                try:
+                    error_body = e.body.decode('utf-8')
+                    logger.error(f"SendGrid API error details: {error_body}")
+                except:
+                    logger.error("Could not decode error body")
             return False
+
+    except Exception as e:
+        logger.error(f"Error preparing emails: {str(e)}")
+        return False
 
 @app.route('/send_order_emails', methods=['POST'])
 def send_order_emails_api():
