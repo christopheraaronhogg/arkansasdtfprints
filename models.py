@@ -61,3 +61,31 @@ class OrderItem(db.Model):
             'cost': f"${self.cost:.2f}",
             'notes': self.notes or ''
         }
+        
+class EmailJob(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email_type = db.Column(db.String(50), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
+    recipient = db.Column(db.String(255), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default='pending')
+    attempts = db.Column(db.Integer, default=0)
+    error_message = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    order = db.relationship('Order', backref=db.backref('email_jobs', lazy=True))
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'email_type': self.email_type,
+            'order_id': self.order_id,
+            'recipient': self.recipient,
+            'subject': self.subject,
+            'status': self.status,
+            'attempts': self.attempts,
+            'error_message': self.error_message,
+            'created_at': self.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'updated_at': self.updated_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
