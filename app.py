@@ -833,64 +833,50 @@ def upload_file():
         }), 500
 
 def send_order_emails(order):
-    """Send order confirmation emails to customer and production team"""
+    """Enqueue order confirmation emails to customer and production team"""
     try:
-        # Customer email
-        customer_email = SGMail(
-            from_email=('info@appareldecorating.net', 'DTF Printing'),
-            to_emails=order.email,
-            subject=f'DTF Printing Order Confirmation - {order.order_number}',
-            html_content=render_template('emails/customer_order_confirmation.html', order=order)
+        from email_queue import enqueue_email
+        from models import EmailJob
+        
+        # Log that we're enqueueing emails
+        logger.info(f"Enqueueing emails for order {order.order_number}")
+        
+        # Create customer email job record
+        customer_email_job = EmailJob(
+            email_type='customer_order_confirmation',
+            order_id=order.id,
+            recipient=order.email,
+            subject=f'DTF Printing Order Confirmation - {order.order_number}'
         )
-
-        # Production team email
-        production_email = SGMail(
-            from_email=('info@appareldecorating.net', 'DTF Printing'),
-            to_emails=app.config['PRODUCTION_TEAM_EMAIL'],
-            subject=f'New DTF Printing Order - {order.order_number}',
-            html_content=render_template('emails/production_order_notification.html', order=order)
+        db.session.add(customer_email_job)
+        
+        # Create production team email job record
+        production_email_job = EmailJob(
+            email_type='production_order_notification',
+            order_id=order.id,
+            recipient=', '.join(app.config['PRODUCTION_TEAM_EMAIL']) if isinstance(app.config['PRODUCTION_TEAM_EMAIL'], list) else app.config['PRODUCTION_TEAM_EMAIL'],
+            subject=f'New DTF Printing Order - {order.order_number}'
         )
-
-        try:
-            sg = SendGridAPIClient(app.config['SENDGRID_API_KEY'])
-
-            # Send customer email with detailed logging
-            logger.info(f"Attempting to send customer email for order {order.order_number}")
-            logger.debug(f"From: info@appareldecorating.net")
-            logger.debug(f"To: {order.email}")
-            logger.debug(f"Subject: DTF Printing Order Confirmation - {order.order_number}")
-
-            response = sg.send(customer_email)
-            if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send customer email. Status code: {response.status_code}")
-                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
-                return False
-            logger.info(f"Successfully sent customer email for order {order.order_number}")
-
-            # Send production team email
-            logger.info(f"Attempting to send production team email for order {order.order_number}")
-            logger.debug(f"To: {', '.join(app.config['PRODUCTION_TEAM_EMAIL'])}")
-            response = sg.send(production_email)
-            if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send production team email. Status code: {response.status_code}")
-                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
-                return False
-            logger.info(f"Successfully sent production team email for order {order.order_number}")
-
-            return True
-
-        except Exception as e:
-            logger.error(f"SendGrid API error: {str(e)}")
-            if hasattr(e, 'body'):
-                try:
-                    error_body = e.body.decode('utf-8')
-                    logger.error(f"SendGrid API error details: {error_body}")
-                except:
-                    logger.error("Could not decode error body")
-            return False
-
+        db.session.add(production_email_job)
+        
+        # Commit to get email job IDs
+        db.session.commit()
+        
+        # Enqueue customer email
+        enqueue_email('customer_order_confirmation', {
+            'order_id': order.id,
+            'email_job_id': customer_email_job.id
+        })
+        
+        # Enqueue production team email
+        enqueue_email('production_order_notification', {
+            'order_id': order.id,
+            'email_job_id': production_email_job.id
+        })
+        
+        return True
     except Exception as e:
-        logger.error(f"Error preparing emails: {str(e)}")
+        logger.error(f"Error enqueueing emails: {str(e)}")
         return False
 
 @app.route('/send_order_emails', methods=['POST'])

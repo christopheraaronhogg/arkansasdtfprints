@@ -1,0 +1,63 @@
+def start_worker_if_needed():
+    """Start the worker thread if it's not already running"""
+    global _worker_running
+    
+    if not _worker_running:
+        _worker_running = True
+        thread = threading.Thread(target=process_email_queue)
+        thread.daemon = True
+        thread.start()
+        logger.info("Started email worker thread")
+
+def process_email_queue():
+    """Worker function to process the email queue"""
+    global _worker_running
+    
+    logger.info("Email queue worker started")
+    try:
+        while not email_queue.empty():
+            try:
+                job = email_queue.get(block=False)
+                process_email_job(job)
+                email_queue.task_done()
+            except queue.Empty:
+                break
+            except Exception as e:
+                logger.error(f"Error processing email job: {str(e)}")
+    finally:
+        _worker_running = False
+        logger.info("Email queue worker stopped")
+
+def process_email_job(job):
+    """Process a single email job"""
+    from app import app  # Import here to avoid circular imports
+    
+    email_type = job['type']
+    data = job['data']
+    attempts = job['attempts']
+    
+    # Max retry limit
+    MAX_ATTEMPTS = 3
+    
+    if attempts >= MAX_ATTEMPTS:
+        logger.error(f"Email job of type {email_type} failed after {attempts} attempts: {data}")
+        return
+    
+    logger.info(f"Processing email job of type {email_type}, attempt {attempts+1}")
+    
+    try:
+        with app.app_context():
+            if email_type == 'customer_order_confirmation':
+                send_customer_email(data)
+            elif email_type == 'production_order_notification':
+                send_production_email(data)
+            else:
+                logger.error(f"Unknown email type: {email_type}")
+    except Exception as e:
+        logger.error(f"Failed to send {email_type} email: {str(e)}")
+        
+        # Increment attempt count and re-queue if under max attempts
+        job['attempts'] += 1
+        if job['attempts'] < MAX_ATTEMPTS:
+            email_queue.put(job)
+            logger.info(f"Requeued {email_type} email for retry, attempt {job['attempts']}")
