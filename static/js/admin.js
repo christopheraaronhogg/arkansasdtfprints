@@ -404,6 +404,11 @@ function initFilters() {
                 item.style.display = 'none';
             });
             
+            // Explicitly set the filter state before applying filters
+            // This ensures our single source of truth is updated
+            filterState.statusFilter = value;
+            console.log("Explicitly setting filter state to:", value);
+            
             // Apply filter with a clean slate - this will set correct filtered-out classes
             applyFilters();
         });
@@ -414,8 +419,19 @@ function initFilters() {
     const endDateInput = document.getElementById('endDate');
     
     if (startDateInput && endDateInput) {
-        startDateInput.addEventListener('change', applyFilters);
-        endDateInput.addEventListener('change', applyFilters);
+        startDateInput.addEventListener('change', function() {
+            // Update filter state explicitly
+            filterState.startDate = this.value;
+            console.log("Updated start date in filter state:", filterState.startDate);
+            applyFilters();
+        });
+        
+        endDateInput.addEventListener('change', function() {
+            // Update filter state explicitly
+            filterState.endDate = this.value;
+            console.log("Updated end date in filter state:", filterState.endDate);
+            applyFilters();
+        });
     }
 }
 
@@ -580,6 +596,9 @@ function clearFilters() {
         if (slider) {
             slider.style.transform = `translateX(${index * 100}%)`;
         }
+        
+        // Reset filter state - set to "all" status (empty string)
+        filterState.statusFilter = '';
     }
     
     // Reset date inputs
@@ -588,6 +607,12 @@ function clearFilters() {
     
     if (startDateInput) startDateInput.value = '';
     if (endDateInput) endDateInput.value = '';
+    
+    // Reset date filter state
+    filterState.startDate = '';
+    filterState.endDate = '';
+    
+    console.log("Cleared all filters, filter state reset to:", filterState);
     
     // Show all items
     document.querySelectorAll('.order-item').forEach(function(item) {
