@@ -48,6 +48,11 @@ function applyFilters() {
     const orderItems = document.querySelectorAll('.order-item');
     let visibleCount = 0;
     
+    // First, clear any previous filtering state
+    orderItems.forEach(function(item) {
+        item.classList.remove('filtered-out');
+    });
+    
     orderItems.forEach(function(item) {
         const itemStatus = item.dataset.status;
         const itemDate = item.dataset.date;
@@ -96,8 +101,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize filters first so pagination will work with filtered items
     initFilters();
     
-    // Apply the "open" filter by default (immediately)
-    applyDefaultFilter();
+    // Check if we have a stored view state
+    try {
+        const savedView = sessionStorage.getItem('adminOrdersView');
+        if (savedView) {
+            // Find the option with this value
+            const targetOption = document.querySelector(`.toggle-option[data-value="${savedView}"]`);
+            if (targetOption) {
+                // Trigger a click on this option to restore the view
+                targetOption.click();
+                console.log("Restored saved view:", savedView);
+            } else {
+                // Apply the "open" filter by default
+                applyDefaultFilter();
+            }
+        } else {
+            // Apply the "open" filter by default
+            applyDefaultFilter();
+        }
+    } catch (e) {
+        console.warn('Failed to restore view state', e);
+        // Apply the "open" filter by default
+        applyDefaultFilter();
+    }
     
     // Pagination (now works with filtered items)
     initPagination();
@@ -324,8 +350,20 @@ function initFilters() {
             try {
                 sessionStorage.removeItem('adminPaginationPage');
                 sessionStorage.removeItem('adminPaginationItemsPerPage');
+                
+                // Clear any cache related to the current view
+                if (typeof sessionStorage.adminOrdersView !== 'undefined') {
+                    sessionStorage.removeItem('adminOrdersView');
+                }
             } catch (e) {
                 console.warn('Failed to clear pagination state', e);
+            }
+            
+            // Store the current view to help with tab state management
+            try {
+                sessionStorage.setItem('adminOrdersView', value);
+            } catch (e) {
+                console.warn('Failed to save view state', e);
             }
             
             // Apply filter
