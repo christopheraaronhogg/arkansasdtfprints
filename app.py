@@ -545,7 +545,7 @@ def get_order_image(order_id, filename):
         logger.error(f"Image file not found in storage: {filename}")
         return "Image not found", 404
 
-    return Response(
+    response = Response(
         file_data,
         mimetype='image/png',
         headers={'Content-Disposition': f'inline; filename={filename}'}
