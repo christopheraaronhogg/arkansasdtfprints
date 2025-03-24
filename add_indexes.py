@@ -31,7 +31,11 @@ def create_indexes():
                 ("ix_order_email", "CREATE INDEX IF NOT EXISTS ix_order_email ON \"order\" (email)"),
                 ("ix_order_status", "CREATE INDEX IF NOT EXISTS ix_order_status ON \"order\" (status)"),
                 ("ix_order_created_at", "CREATE INDEX IF NOT EXISTS ix_order_created_at ON \"order\" (created_at)"),
-                ("idx_order_status_created", "CREATE INDEX IF NOT EXISTS idx_order_status_created ON \"order\" (status, created_at)")
+                ("idx_order_status_created", "CREATE INDEX IF NOT EXISTS idx_order_status_created ON \"order\" (status, created_at)"),
+                # Additional composite indexes for optimized filtering and sorting
+                ("idx_order_status_email", "CREATE INDEX IF NOT EXISTS idx_order_status_email ON \"order\" (status, email)"),
+                ("idx_order_email_created", "CREATE INDEX IF NOT EXISTS idx_order_email_created ON \"order\" (email, created_at)"),
+                ("idx_order_invoice_created", "CREATE INDEX IF NOT EXISTS idx_order_invoice_created ON \"order\" (invoice_number, created_at)")
             ]
             
             for idx_name, idx_sql in indexes_to_create:
