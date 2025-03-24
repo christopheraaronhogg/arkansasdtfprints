@@ -40,6 +40,48 @@ db = SQLAlchemy(model_class=Base)
 mail = Mail()
 login_manager = LoginManager()
 
+# Simple in-memory cache and queue for thumbnails to avoid repeated storage calls
+thumbnail_cache = {}  # filename -> bool (exists)
+thumbnail_generation_queue = queue.Queue()  # queue of file_keys to process
+thumbnail_queue_lock = threading.Lock()  # lock for thread safety
+MAX_CACHE_SIZE = 1000  # Maximum number of items to keep in cache
+
+def check_thumbnail_exists(filename):
+    """Check if a thumbnail exists, using cache when possible"""
+    thumbnail_key = get_thumbnail_key(filename)
+    
+    # Check cache first
+    if thumbnail_key in thumbnail_cache:
+        return thumbnail_cache[thumbnail_key]
+    
+    # If not in cache, check storage
+    try:
+        exists = storage.get_file(thumbnail_key) is not None
+        
+        # Add to cache (with simple LRU-like behavior if cache is full)
+        with thumbnail_queue_lock:
+            if len(thumbnail_cache) >= MAX_CACHE_SIZE:
+                # Simple approach: clear half the cache when it gets full
+                keys_to_remove = list(thumbnail_cache.keys())[:MAX_CACHE_SIZE//2]
+                for key in keys_to_remove:
+                    thumbnail_cache.pop(key, None)
+            
+            thumbnail_cache[thumbnail_key] = exists
+        
+        return exists
+    except Exception as e:
+        logger.warning(f"Error checking thumbnail existence for {thumbnail_key}: {str(e)}")
+        return False
+
+def queue_thumbnail_generation(file_key):
+    """Add a file to the background thumbnail generation queue"""
+    with thumbnail_queue_lock:
+        if file_key not in thumbnail_generation_queue.queue:
+            thumbnail_generation_queue.put(file_key)
+            logger.info(f"Queued thumbnail generation for {file_key}")
+            return True
+    return False
+
 # Initialize storage with proper error handling
 try:
     storage = ObjectStorage()
@@ -64,63 +106,129 @@ def generate_thumbnails_task():
     """Background task to pre-generate thumbnails for recent orders"""
     with app.app_context():
         try:
-            # Get orders from last 7 days that might need thumbnails
-            recent_orders = Order.query.filter(
-                Order.created_at >= datetime.now() - timedelta(days=7)
-            ).all()
+            # First, process any explicitly queued thumbnails (highest priority)
+            process_queued_thumbnails(max_items=10)
 
-            logger.info(f"Starting thumbnail generation for {len(recent_orders)} recent orders")
+            # Then check recent orders, but only process a limited number to avoid long-running tasks
+            # Use a shorter time window (24 hours instead of 7 days) to reduce load
+            recent_orders = Order.query.filter(
+                Order.created_at >= datetime.now() - timedelta(hours=24)
+            ).order_by(Order.created_at.desc()).all()
+
+            logger.info(f"Checking for missing thumbnails in {len(recent_orders)} recent orders")
+            
+            # Limit processing to 20 new thumbnails per run to avoid overwhelming the server
+            processed = 0
+            max_to_process = 20
 
             for order in recent_orders:
+                if processed >= max_to_process:
+                    break
+                    
                 for item in order.items:
+                    if processed >= max_to_process:
+                        break
+                        
                     thumbnail_key = get_thumbnail_key(item.file_key)
-
-                    # Try to get the thumbnail first
+                    
+                    # Check cache first, then storage
+                    if thumbnail_key in thumbnail_cache:
+                        if thumbnail_cache[thumbnail_key]:
+                            continue  # Skip if we know thumbnail exists
+                    
+                    # If not in cache or cache says it doesn't exist, try to generate it
                     try:
-                        if not storage.get_file(thumbnail_key):
-                            # Only generate if thumbnail doesn't exist
-                            file_data = storage.get_file(item.file_key)
-                            if file_data:
-                                thumb_data = generate_thumbnail(file_data)
-                                if thumb_data:
-                                    # Upload without content_type parameter
-                                    storage.upload_file(
-                                        BytesIO(thumb_data),
-                                        thumbnail_key
-                                    )
-                                    logger.info(f"Generated thumbnail for {item.file_key}")
+                        # Only check storage if not in cache
+                        if thumbnail_key not in thumbnail_cache:
+                            if storage.get_file(thumbnail_key):
+                                # Update cache since thumbnail exists
+                                with thumbnail_queue_lock:
+                                    thumbnail_cache[thumbnail_key] = True
+                                continue
+                        
+                        # Thumbnail doesn't exist, generate it
+                        file_data = storage.get_file(item.file_key)
+                        if file_data:
+                            thumb_data = generate_thumbnail(file_data)
+                            if thumb_data:
+                                storage.upload_file(BytesIO(thumb_data), thumbnail_key)
+                                logger.info(f"Generated thumbnail for {item.file_key}")
+                                
+                                # Update cache
+                                with thumbnail_queue_lock:
+                                    thumbnail_cache[thumbnail_key] = True
+                                    
+                                processed += 1
                     except Exception as e:
                         logger.error(f"Error processing thumbnail for {item.file_key}: {str(e)}")
                         continue
 
+            if processed > 0:
+                logger.info(f"Generated {processed} thumbnails in background task")
+
         except Exception as e:
             logger.error(f"Error in thumbnail generation task: {str(e)}")
+
+def process_queued_thumbnails(max_items=5):
+    """Process thumbnails from the queue"""
+    processed = 0
+    
+    while not thumbnail_generation_queue.empty() and processed < max_items:
+        try:
+            file_key = thumbnail_generation_queue.get(block=False)
+            if file_key:
+                success = generate_thumbnail_for_file(file_key)
+                if success:
+                    processed += 1
+                    # Update cache
+                    thumbnail_key = get_thumbnail_key(file_key)
+                    with thumbnail_queue_lock:
+                        thumbnail_cache[thumbnail_key] = True
+        except queue.Empty:
+            break
+        except Exception as e:
+            logger.error(f"Error processing queued thumbnail: {str(e)}")
+    
+    if processed > 0:
+        logger.info(f"Processed {processed} queued thumbnails")
+    
+    return processed
 
 def generate_thumbnail_for_file(file_key):
     """Generate and store thumbnail for a single file"""
     try:
         thumbnail_key = get_thumbnail_key(file_key)
-        logger.info(f"Generating thumbnail for {file_key} -> {thumbnail_key}")
-
-        if not storage.get_file(thumbnail_key):
-            logger.info(f"No existing thumbnail found for {file_key}, generating new one")
-            file_data = storage.get_file(file_key)
-            if file_data:
-                thumb_data = generate_thumbnail(file_data)
-                if thumb_data:
-                    logger.info(f"Generated thumbnail data for {file_key}, uploading to storage")
-                    storage.upload_file(BytesIO(thumb_data), thumbnail_key)
-                    logger.info(f"Successfully uploaded thumbnail {thumbnail_key}")
-                    return True
-                else:
-                    logger.error(f"Failed to generate thumbnail data for {file_key}")
+        
+        # Check cache first
+        if thumbnail_key in thumbnail_cache and thumbnail_cache[thumbnail_key]:
+            return True  # Thumbnail already exists
+            
+        # Not in cache or cache says it doesn't exist, check storage
+        if check_thumbnail_exists(file_key):
+            return True  # Thumbnail exists in storage
+            
+        # Thumbnail doesn't exist, generate it
+        logger.info(f"Generating thumbnail for {file_key}")
+        file_data = storage.get_file(file_key)
+        
+        if file_data:
+            thumb_data = generate_thumbnail(file_data)
+            if thumb_data:
+                logger.info(f"Uploading thumbnail {thumbnail_key}")
+                storage.upload_file(BytesIO(thumb_data), thumbnail_key)
+                
+                # Update cache
+                with thumbnail_queue_lock:
+                    thumbnail_cache[thumbnail_key] = True
+                    
+                return True
             else:
-                logger.error(f"Could not retrieve original file {file_key}")
+                logger.error(f"Failed to generate thumbnail data for {file_key}")
         else:
-            logger.info(f"Thumbnail already exists for {file_key}")
-            return True
+            logger.error(f"Could not retrieve original file {file_key}")
     except Exception as e:
         logger.error(f"Error generating thumbnail for {file_key}: {str(e)}")
+    
     return False
 
 # Now initialize the scheduler
@@ -421,41 +529,52 @@ def get_order_thumbnail(order_id, filename):
 
         # Try to get pre-generated thumbnail
         try:
-            thumb_data = storage.get_file(thumbnail_key)
-            if thumb_data:
-                return Response(
-                    thumb_data,
-                    mimetype='image/png',
-                    headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
-                )
+            # Check cache first
+            if thumbnail_key in thumbnail_cache and thumbnail_cache[thumbnail_key]:
+                thumb_data = storage.get_file(thumbnail_key)
+                if thumb_data:
+                    return Response(
+                        thumb_data,
+                        mimetype='image/png',
+                        headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
+                    )
+            
+            # Not in cache or cache says it doesn't exist
+            if thumbnail_key not in thumbnail_cache:
+                thumb_data = storage.get_file(thumbnail_key)
+                if thumb_data:
+                    # Update cache since thumbnail exists
+                    with thumbnail_queue_lock:
+                        thumbnail_cache[thumbnail_key] = True
+                    
+                    return Response(
+                        thumb_data,
+                        mimetype='image/png',
+                        headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
+                    )
         except Exception as e:
             logger.debug(f"No pre-generated thumbnail found for {filename}: {str(e)}")
 
-        # If no thumbnail exists or failed to retrieve, generate one on the fly
+        # If we get here, thumbnail doesn't exist - queue it for background generation
+        # and use the fallback image for now
+        queue_thumbnail_generation(filename)
+        
+        # Return the original image as fallback
+        # This avoids generating thumbnails on page load
         file_data = storage.get_file(filename)
         if file_data is None:
             logger.error(f"Image file not found in storage: {filename}")
             return "Image not found", 404
 
-        thumb_data = generate_thumbnail(file_data)
-        if thumb_data:
-            # Save the generated thumbnail for future use
-            try:
-                storage.upload_file(
-                    BytesIO(thumb_data),
-                    thumbnail_key
-                )
-                logger.info(f"Generated and saved thumbnail for {filename}")
-            except Exception as e:
-                logger.warning(f"Could not save thumbnail for {filename}: {str(e)}")
-
-            return Response(
-                thumb_data,
-                mimetype='image/png',
-                headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
-            )
-
-        return "Error generating thumbnail", 500
+        # Update cache to indicate thumbnail doesn't exist
+        with thumbnail_queue_lock:
+            thumbnail_cache[thumbnail_key] = False
+            
+        return Response(
+            file_data,  # Return the original image instead of generating a thumbnail on the fly
+            mimetype='image/png',
+            headers={'Content-Disposition': f'inline; filename={filename}'}
+        )
 
     except Exception as e:
         logger.error(f"Error in get_order_thumbnail: {str(e)}")
@@ -615,41 +734,52 @@ def get_public_thumbnail(filename):
 
         # Try to get pre-generated thumbnail
         try:
-            thumb_data = storage.get_file(thumbnail_key)
-            if thumb_data:
-                return Response(
-                    thumb_data,
-                    mimetype='image/png',
-                    headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
-                )
+            # Check cache first
+            if thumbnail_key in thumbnail_cache and thumbnail_cache[thumbnail_key]:
+                thumb_data = storage.get_file(thumbnail_key)
+                if thumb_data:
+                    return Response(
+                        thumb_data,
+                        mimetype='image/png',
+                        headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
+                    )
+            
+            # Not in cache or cache says it doesn't exist
+            if thumbnail_key not in thumbnail_cache:
+                thumb_data = storage.get_file(thumbnail_key)
+                if thumb_data:
+                    # Update cache since thumbnail exists
+                    with thumbnail_queue_lock:
+                        thumbnail_cache[thumbnail_key] = True
+                    
+                    return Response(
+                        thumb_data,
+                        mimetype='image/png',
+                        headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
+                    )
         except Exception as e:
             logger.debug(f"No pre-generated thumbnail found for {filename}: {str(e)}")
 
-        # If no thumbnail exists or failed to retrieve, generate one on the fly
+        # If thumbnail doesn't exist, queue it for background generation
+        # and use the fallback image for now
+        queue_thumbnail_generation(filename)
+        
+        # Return original image as fallback
+        # This avoids generating thumbnails on page load
         file_data = storage.get_file(filename)
         if file_data is None:
             logger.error(f"Image file not found in storage: {filename}")
             return "Image not found", 404
 
-        thumb_data = generate_thumbnail(file_data)
-        if thumb_data:
-            # Save the generated thumbnail for future use
-            try:
-                storage.upload_file(
-                    BytesIO(thumb_data),
-                    thumbnail_key
-                )
-                logger.info(f"Generated and saved thumbnail for {filename}")
-            except Exception as e:
-                logger.warning(f"Could not save thumbnail for {filename}: {str(e)}")
-
-            return Response(
-                thumb_data,
-                mimetype='image/png',
-                headers={'Content-Disposition': f'inline; filename={thumbnail_key}'}
-            )
-
-        return "Error generating thumbnail", 500
+        # Update cache to indicate thumbnail doesn't exist
+        with thumbnail_queue_lock:
+            thumbnail_cache[thumbnail_key] = False
+            
+        return Response(
+            file_data,  # Return the original image instead of generating a thumbnail on the fly
+            mimetype='image/png',
+            headers={'Content-Disposition': f'inline; filename={filename}'}
+        )
 
     except Exception as e:
         logger.error(f"Error in get_public_thumbnail: {str(e)}")
@@ -801,12 +931,16 @@ def upload_file():
                 db.session.commit()
                 logger.info(f"Added order item for file: {new_filename}")
 
-                # Generate thumbnail synchronously before sending email
+                # Queue thumbnail generation instead of doing it synchronously
                 if request.form.get('is_last_file') == 'true':
-                    # Generate thumbnails for all items in the order
+                    # Queue thumbnails for all items in the order
                     for item in order.items:
-                        generate_thumbnail_for_file(item.file_key)
-                        logger.info(f"Generated thumbnail for {item.file_key}")
+                        queue_thumbnail_generation(item.file_key)
+                        logger.info(f"Queued thumbnail generation for {item.file_key}")
+                    
+                    # Process a few thumbnails right away for the email preview
+                    # but limit to 3 max to avoid slowing down the response
+                    process_queued_thumbnails(max_items=3)
 
                     # Now send the emails
                     if not send_order_emails(order):
