@@ -26,6 +26,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 import threading
 import queue
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from utils import generate_thumbnail, get_thumbnail_key
 
 # Set longer timeout for the server
 WSGIRequestHandler.protocol_version = "HTTP/1.1"
