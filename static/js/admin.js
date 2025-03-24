@@ -48,9 +48,10 @@ function applyFilters() {
     const orderItems = document.querySelectorAll('.order-item');
     let visibleCount = 0;
     
-    // First, clear any previous filtering state
+    // Complete reset - remove the filtered-out class and explicitly set display to none
     orderItems.forEach(function(item) {
         item.classList.remove('filtered-out');
+        item.style.display = 'none'; // Hide all items first
     });
     
     orderItems.forEach(function(item) {
@@ -62,11 +63,10 @@ function applyFilters() {
         if (statusFilter) {
             if (statusFilter === 'open') {
                 statusMatch = itemStatus !== 'completed';
-                if (item.classList.contains('order-item-top')) {
-                    console.log("Order item:", item.dataset.id, "Status:", itemStatus, "Matches open filter:", statusMatch);
-                }
+                console.log("Order item:", itemStatus, "Matches open filter:", statusMatch);
             } else if (statusFilter === 'closed') {
                 statusMatch = itemStatus === 'completed';
+                console.log("Order item:", itemStatus, "Matches closed filter:", statusMatch);
             } else {
                 statusMatch = true; // 'all' option
             }
@@ -81,7 +81,8 @@ function applyFilters() {
             dateMatch = false;
         }
         
-        // Show/hide based on filters
+        // Save filter state but don't change visibility yet
+        // Let pagination handle showing/hiding
         if (statusMatch && dateMatch) {
             item.classList.remove('filtered-out');
             visibleCount++;
@@ -89,6 +90,8 @@ function applyFilters() {
             item.classList.add('filtered-out');
         }
     });
+    
+    console.log("Filter applied, visible items: ", visibleCount);
     
     // Reset and reinitialize pagination with filtered items
     resetPagination();
@@ -390,6 +393,11 @@ function resetPagination() {
     const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
     
     console.log("Active tab:", statusFilter, "Visible items:", visibleItems.length);
+    
+    // Make sure all items are initially hidden to prevent any display issues
+    document.querySelectorAll('.order-item').forEach(item => {
+        item.style.display = 'none';
+    });
     
     // Update total pages
     if (document.getElementById('totalPages')) {
