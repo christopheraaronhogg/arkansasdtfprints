@@ -390,100 +390,39 @@ def logout():
     return redirect(url_for('index'))
 
 # Protect admin routes with login_required
-# Function to get paginated and cached orders list for admin page
-def get_cached_orders_list(page=1, per_page=20, status_filter=None, start_date=None, end_date=None, email_filter=None):
+# Function to get cached orders list for admin page
+def get_cached_orders_list():
     """
-    Get a cached list of orders for the admin page with pagination and filtering.
+    Get a cached list of all orders for the admin page.
     Includes caching with TTL to improve performance for repeated views.
-    
-    Args:
-        page (int): The page number (1-indexed)
-        per_page (int): Number of items per page
-        status_filter (str, optional): Filter by order status
-        start_date (str, optional): Filter orders created after this date (YYYY-MM-DD)
-        end_date (str, optional): Filter orders created before this date (YYYY-MM-DD)
-        email_filter (str, optional): Filter by customer email
-        
-    Returns:
-        tuple: (orders, total_orders, total_pages)
     """
     global admin_orders_cache
     current_time = time.time()
-    cache_key = f"{page}:{per_page}:{status_filter}:{start_date}:{end_date}:{email_filter}"
     
     # Check if cache exists and is still valid
     with admin_cache_lock:
         if admin_orders_cache is not None:
-            cache_dict, timestamp = admin_orders_cache
+            orders_list, timestamp = admin_orders_cache
             # Check if cache entry is still valid (not expired)
-            if current_time - timestamp < ADMIN_CACHE_TTL and cache_key in cache_dict:
-                logger.info(f"Admin orders list cache hit for {cache_key}")
-                return cache_dict[cache_key]
+            if current_time - timestamp < ADMIN_CACHE_TTL:
+                logger.info("Admin orders list cache hit")
+                return orders_list
     
     # Not in cache or expired, fetch from database
     try:
-        # Start with base query
-        query = Order.query
-        
-        # Apply filters
-        if status_filter:
-            if status_filter == 'open':
-                # Use more efficient EXISTS instead of != or NOT IN
-                query = query.filter(Order.status != 'completed')
-            elif status_filter == 'closed':
-                query = query.filter(Order.status == 'completed')
-            else:
-                query = query.filter(Order.status == status_filter)
-                
-        if start_date:
-            try:
-                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
-                query = query.filter(Order.created_at >= start_date_obj)
-            except ValueError:
-                pass
-                
-        if end_date:
-            try:
-                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
-                # Add one day to include the entire end date
-                end_date_obj = end_date_obj + timedelta(days=1)
-                query = query.filter(Order.created_at < end_date_obj)
-            except ValueError:
-                pass
-                
-        if email_filter:
-            query = query.filter(Order.email.ilike(f'%{email_filter}%'))
-        
-        # Get total count for pagination using more efficient query
-        # Using EXISTS instead of COUNT for better performance when just checking if records exist
-        total_orders = query.count()
-        total_pages = (total_orders + per_page - 1) // per_page  # Ceiling division
-        
-        # Apply pagination
-        orders = query.order_by(Order.created_at.desc()) \
-                     .options(joinedload(Order.items)) \
-                     .limit(per_page) \
-                     .offset((page - 1) * per_page) \
-                     .all()
-        
-        result = (orders, total_orders, total_pages)
+        # Get all orders sorted by creation date
+        orders = Order.query.order_by(Order.created_at.desc()).all()
         
         # Update cache
         with admin_cache_lock:
-            if admin_orders_cache is None:
-                cache_dict = {}
-            else:
-                cache_dict, _ = admin_orders_cache
-            
-            cache_dict[cache_key] = result
-            admin_orders_cache = (cache_dict, current_time)
+            admin_orders_cache = (orders, current_time)
         
-        logger.info(f"Admin orders list cache miss for {cache_key}, fetched from database. Found {total_orders} orders.")
-        return result
+        logger.info("Admin orders list cache miss, fetched from database")
+        return orders
         
     except Exception as e:
         logger.error(f"Error fetching admin orders list: {str(e)}")
-        return [], 0, 0
+        return []
 
 @app.route('/admin')
 @login_required
@@ -492,61 +431,11 @@ def admin():
         flash('You do not have permission to access this page.')
         return redirect(url_for('index'))
     
-    # Get pagination and filter parameters from request
-    page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int)
-    status_filter = request.args.get('status', 'open')  # Default to 'open' view
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    email_filter = request.args.get('email')
-    
-    # Validate and limit parameters
-    if per_page < 1:
-        per_page = 20
-    elif per_page > 100:
-        per_page = 100
-    
-    if page < 1:
-        page = 1
-    
-    # Import joinedload for eager loading
-    from sqlalchemy.orm import joinedload
-
-    # Use cached paginated orders list
-    orders, total_orders, total_pages = get_cached_orders_list(
-        page=page,
-        per_page=per_page,
-        status_filter=status_filter,
-        start_date=start_date,
-        end_date=end_date,
-        email_filter=email_filter
-    )
-    
-    # Include pagination metadata
-    pagination = {
-        'page': page,
-        'per_page': per_page,
-        'total_items': total_orders,
-        'total_pages': total_pages,
-        'has_prev': page > 1,
-        'has_next': page < total_pages,
-        'prev_page': page - 1 if page > 1 else None,
-        'next_page': page + 1 if page < total_pages else None,
-    }
+    # Use cached orders list for better performance
+    orders = get_cached_orders_list()
     
     # Ensure we send a full redirect response to avoid client-side routing issues
-    response = make_response(render_template(
-        'admin.html', 
-        orders=orders,
-        pagination=pagination,
-        current_filters={
-            'status': status_filter,
-            'start_date': start_date,
-            'end_date': end_date,
-            'email': email_filter
-        }
-    ))
-    
+    response = make_response(render_template('admin.html', orders=orders))
     # Add cache control headers to prevent browser caching
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'

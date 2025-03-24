@@ -112,9 +112,6 @@ The Apparel Decorating Network application is experiencing significant performan
 1. **Implement Database Query Optimization**:
    - Use join loading for orders and items to prevent N+1 queries
    - Add query results caching for admin views
-   - Use EXISTS() instead of COUNT() for checking existence
-   - Implement server-side pagination for efficiently handling large result sets 
-   - Add composite indexes for frequently used query patterns
 
 2. **Optimize Image Processing**:
    - Move image processing to a separate worker process
@@ -188,9 +185,6 @@ The Apparel Decorating Network application is experiencing significant performan
    - Implemented join loading for orders and items to prevent N+1 queries
    - Added query results caching for admin views with appropriate TTLs
    - Cached individual orders to reduce repeated database fetches
-   - Added composite indexes for frequently used query patterns
-   - Replaced COUNT() with EXISTS() for more efficient existence checks
-   - Implemented server-side pagination for the admin view
 
 2. ✅ **Frontend Optimizations**:
    - Implemented lazy loading for images using Intersection Observer API
