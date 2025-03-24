@@ -148,12 +148,9 @@ function initPagination() {
     const itemsPerPage = 20; // Default number of items per page
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     
-    // Skip pagination if there are few items
-    if (totalItems <= itemsPerPage) {
-        return;
-    }
+    console.log("Initializing pagination:", totalItems, "items,", totalPages, "pages");
     
-    // Create pagination controls
+    // Always create pagination controls (even for small item sets)
     createPaginationControls(totalPages);
     
     // Initialize with first page
@@ -166,7 +163,8 @@ function initPagination() {
 // Create pagination controls
 function createPaginationControls(totalPages) {
     // Check if pagination already exists
-    if (document.querySelector('.pagination-container')) {
+    const existingPagination = document.querySelector('.pagination-container');
+    if (existingPagination) {
         // Update total pages only
         if (document.getElementById('totalPages')) {
             document.getElementById('totalPages').textContent = totalPages || 1;
@@ -176,13 +174,13 @@ function createPaginationControls(totalPages) {
 
     const orderList = document.querySelector('.order-list');
     const paginationContainer = document.createElement('div');
-    paginationContainer.className = 'pagination-container mt-4 d-flex justify-content-between align-items-center';
+    paginationContainer.className = 'pagination-container mt-4 d-flex justify-content-between align-items-center p-3 bg-light border rounded';
     
     // Create page size selector
     const pageSizeContainer = document.createElement('div');
-    pageSizeContainer.className = 'page-size-container';
+    pageSizeContainer.className = 'page-size-container d-flex align-items-center';
     pageSizeContainer.innerHTML = `
-        <label for="itemsPerPage" class="me-2">Items per page:</label>
+        <label for="itemsPerPage" class="me-2 fw-bold">Items per page:</label>
         <select id="itemsPerPage" class="form-select" style="width: auto; display: inline-block;">
             <option value="10">10</option>
             <option value="20" selected>20</option>
@@ -196,13 +194,13 @@ function createPaginationControls(totalPages) {
     pagesContainer.className = 'pages-container';
     pagesContainer.innerHTML = `
         <div class="btn-group" role="group" aria-label="Pagination">
-            <button type="button" class="btn btn-outline-secondary" id="prevPage" disabled>
+            <button type="button" class="btn btn-primary" id="prevPage" disabled>
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <span class="btn btn-outline-secondary disabled" id="pageInfo">
-                Page <span id="currentPage">1</span> of <span id="totalPages">${totalPages}</span>
+            <span class="btn btn-secondary" id="pageInfo">
+                Page <span id="currentPage" class="fw-bold">1</span> of <span id="totalPages" class="fw-bold">${totalPages}</span>
             </span>
-            <button type="button" class="btn btn-outline-secondary" id="nextPage">
+            <button type="button" class="btn btn-primary" id="nextPage" ${totalPages <= 1 ? 'disabled' : ''}>
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
@@ -369,18 +367,32 @@ function loadPaginationState() {
         
         if (savedItemsPerPage) {
             const itemsPerPageSelect = document.getElementById('itemsPerPage');
-            itemsPerPageSelect.value = savedItemsPerPage;
-            
-            // Dispatch change event to update page size
-            const event = new Event('change');
-            itemsPerPageSelect.dispatchEvent(event);
+            if (itemsPerPageSelect) {
+                itemsPerPageSelect.value = savedItemsPerPage;
+                
+                // Dispatch change event to update page size - but don't trigger recursion
+                try {
+                    const event = new Event('change', { bubbles: true });
+                    itemsPerPageSelect.dispatchEvent(event);
+                } catch (err) {
+                    console.warn('Could not dispatch change event:', err);
+                }
+            }
         }
         
         if (savedPage) {
             const currentPage = Number(savedPage);
-            const itemsPerPage = Number(savedItemsPerPage || document.getElementById('itemsPerPage').value);
+            const itemsPerPage = Number(savedItemsPerPage || 
+                (document.getElementById('itemsPerPage')?.value || 20));
             const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
-            showFilteredPage(currentPage, itemsPerPage, visibleItems);
+            
+            // Check if we have enough pages to go to the saved page
+            const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
+            const validPage = Math.min(currentPage, totalPages || 1);
+            
+            if (validPage > 0) {
+                showFilteredPage(validPage, itemsPerPage, visibleItems);
+            }
         }
     } catch (e) {
         console.warn('Failed to load pagination state', e);
