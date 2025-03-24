@@ -550,6 +550,9 @@ def get_order_image(order_id, filename):
         mimetype='image/png',
         headers={'Content-Disposition': f'inline; filename={filename}'}
     )
+    
+    # Add cache headers with ETag support for better performance
+    return add_cache_headers(response, content_type='image', etag_content=file_data)
 
 @app.route('/admin/order/<int:order_id>/download/<path:filename>')
 @login_required
