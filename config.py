@@ -6,11 +6,11 @@ class Config:
     SQLALCHEMY_DATABASE_URI = DATABASE_URL
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
-        "pool_recycle": 1800,  # Increased to 30 minutes
-        "pool_pre_ping": True,
-        "pool_timeout": 30,
-        "pool_size": 5,
-        "max_overflow": 10
+        "pool_recycle": 600,    # Refresh connections every 10 minutes
+        "pool_pre_ping": True,  # Check connection health before using
+        "pool_timeout": 20,     # Wait max 20 seconds for a connection
+        "pool_size": 10,        # Double the regular connection pool
+        "max_overflow": 20      # Double the additional connections during peak loads
     }
 
     SECRET_KEY = os.environ.get('FLASK_SECRET_KEY', 'dev-key-123')
