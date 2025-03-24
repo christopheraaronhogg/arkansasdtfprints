@@ -1,13 +1,96 @@
 // Admin page functionality for pagination and lazy loading
+
+// Apply the default filter (open orders) on page load
+function applyDefaultFilter() {
+    // Select the "Open" toggle option
+    const openOption = document.querySelector('.toggle-option[data-value="open"]');
+    
+    if (openOption) {
+        // Remove active class from any currently active option
+        const activeOption = document.querySelector('.toggle-option.active');
+        if (activeOption) {
+            activeOption.classList.remove('active');
+        }
+        
+        // Add active class to the open option
+        openOption.classList.add('active');
+        
+        // Position the slider
+        const options = document.querySelectorAll('.toggle-option');
+        const index = Array.from(options).indexOf(openOption);
+        const slider = document.querySelector('.toggle-slider');
+        
+        if (slider) {
+            slider.style.transform = `translateX(${index * 100}%)`;
+        }
+        
+        // Apply the filter immediately
+        applyFilters();
+    }
+}
+
+// Apply all filters and update pagination
+function applyFilters() {
+    const statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
+    const startDate = document.getElementById('startDate')?.value || '';
+    const endDate = document.getElementById('endDate')?.value || '';
+    
+    const orderItems = document.querySelectorAll('.order-item');
+    let visibleCount = 0;
+    
+    orderItems.forEach(function(item) {
+        const itemStatus = item.dataset.status;
+        const itemDate = item.dataset.date;
+        
+        // Apply status filter
+        let statusMatch = true;
+        if (statusFilter) {
+            if (statusFilter === 'open') {
+                statusMatch = itemStatus !== 'completed';
+            } else if (statusFilter === 'closed') {
+                statusMatch = itemStatus === 'completed';
+            } else {
+                statusMatch = true; // 'all' option
+            }
+        }
+        
+        // Apply date filters
+        let dateMatch = true;
+        if (startDate && itemDate < startDate) {
+            dateMatch = false;
+        }
+        if (endDate && itemDate > endDate) {
+            dateMatch = false;
+        }
+        
+        // Show/hide based on filters
+        if (statusMatch && dateMatch) {
+            item.classList.remove('filtered-out');
+            visibleCount++;
+        } else {
+            item.classList.add('filtered-out');
+        }
+    });
+    
+    // Reset and reinitialize pagination with filtered items
+    resetPagination();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Lazy loading for images
     initLazyLoading();
     
-    // Pagination
+    // Initialize filters first so pagination will work with filtered items
+    initFilters();
+    
+    // Apply the "open" filter by default (immediately)
+    applyDefaultFilter();
+    
+    // Pagination (now works with filtered items)
     initPagination();
     
-    // Filter handling
-    initFilters();
+    // Initialize order selection for bulk actions
+    initOrderSelection();
 });
 
 // Intersection Observer for lazy loading images
@@ -59,9 +142,10 @@ function loadAllImagesImmediately() {
 
 // Pagination functionality
 function initPagination() {
-    const itemsPerPage = 20; // Default number of items per page
-    const orderItems = document.querySelectorAll('.order-item');
+    // Get only visible items (not filtered out)
+    const orderItems = document.querySelectorAll('.order-item:not(.filtered-out)');
     const totalItems = orderItems.length;
+    const itemsPerPage = 20; // Default number of items per page
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     
     // Skip pagination if there are few items
@@ -73,7 +157,7 @@ function initPagination() {
     createPaginationControls(totalPages);
     
     // Initialize with first page
-    showPage(1, itemsPerPage, orderItems);
+    showFilteredPage(1, itemsPerPage, Array.from(orderItems));
     
     // Save pagination state to browser storage
     savePaginationState(1, itemsPerPage);
@@ -81,6 +165,15 @@ function initPagination() {
 
 // Create pagination controls
 function createPaginationControls(totalPages) {
+    // Check if pagination already exists
+    if (document.querySelector('.pagination-container')) {
+        // Update total pages only
+        if (document.getElementById('totalPages')) {
+            document.getElementById('totalPages').textContent = totalPages || 1;
+        }
+        return;
+    }
+
     const orderList = document.querySelector('.order-list');
     const paginationContainer = document.createElement('div');
     paginationContainer.className = 'pagination-container mt-4 d-flex justify-content-between align-items-center';
@@ -126,8 +219,8 @@ function createPaginationControls(totalPages) {
         const currentPage = Number(document.getElementById('currentPage').textContent);
         if (currentPage > 1) {
             const itemsPerPage = Number(document.getElementById('itemsPerPage').value);
-            const orderItems = document.querySelectorAll('.order-item');
-            showPage(currentPage - 1, itemsPerPage, orderItems);
+            const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
+            showFilteredPage(currentPage - 1, itemsPerPage, visibleItems);
             savePaginationState(currentPage - 1, itemsPerPage);
         }
     });
@@ -137,20 +230,20 @@ function createPaginationControls(totalPages) {
         const totalPages = Number(document.getElementById('totalPages').textContent);
         if (currentPage < totalPages) {
             const itemsPerPage = Number(document.getElementById('itemsPerPage').value);
-            const orderItems = document.querySelectorAll('.order-item');
-            showPage(currentPage + 1, itemsPerPage, orderItems);
+            const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
+            showFilteredPage(currentPage + 1, itemsPerPage, visibleItems);
             savePaginationState(currentPage + 1, itemsPerPage);
         }
     });
     
     document.getElementById('itemsPerPage').addEventListener('change', function() {
         const itemsPerPage = Number(this.value);
-        const orderItems = document.querySelectorAll('.order-item');
-        const totalPages = Math.ceil(orderItems.length / itemsPerPage);
+        const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
+        const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
         
         // Reset to page 1 with new page size
-        document.getElementById('totalPages').textContent = totalPages;
-        showPage(1, itemsPerPage, orderItems);
+        document.getElementById('totalPages').textContent = totalPages || 1;
+        showFilteredPage(1, itemsPerPage, visibleItems);
         savePaginationState(1, itemsPerPage);
     });
     
@@ -158,71 +251,39 @@ function createPaginationControls(totalPages) {
     loadPaginationState();
 }
 
-// Show specific page
-function showPage(pageNumber, itemsPerPage, orderItems) {
+// Show specific page with filtered items
+function showFilteredPage(pageNumber, itemsPerPage, visibleItems) {
     const startIndex = (pageNumber - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, orderItems.length);
+    const endIndex = Math.min(startIndex + itemsPerPage, visibleItems.length);
     
-    // Hide all items
-    orderItems.forEach(function(item, index) {
-        if (index >= startIndex && index < endIndex) {
-            item.style.display = 'flex';
-        } else {
-            item.style.display = 'none';
-        }
+    // Hide all items first
+    document.querySelectorAll('.order-item').forEach(item => {
+        item.style.display = 'none';
     });
     
+    // Show only filtered items for current page
+    for (let i = startIndex; i < endIndex; i++) {
+        if (visibleItems[i]) {
+            visibleItems[i].style.display = 'flex';
+        }
+    }
+    
     // Update pagination UI
-    document.getElementById('currentPage').textContent = pageNumber;
+    if (document.getElementById('currentPage')) {
+        document.getElementById('currentPage').textContent = pageNumber;
+    }
     
     // Toggle button states
-    document.getElementById('prevPage').disabled = pageNumber === 1;
-    document.getElementById('nextPage').disabled = pageNumber === Number(document.getElementById('totalPages').textContent);
+    if (document.getElementById('prevPage')) {
+        document.getElementById('prevPage').disabled = pageNumber === 1;
+    }
     
-    // Trigger lazy loading check after page change
+    if (document.getElementById('nextPage')) {
+        document.getElementById('nextPage').disabled = pageNumber === Number(document.getElementById('totalPages').textContent);
+    }
+    
+    // Trigger lazy loading for newly visible images
     triggerLazyLoading();
-}
-
-// Trigger lazy loading check manually
-function triggerLazyLoading() {
-    // Force recalculation of Intersection Observer
-    window.dispatchEvent(new Event('scroll'));
-}
-
-// Save pagination state to session storage
-function savePaginationState(currentPage, itemsPerPage) {
-    try {
-        sessionStorage.setItem('adminPaginationPage', currentPage.toString());
-        sessionStorage.setItem('adminPaginationItemsPerPage', itemsPerPage.toString());
-    } catch (e) {
-        console.warn('Failed to save pagination state', e);
-    }
-}
-
-// Load pagination state from session storage
-function loadPaginationState() {
-    try {
-        const savedPage = sessionStorage.getItem('adminPaginationPage');
-        const savedItemsPerPage = sessionStorage.getItem('adminPaginationItemsPerPage');
-        
-        if (savedItemsPerPage) {
-            const itemsPerPageSelect = document.getElementById('itemsPerPage');
-            itemsPerPageSelect.value = savedItemsPerPage;
-            
-            // Dispatch change event to update page size
-            const event = new Event('change');
-            itemsPerPageSelect.dispatchEvent(event);
-        }
-        
-        if (savedPage) {
-            const currentPage = Number(savedPage);
-            const itemsPerPage = Number(savedItemsPerPage || document.getElementById('itemsPerPage').value);
-            const orderItems = document.querySelectorAll('.order-item');
-            showPage(currentPage, itemsPerPage, orderItems);
-        }
-    } catch (e) {
-        console.warn('Failed to load pagination state', e);
-    }
 }
 
 // Handle filters and maintain pagination state
@@ -263,53 +324,6 @@ function initFilters() {
     }
 }
 
-// Apply all filters and update pagination
-function applyFilters() {
-    const statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
-    const startDate = document.getElementById('startDate')?.value || '';
-    const endDate = document.getElementById('endDate')?.value || '';
-    
-    const orderItems = document.querySelectorAll('.order-item');
-    let visibleCount = 0;
-    
-    orderItems.forEach(function(item) {
-        const itemStatus = item.dataset.status;
-        const itemDate = item.dataset.date;
-        
-        // Apply status filter
-        let statusMatch = true;
-        if (statusFilter) {
-            if (statusFilter === 'open') {
-                statusMatch = itemStatus !== 'completed';
-            } else if (statusFilter === 'closed') {
-                statusMatch = itemStatus === 'completed';
-            } else {
-                statusMatch = true; // 'all' option
-            }
-        }
-        
-        // Apply date filters
-        let dateMatch = true;
-        if (startDate && itemDate < startDate) {
-            dateMatch = false;
-        }
-        if (endDate && itemDate > endDate) {
-            dateMatch = false;
-        }
-        
-        // Show/hide based on filters
-        if (statusMatch && dateMatch) {
-            item.classList.remove('filtered-out');
-            visibleCount++;
-        } else {
-            item.classList.add('filtered-out');
-        }
-    });
-    
-    // Reset and reinitialize pagination with filtered items
-    resetPagination();
-}
-
 // Reset pagination after filters change
 function resetPagination() {
     // Get only visible items after filtering
@@ -331,39 +345,46 @@ function resetPagination() {
     }
 }
 
-// Show specific page with filtered items
-function showFilteredPage(pageNumber, itemsPerPage, visibleItems) {
-    const startIndex = (pageNumber - 1) * itemsPerPage;
-    const endIndex = Math.min(startIndex + itemsPerPage, visibleItems.length);
-    
-    // Hide all items first
-    document.querySelectorAll('.order-item').forEach(item => {
-        item.style.display = 'none';
-    });
-    
-    // Show only filtered items for current page
-    for (let i = startIndex; i < endIndex; i++) {
-        if (visibleItems[i]) {
-            visibleItems[i].style.display = 'flex';
+// Trigger lazy loading check manually
+function triggerLazyLoading() {
+    // Force recalculation of Intersection Observer
+    window.dispatchEvent(new Event('scroll'));
+}
+
+// Save pagination state to session storage
+function savePaginationState(currentPage, itemsPerPage) {
+    try {
+        sessionStorage.setItem('adminPaginationPage', currentPage.toString());
+        sessionStorage.setItem('adminPaginationItemsPerPage', itemsPerPage.toString());
+    } catch (e) {
+        console.warn('Failed to save pagination state', e);
+    }
+}
+
+// Load pagination state from session storage
+function loadPaginationState() {
+    try {
+        const savedPage = sessionStorage.getItem('adminPaginationPage');
+        const savedItemsPerPage = sessionStorage.getItem('adminPaginationItemsPerPage');
+        
+        if (savedItemsPerPage) {
+            const itemsPerPageSelect = document.getElementById('itemsPerPage');
+            itemsPerPageSelect.value = savedItemsPerPage;
+            
+            // Dispatch change event to update page size
+            const event = new Event('change');
+            itemsPerPageSelect.dispatchEvent(event);
         }
+        
+        if (savedPage) {
+            const currentPage = Number(savedPage);
+            const itemsPerPage = Number(savedItemsPerPage || document.getElementById('itemsPerPage').value);
+            const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
+            showFilteredPage(currentPage, itemsPerPage, visibleItems);
+        }
+    } catch (e) {
+        console.warn('Failed to load pagination state', e);
     }
-    
-    // Update pagination UI
-    if (document.getElementById('currentPage')) {
-        document.getElementById('currentPage').textContent = pageNumber;
-    }
-    
-    // Toggle button states
-    if (document.getElementById('prevPage')) {
-        document.getElementById('prevPage').disabled = pageNumber === 1;
-    }
-    
-    if (document.getElementById('nextPage')) {
-        document.getElementById('nextPage').disabled = pageNumber === Number(document.getElementById('totalPages').textContent);
-    }
-    
-    // Trigger lazy loading for newly visible images
-    triggerLazyLoading();
 }
 
 // Show message when no results match filters
@@ -486,8 +507,3 @@ function initOrderSelection() {
         }
     }
 }
-
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
-    initOrderSelection();
-});
