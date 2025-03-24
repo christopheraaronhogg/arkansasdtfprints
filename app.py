@@ -74,13 +74,34 @@ def check_thumbnail_exists(filename):
         logger.warning(f"Error checking thumbnail existence for {thumbnail_key}: {str(e)}")
         return False
 
+# Import the worker client if available, otherwise provide a fallback
+try:
+    import worker_client
+    worker_client_available = True
+    logger.info("Using dedicated worker process for image processing")
+except ImportError:
+    worker_client_available = False
+    logger.warning("Worker client not available, using in-process image processing")
+
 def queue_thumbnail_generation(file_key):
-    """Add a file to the background thumbnail generation queue"""
-    with thumbnail_queue_lock:
-        if file_key not in thumbnail_generation_queue.queue:
-            thumbnail_generation_queue.put(file_key)
-            logger.info(f"Queued thumbnail generation for {file_key}")
-            return True
+    """Add a file to the background thumbnail generation queue
+    
+    If the worker client is available, this will send the task to the 
+    dedicated worker process. Otherwise, it falls back to the legacy
+    in-process queuing system.
+    """
+    if worker_client_available:
+        # Send to dedicated worker process
+        worker_client.submit_thumbnail_task(file_key)
+        logger.info(f"Queued thumbnail generation for {file_key} in worker process")
+        return True
+    else:
+        # Legacy in-process queuing
+        with thumbnail_queue_lock:
+            if file_key not in thumbnail_generation_queue.queue:
+                thumbnail_generation_queue.put(file_key)
+                logger.info(f"Queued thumbnail generation for {file_key}")
+                return True
     return False
 
 # Initialize storage with proper error handling

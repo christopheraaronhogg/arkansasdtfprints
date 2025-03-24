@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Client interface to the image processing worker.
 This module provides functions to submit tasks to the worker process
@@ -7,97 +6,108 @@ from the main Flask application.
 
 import os
 import sys
-import time
-import logging
-import threading
-import importlib
 import subprocess
-from datetime import datetime
+import threading
+import logging
+import time
+import json
+import queue
+from pathlib import Path
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger('worker_client')
+logger = logging.getLogger(__name__)
 
-# Ensure worker module is available
-try:
-    worker = importlib.import_module('worker')
-    logger.info("Successfully imported worker module")
-except ImportError:
-    logger.warning("Could not import worker module directly, falling back to subprocess communication")
-    worker = None
-
-# Worker management
-worker_process = None
+# Global variables
+task_queue = queue.Queue()
 worker_manager_process = None
-initialization_lock = threading.Lock()
-initialized = False
+worker_thread = None
+worker_running = False
 
 def ensure_worker_running():
     """Ensure that the worker process is running"""
-    global worker_process, worker_manager_process, initialized
+    global worker_manager_process, worker_thread, worker_running
     
-    # Use a lock to prevent multiple simultaneous initializations
-    with initialization_lock:
-        if initialized:
-            return
+    if worker_running and worker_manager_process and worker_manager_process.poll() is None:
+        return True  # Worker is already running
+    
+    try:
+        # Start the worker manager process
+        worker_manager_process = subprocess.Popen(
+            [sys.executable, 'worker_manager.py'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1
+        )
         
-        # Check if worker module is directly available (in-process mode)
-        if worker:
-            logger.info("Using in-process worker mode")
-            # Start the worker thread if not already running
-            if not hasattr(ensure_worker_running, 'worker_thread') or not ensure_worker_running.worker_thread.is_alive():
-                ensure_worker_running.worker_thread = threading.Thread(
-                    target=worker.worker_main,
-                    daemon=True  # Make thread a daemon so it exits when main process exits
-                )
-                ensure_worker_running.worker_thread.start()
-                logger.info("Started worker thread")
-        else:
-            # Out-of-process mode
-            logger.info("Using out-of-process worker mode")
-            try:
-                # Start the worker manager process
-                worker_manager_process = subprocess.Popen(
-                    [sys.executable, 'worker_manager.py'],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    universal_newlines=True,
-                    bufsize=1
-                )
-                logger.info(f"Started worker manager process with PID {worker_manager_process.pid}")
-                
-                # Start thread to monitor manager output
-                threading.Thread(
-                    target=monitor_process_output,
-                    args=(worker_manager_process, "[MANAGER]"),
-                    daemon=True
-                ).start()
-            except Exception as e:
-                logger.error(f"Failed to start worker manager: {str(e)}")
+        # Start a thread to monitor the output
+        if worker_thread is None:
+            worker_thread = threading.Thread(
+                target=monitor_process_output, 
+                args=(worker_manager_process, "[MANAGER] "),
+                daemon=True
+            )
+            worker_thread.start()
         
-        initialized = True
+        worker_running = True
+        logger.info("Started worker manager process with PID %d", worker_manager_process.pid)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to start worker manager: {str(e)}")
+        return False
 
 def monitor_process_output(process, prefix):
     """Monitor and log output from a subprocess"""
-    for line in process.stdout:
-        line = line.rstrip()
-        if line:
-            logger.info(f"{prefix} {line}")
+    while True:
+        try:
+            line = process.stdout.readline()
+            if not line and process.poll() is not None:
+                break
+                
+            if line:
+                logger.info(f"{prefix}{line.rstrip()}")
+        except Exception as e:
+            logger.error(f"Error reading process output: {str(e)}")
+            break
+    
+    logger.warning(f"Process monitoring thread exiting (return code: {process.returncode})")
 
 def add_task(task_type, data, priority=0):
     """Add a task to the worker's processing queue"""
-    # Ensure worker is running
-    ensure_worker_running()
-    
-    if worker:
-        # In-process mode
-        return worker.add_task(task_type, data, priority)
-    else:
-        # Since we're in out-of-process mode and don't have direct access to the worker,
-        # we'll use a simple file-based approach to submit tasks
-        logger.warning("Out-of-process task submission not fully implemented")
-        logger.info(f"Would submit task: {task_type} with data: {data}")
-        return f"task_{int(time.time())}"
+    try:
+        # Ensure the worker is running
+        if not ensure_worker_running():
+            logger.error("Cannot add task, worker is not running")
+            return False
+        
+        # Create task data
+        task = {
+            'type': task_type,
+            'data': data,
+            'priority': priority,
+            'timestamp': time.time()
+        }
+        
+        # Add task to the queue
+        # In a more sophisticated setup, this would use IPC, Redis, or another
+        # message queue to communicate with the worker process
+        task_queue.put(task)
+        
+        # For now, we'll use a simple file-based approach
+        # This is not ideal for production but works for our demo
+        task_path = Path("worker_tasks")
+        task_path.mkdir(exist_ok=True)
+        
+        # Write task to a file
+        task_file = task_path / f"task_{int(time.time() * 1000)}_{os.getpid()}.json"
+        with open(task_file, 'w') as f:
+            json.dump(task, f)
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error adding task to worker: {str(e)}")
+        return False
 
 def submit_thumbnail_task(file_key, priority=0):
     """Submit a task to generate a thumbnail for a specific file"""
@@ -114,5 +124,5 @@ def submit_recent_orders_task(hours=24, max_thumbnails=20, priority=0):
         'max_thumbnails': max_thumbnails
     }, priority)
 
-# Initialize when module is imported
+# Start the worker process when this module is imported
 ensure_worker_running()

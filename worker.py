@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Image processing worker for Apparel Decorating Network
 This process runs independently of the main Flask app and handles:
@@ -14,324 +13,272 @@ import sys
 import time
 import json
 import logging
-from io import BytesIO
-import threading
-import queue
 import signal
-import traceback
+import threading
+from io import BytesIO
+from pathlib import Path
 from datetime import datetime, timedelta
-import sqlite3
+import traceback
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, 
-                   format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger('image_worker')
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Import app-specific modules
-from utils import generate_thumbnail, get_thumbnail_key
+# Global variables
+exit_flag = False
+task_path = Path("worker_tasks")
+task_path.mkdir(exist_ok=True)
+
+# Import shared modules that don't have circular dependencies
 from storage import ObjectStorage
-from models import Order, OrderItem
-from app import db, app
+from utils import generate_thumbnail, get_thumbnail_key
 
-# Global task queue
-task_queue = queue.Queue()
-WORKER_RUNNING = True
-POLL_INTERVAL = 5  # seconds between checking for new tasks
-MAX_RETRIES = 3    # Maximum attempts for failed tasks
+# Initialize storage
+try:
+    storage = ObjectStorage()
+    logger.info("Successfully initialized ObjectStorage")
+except Exception as e:
+    logger.error(f"Failed to initialize ObjectStorage: {str(e)}")
+    raise
 
-# Default batch sizes
-DEFAULT_BATCH_SIZE = 10
-
-def signal_handler(sig, frame):
-    """Handle shutdown signals gracefully"""
-    global WORKER_RUNNING
-    logger.info(f"Received signal {sig}, shutting down worker...")
-    WORKER_RUNNING = False
-
-# Register signal handlers
-signal.signal(signal.SIGINT, signal_handler)
-signal.signal(signal.SIGTERM, signal_handler)
+# Import database accessor that avoids circular imports
+# We'll import the function at runtime to avoid circular imports
+worker_db = None
 
 class Task:
     """Represents a processing task with metadata"""
     def __init__(self, task_type, data, priority=0):
-        self.id = f"task_{int(time.time())}_{hash(str(data))}"
-        self.type = task_type  # 'thumbnail', 'validate', etc.
-        self.data = data       # Task-specific data
-        self.priority = priority  # Higher number = higher priority
-        self.attempts = 0
-        self.created_at = datetime.now()
-        self.status = 'pending'
-        self.result = None
-        self.error = None
+        self.task_type = task_type
+        self.data = data
+        self.priority = priority
+        self.timestamp = time.time()
     
     def to_dict(self):
         """Convert task to dictionary for serialization"""
         return {
-            'id': self.id,
-            'type': self.type,
+            'type': self.task_type,
             'data': self.data,
             'priority': self.priority,
-            'attempts': self.attempts,
-            'created_at': self.created_at.isoformat(),
-            'status': self.status,
-            'result': self.result,
-            'error': self.error
+            'timestamp': self.timestamp
         }
     
     @classmethod
     def from_dict(cls, data):
         """Create task from dictionary"""
-        task = cls(data['type'], data['data'], data['priority'])
-        task.id = data['id']
-        task.attempts = data['attempts']
-        task.created_at = datetime.fromisoformat(data['created_at'])
-        task.status = data['status']
-        task.result = data['result']
-        task.error = data['error']
-        return task
+        return cls(
+            data.get('type', 'unknown'),
+            data.get('data', {}),
+            data.get('priority', 0)
+        )
 
 def process_thumbnail_task(file_key, storage_client):
     """Process a single thumbnail generation task"""
-    logger.info(f"Processing thumbnail for {file_key}")
-    thumbnail_key = get_thumbnail_key(file_key)
-    
     try:
-        # Check if thumbnail already exists
+        logger.info(f"Processing thumbnail task for {file_key}")
+        
+        # Generate thumbnail key
+        thumbnail_key = get_thumbnail_key(file_key)
+        
+        # Check if thumbnail exists already
         if storage_client.get_file(thumbnail_key):
             logger.info(f"Thumbnail already exists for {file_key}")
-            return {'success': True, 'existed': True, 'thumbnail_key': thumbnail_key}
-        
-        # Get original file
+            return True
+            
+        # Get the original file
         file_data = storage_client.get_file(file_key)
         if not file_data:
             logger.error(f"Original file not found: {file_key}")
-            return {'success': False, 'error': 'Original file not found'}
-        
-        # Generate thumbnail
+            return False
+            
+        # Generate the thumbnail
         thumb_data = generate_thumbnail(file_data)
         if not thumb_data:
             logger.error(f"Failed to generate thumbnail for {file_key}")
-            return {'success': False, 'error': 'Thumbnail generation failed'}
+            return False
+            
+        # Save the thumbnail
+        storage_client.upload_file(BytesIO(thumb_data), thumbnail_key)
+        logger.info(f"Successfully generated thumbnail for {file_key}")
         
-        # Upload thumbnail
-        if storage_client.upload_file(BytesIO(thumb_data), thumbnail_key):
-            logger.info(f"Successfully generated and uploaded thumbnail for {file_key}")
-            return {'success': True, 'existed': False, 'thumbnail_key': thumbnail_key}
-        else:
-            logger.error(f"Failed to upload thumbnail for {file_key}")
-            return {'success': False, 'error': 'Failed to upload thumbnail'}
-    
+        return True
     except Exception as e:
-        error_msg = f"Error processing thumbnail for {file_key}: {str(e)}"
-        logger.error(error_msg)
-        logger.error(traceback.format_exc())
-        return {'success': False, 'error': error_msg}
+        logger.error(f"Error processing thumbnail for {file_key}: {e}")
+        return False
 
 def process_batch_thumbnails_task(batch_file_keys, storage_client):
     """Process a batch of thumbnails"""
-    results = []
+    successful = 0
+    failed = 0
     
     for file_key in batch_file_keys:
-        result = process_thumbnail_task(file_key, storage_client)
-        results.append({
-            'file_key': file_key,
-            'result': result
-        })
+        try:
+            success = process_thumbnail_task(file_key, storage_client)
+            if success:
+                successful += 1
+            else:
+                failed += 1
+        except Exception as e:
+            logger.error(f"Error processing batch thumbnail {file_key}: {e}")
+            failed += 1
     
-    return {
-        'success': True,
-        'results': results,
-        'successful': sum(1 for r in results if r['result']['success']),
-        'failed': sum(1 for r in results if not r['result']['success'])
-    }
+    logger.info(f"Batch processing complete: {successful} successful, {failed} failed")
+    return successful > 0
 
 def process_recent_orders_task(hours=24, max_thumbnails=20, storage_client=None):
     """Process thumbnails for recent orders"""
     if storage_client is None:
-        storage_client = ObjectStorage()
+        storage_client = storage
     
-    with app.app_context():
-        try:
-            logger.info(f"Processing thumbnails for orders from the last {hours} hours")
-            # Get recent orders
-            recent_orders = Order.query.filter(
-                Order.created_at >= datetime.now() - timedelta(hours=hours)
-            ).order_by(Order.created_at.desc()).all()
+    try:
+        # Import here to avoid circular imports
+        from worker_db import get_recent_orders
+        
+        # Get recent orders from database
+        recent_orders = get_recent_orders(hours)
+        
+        if not recent_orders:
+            logger.info("No recent orders found")
+            return True
             
-            logger.info(f"Found {len(recent_orders)} recent orders")
-            
-            # Track thumbnails to process
-            thumbnails_to_process = []
-            ordered_file_keys = []
-            
-            # Find files that need thumbnails
-            for order in recent_orders:
-                if len(thumbnails_to_process) >= max_thumbnails:
+        logger.info(f"Processing thumbnails for {len(recent_orders)} recent orders")
+        
+        processed = 0
+        for order in recent_orders:
+            if processed >= max_thumbnails:
+                break
+                
+            for item in order.get('items', []):
+                if processed >= max_thumbnails:
                     break
                 
-                for item in order.items:
-                    file_key = item.file_key
-                    thumbnail_key = get_thumbnail_key(file_key)
+                file_key = item.get('file_key')
+                if not file_key:
+                    continue
                     
-                    # Check if thumbnail already exists
-                    if storage_client.get_file(thumbnail_key):
-                        continue
-                    
-                    # Add to processing list if not already included
-                    if file_key not in thumbnails_to_process:
-                        thumbnails_to_process.append(file_key)
-                        ordered_file_keys.append(file_key)
-                    
-                    if len(thumbnails_to_process) >= max_thumbnails:
-                        break
-            
-            # Process all thumbnails
-            results = []
-            processed_count = 0
-            
-            for file_key in ordered_file_keys:
-                result = process_thumbnail_task(file_key, storage_client)
-                results.append({
-                    'file_key': file_key,
-                    'result': result
-                })
-                
-                if result['success'] and not result.get('existed', False):
-                    processed_count += 1
-            
-            logger.info(f"Processed {processed_count} new thumbnails from recent orders")
-            
-            return {
-                'success': True,
-                'thumbnail_count': len(thumbnails_to_process),
-                'processed_new': processed_count,
-                'results': results
-            }
+                try:
+                    success = process_thumbnail_task(file_key, storage_client)
+                    if success:
+                        processed += 1
+                except Exception as e:
+                    logger.error(f"Error processing thumbnail in recent orders: {e}")
         
-        except Exception as e:
-            error_msg = f"Error processing recent orders: {str(e)}"
-            logger.error(error_msg)
-            logger.error(traceback.format_exc())
-            return {'success': False, 'error': error_msg}
+        logger.info(f"Processed {processed} thumbnails from recent orders")
+        return True
+    except Exception as e:
+        logger.error(f"Error processing recent orders: {e}")
+        traceback.print_exc()
+        return False
 
 def process_task(task, storage_client):
     """Process a single task based on its type"""
-    logger.info(f"Processing task {task.id} of type {task.type}")
+    task_type = task.task_type
+    task_data = task.data
     
-    try:
-        # Increment attempt counter
-        task.attempts += 1
-        task.status = 'processing'
-        
-        # Process task based on type
-        if task.type == 'thumbnail':
-            file_key = task.data.get('file_key')
-            if file_key:
-                result = process_thumbnail_task(file_key, storage_client)
-                task.result = result
-                task.status = 'completed' if result['success'] else 'failed'
-            else:
-                task.status = 'failed'
-                task.error = 'Missing file_key in task data'
-        
-        elif task.type == 'batch_thumbnails':
-            batch_file_keys = task.data.get('file_keys', [])
-            if batch_file_keys:
-                result = process_batch_thumbnails_task(batch_file_keys, storage_client)
-                task.result = result
-                task.status = 'completed' if result['success'] else 'failed'
-            else:
-                task.status = 'failed'
-                task.error = 'Missing or empty file_keys in task data'
-        
-        elif task.type == 'recent_orders':
-            hours = task.data.get('hours', 24)
-            max_thumbnails = task.data.get('max_thumbnails', 20)
-            result = process_recent_orders_task(hours, max_thumbnails, storage_client)
-            task.result = result
-            task.status = 'completed' if result['success'] else 'failed'
-        
-        else:
-            task.status = 'failed'
-            task.error = f"Unknown task type: {task.type}"
-        
-    except Exception as e:
-        task.status = 'failed'
-        task.error = f"Error processing task: {str(e)}"
-        logger.error(f"Error processing task {task.id}: {str(e)}")
-        logger.error(traceback.format_exc())
+    if task_type == 'thumbnail':
+        file_key = task_data.get('file_key')
+        if file_key:
+            return process_thumbnail_task(file_key, storage_client)
     
-    return task
+    elif task_type == 'batch_thumbnails':
+        file_keys = task_data.get('file_keys', [])
+        if file_keys:
+            return process_batch_thumbnails_task(file_keys, storage_client)
+    
+    elif task_type == 'recent_orders':
+        hours = task_data.get('hours', 24)
+        max_thumbnails = task_data.get('max_thumbnails', 20)
+        return process_recent_orders_task(hours, max_thumbnails, storage_client)
+    
+    else:
+        logger.warning(f"Unknown task type: {task_type}")
+        return False
+    
+    return False
+
+def signal_handler(sig, frame):
+    """Handle shutdown signals gracefully"""
+    global exit_flag
+    logger.info(f"Received signal {sig}, shutting down worker...")
+    exit_flag = True
+    sys.exit(0)
 
 def worker_main():
     """Main worker process function"""
-    logger.info("Starting image processing worker...")
+    global exit_flag
     
-    # Initialize storage client
-    storage_client = ObjectStorage()
-    logger.info("Storage client initialized")
+    # Register signal handlers
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    
+    logger.info("Starting image processing worker")
     
     # Main worker loop
-    while WORKER_RUNNING:
+    while not exit_flag:
         try:
-            # First check if we have any tasks in the queue
-            try:
-                task = task_queue.get(block=False)
-                logger.info(f"Got task from queue: {task.id} ({task.type})")
+            # Check for task files
+            task_files = sorted(list(task_path.glob("task_*.json")))
+            
+            if task_files:
+                # Process the oldest task first
+                task_file = task_files[0]
                 
-                # Process the task
-                updated_task = process_task(task, storage_client)
-                
-                # Handle failed tasks
-                if updated_task.status == 'failed' and updated_task.attempts < MAX_RETRIES:
-                    logger.warning(f"Task {updated_task.id} failed, retrying later (attempt {updated_task.attempts}/{MAX_RETRIES})")
-                    # Add back to queue with delay based on attempt count
-                    retry_delay = 2 ** updated_task.attempts  # Exponential backoff
-                    threading.Timer(retry_delay, lambda t=updated_task: task_queue.put(t)).start()
-                else:
-                    # Task completed or max retries reached
-                    if updated_task.status == 'failed':
-                        logger.error(f"Task {updated_task.id} failed after {updated_task.attempts} attempts")
+                try:
+                    # Read task
+                    with open(task_file, 'r') as f:
+                        task_data = json.load(f)
+                    
+                    # Process task
+                    task = Task.from_dict(task_data)
+                    logger.info(f"Processing task: {task.task_type}")
+                    
+                    success = process_task(task, storage)
+                    
+                    if success:
+                        logger.info(f"Successfully processed task: {task.task_type}")
                     else:
-                        logger.info(f"Task {updated_task.id} completed successfully")
+                        logger.warning(f"Failed to process task: {task.task_type}")
+                    
+                    # Remove task file regardless of success to avoid permanent failures
+                    task_file.unlink()
                 
-                # Mark task as done in the queue
-                task_queue.task_done()
-                continue
+                except Exception as e:
+                    logger.error(f"Error processing task file {task_file}: {e}")
+                    # Move to a failed folder to avoid endless reprocessing
+                    failed_dir = task_path / "failed"
+                    failed_dir.mkdir(exist_ok=True)
+                    
+                    try:
+                        task_file.rename(failed_dir / task_file.name)
+                    except Exception:
+                        # If rename fails, just delete
+                        task_file.unlink(missing_ok=True)
             
-            except queue.Empty:
-                # No tasks in memory queue, proceed to check for periodic tasks
-                pass
+            # Check for recent orders periodically (every 5 minutes)
+            if time.time() % 300 < 5:  # Run approximately every 5 minutes
+                process_recent_orders_task(hours=24, max_thumbnails=20)
             
-            # Check if it's time to process recent orders
-            # This is a periodic task that runs even if no explicit tasks are queued
-            with app.app_context():
-                # Process recent orders every 5 minutes
-                periodic_task = Task('recent_orders', {
-                    'hours': 24,
-                    'max_thumbnails': 20
-                })
-                process_task(periodic_task, storage_client)
+            # Sleep to avoid CPU spinning
+            time.sleep(1)
             
-            # Sleep before next iteration
-            time.sleep(POLL_INTERVAL)
-        
         except Exception as e:
-            logger.error(f"Error in worker main loop: {str(e)}")
-            logger.error(traceback.format_exc())
-            # Sleep a bit to avoid tight error loops
+            logger.error(f"Error in worker main loop: {e}")
+            # Sleep a bit longer after an error
             time.sleep(5)
     
-    logger.info("Worker process shutting down")
+    logger.info("Worker process exiting")
 
 def add_task(task_type, data, priority=0):
     """Add a task to the processing queue"""
     task = Task(task_type, data, priority)
-    task_queue.put(task)
-    logger.info(f"Added task {task.id} of type {task.type} to queue")
-    return task.id
+    
+    # Save to a file in the task directory
+    task_path.mkdir(exist_ok=True)
+    task_file = task_path / f"task_{int(time.time() * 1000)}_{os.getpid()}.json"
+    
+    with open(task_file, 'w') as f:
+        json.dump(task.to_dict(), f)
+    
+    return True
 
 if __name__ == "__main__":
-    # Run the worker process
     worker_main()
