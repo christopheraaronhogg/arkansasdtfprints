@@ -336,56 +336,33 @@ def logout():
 
 # Protect admin routes with login_required
 # Function to get cached orders list for admin page
-def get_cached_orders_list(limit=None, page=1):
+def get_cached_orders_list():
     """
     Get a cached list of all orders for the admin page.
     Includes caching with TTL to improve performance for repeated views.
-    
-    Args:
-        limit (int, optional): Limit the number of orders returned. Default is None (all orders).
-        page (int, optional): Which page of results to return when using limit. Default is 1.
-    
-    Returns:
-        list: List of Order objects with their items prefetched.
     """
     global admin_orders_cache
     current_time = time.time()
-    cache_key = f"orders_list_{limit}_{page}" if limit else "orders_list_all"
     
     # Check if cache exists and is still valid
     with admin_cache_lock:
-        if admin_orders_cache is not None and cache_key in admin_orders_cache:
-            orders_list, timestamp = admin_orders_cache[cache_key]
+        if admin_orders_cache is not None:
+            orders_list, timestamp = admin_orders_cache
             # Check if cache entry is still valid (not expired)
             if current_time - timestamp < ADMIN_CACHE_TTL:
-                logger.info(f"Admin orders list cache hit for {cache_key}")
+                logger.info("Admin orders list cache hit")
                 return orders_list
     
     # Not in cache or expired, fetch from database
     try:
-        from sqlalchemy.orm import joinedload
-        
-        # Start building the query with eager loading of items
-        query = Order.query.options(
-            joinedload(Order.items)  # Eagerly load the items relationship
-        ).order_by(Order.created_at.desc())
-        
-        # Apply pagination if limit is specified
-        if limit:
-            offset = (page - 1) * limit
-            orders = query.limit(limit).offset(offset).all()
-        else:
-            orders = query.all()
+        # Get all orders sorted by creation date
+        orders = Order.query.order_by(Order.created_at.desc()).all()
         
         # Update cache
         with admin_cache_lock:
-            # Initialize cache dict if needed
-            if admin_orders_cache is None:
-                admin_orders_cache = {}
-                
-            admin_orders_cache[cache_key] = (orders, current_time)
+            admin_orders_cache = (orders, current_time)
         
-        logger.info(f"Admin orders list cache miss for {cache_key}, fetched from database")
+        logger.info("Admin orders list cache miss, fetched from database")
         return orders
         
     except Exception as e:
@@ -399,48 +376,11 @@ def admin():
         flash('You do not have permission to access this page.')
         return redirect(url_for('index'))
     
-    # Check for initial_load parameter to optimize first page load
-    initial_load = request.args.get('initial_load', 'true') == 'true'
-    
-    # Get pagination parameters
-    limit = None  # Default to all orders
-    page = 1
-    
-    # For initial load, only get the first page of orders (20 items)
-    # This makes the admin page load much faster
-    if initial_load:
-        limit = 20
-        logger.info("Initial load of admin page, loading first 20 orders")
-    
-    # Use cached orders list with pagination for better performance
-    orders = get_cached_orders_list(limit=limit, page=page)
-    
-    # Get the total count for pagination info
-    # Only do this count query if we're paginating
-    total_orders = None
-    if limit is not None:
-        try:
-            total_orders = Order.query.count()
-            logger.info(f"Total orders in database: {total_orders}")
-        except Exception as e:
-            logger.error(f"Error getting total order count: {str(e)}")
-            total_orders = len(orders)  # Fallback
-    
-    # Pass pagination info to template
-    pagination_info = {
-        'limit': limit,
-        'page': page,
-        'total': total_orders,
-        'initial_load': initial_load
-    } if limit is not None else None
+    # Use cached orders list for better performance
+    orders = get_cached_orders_list()
     
     # Ensure we send a full redirect response to avoid client-side routing issues
-    response = make_response(render_template(
-        'admin.html', 
-        orders=orders, 
-        pagination_info=pagination_info
-    ))
-    
+    response = make_response(render_template('admin.html', orders=orders))
     # Add cache control headers to prevent browser caching
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'

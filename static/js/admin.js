@@ -77,23 +77,6 @@ function applyFilters() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Check for server-side pagination info
-    const paginationInfoEl = document.getElementById('server-pagination-info');
-    
-    // Initialize with server-side info if available
-    if (paginationInfoEl) {
-        console.log('Server-side pagination information detected');
-        // Will be used by the pagination system
-        window.serverPaginationInfo = {
-            limit: parseInt(paginationInfoEl.dataset.limit) || null,
-            page: parseInt(paginationInfoEl.dataset.page) || 1,
-            total: parseInt(paginationInfoEl.dataset.total) || null,
-            initialLoad: paginationInfoEl.dataset.initialLoad === 'true'
-        };
-        
-        console.log('Server pagination info:', window.serverPaginationInfo);
-    }
-    
     // Lazy loading for images
     initLazyLoading();
     

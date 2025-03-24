@@ -11,31 +11,8 @@
             <a href="{{ url_for('export_orders') }}" id="exportBtn" class="action-btn">
                 <i class="fas fa-download me-1" style="color: white !important;"></i>Export
             </a>
-            {% if pagination_info and pagination_info.initial_load %}
-            <a href="{{ url_for('admin', initial_load='false') }}" id="loadAllBtn" class="action-btn">
-                <i class="fas fa-list-ul me-1" style="color: white !important;"></i>View All
-            </a>
-            {% endif %}
         </div>
     </header>
-    
-    {% if pagination_info and pagination_info.initial_load %}
-    <div class="alert alert-info mb-3">
-        <i class="fas fa-info-circle me-2"></i>
-        Showing {{ pagination_info.limit }} most recent orders for faster loading. 
-        <a href="{{ url_for('admin', initial_load='false') }}">View all {{ pagination_info.total }} orders</a>.
-    </div>
-    {% endif %}
-    
-    <!-- Hidden pagination info for JavaScript -->
-    {% if pagination_info %}
-    <div id="server-pagination-info" style="display: none;" 
-         data-limit="{{ pagination_info.limit }}"
-         data-page="{{ pagination_info.page }}"
-         data-total="{{ pagination_info.total }}"
-         data-initial-load="{{ 'true' if pagination_info.initial_load else 'false' }}">
-    </div>
-    {% endif %}
 
     <!-- Filter Bar -->
     <div class="filter-bar mb-4">
