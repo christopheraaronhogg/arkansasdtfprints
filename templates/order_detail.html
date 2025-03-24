@@ -110,10 +110,10 @@
             <div class="preview-content p-4">
                 <div class="preview-section mb-4 position-relative">
                     <div class="quantity-badge">{{ item.quantity }}x</div>
-                    <img src="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
+                    <img src="{{ url_for('get_order_thumbnail', order_id=order.id, filename=item.file_key) }}"
                          class="preview-image"
                          alt="Preview of {{ item.file_key }}"
-                         onclick="showFullSizePreview(this.src)">
+                         onclick="showFullSizePreview('{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}')">
                 </div>
                 <div class="controls-section">
                     <div class="mb-3">
