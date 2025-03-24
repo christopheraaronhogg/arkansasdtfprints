@@ -148,10 +148,12 @@ function initPagination() {
     const itemsPerPage = 20; // Default number of items per page
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     
-    console.log(`Initializing pagination: ${totalItems} items, ${totalPages} pages`);
+    // Skip pagination if there are few items
+    if (totalItems <= itemsPerPage) {
+        return;
+    }
     
-    // Always create pagination controls, even with one page
-    // This ensures pagination UI is visible for consistency
+    // Create pagination controls
     createPaginationControls(totalPages);
     
     // Initialize with first page
@@ -163,16 +165,18 @@ function initPagination() {
 
 // Create pagination controls
 function createPaginationControls(totalPages) {
-    // Remove existing pagination if it exists
-    const existingPagination = document.querySelector('.pagination-container');
-    if (existingPagination) {
-        existingPagination.remove();
+    // Check if pagination already exists
+    if (document.querySelector('.pagination-container')) {
+        // Update total pages only
+        if (document.getElementById('totalPages')) {
+            document.getElementById('totalPages').textContent = totalPages || 1;
+        }
+        return;
     }
 
     const orderList = document.querySelector('.order-list');
     const paginationContainer = document.createElement('div');
     paginationContainer.className = 'pagination-container mt-4 d-flex justify-content-between align-items-center';
-    paginationContainer.style.cssText = 'background-color: var(--surface-color); padding: 15px; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);';
     
     // Create page size selector
     const pageSizeContainer = document.createElement('div');
@@ -190,32 +194,19 @@ function createPaginationControls(totalPages) {
     // Create pages nav
     const pagesContainer = document.createElement('div');
     pagesContainer.className = 'pages-container';
-    
-    // If we have pagination
-    if (totalPages > 1) {
-        pagesContainer.innerHTML = `
-            <div class="btn-group" role="group" aria-label="Pagination">
-                <button type="button" class="btn btn-outline-secondary" id="prevPage" disabled>
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <span class="btn btn-outline-secondary disabled" id="pageInfo">
-                    Page <span id="currentPage">1</span> of <span id="totalPages">${totalPages}</span>
-                </span>
-                <button type="button" class="btn btn-outline-secondary" id="nextPage" ${totalPages === 1 ? 'disabled' : ''}>
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-        `;
-    } else {
-        // Single page - simplified display
-        pagesContainer.innerHTML = `
-            <div class="btn-group" role="group" aria-label="Pagination">
-                <span class="btn btn-outline-secondary disabled" id="pageInfo">
-                    <i class="fas fa-info-circle me-1"></i> Showing all ${document.querySelectorAll('.order-item:not(.filtered-out)').length} orders
-                </span>
-            </div>
-        `;
-    }
+    pagesContainer.innerHTML = `
+        <div class="btn-group" role="group" aria-label="Pagination">
+            <button type="button" class="btn btn-outline-secondary" id="prevPage" disabled>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="btn btn-outline-secondary disabled" id="pageInfo">
+                Page <span id="currentPage">1</span> of <span id="totalPages">${totalPages}</span>
+            </span>
+            <button type="button" class="btn btn-outline-secondary" id="nextPage">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    `;
     
     paginationContainer.appendChild(pageSizeContainer);
     paginationContainer.appendChild(pagesContainer);
@@ -223,51 +214,38 @@ function createPaginationControls(totalPages) {
     // Add pagination after order list
     orderList.parentNode.insertBefore(paginationContainer, orderList.nextSibling);
     
-    // Add event listeners (only if pagination controls exist)
-    const prevPageBtn = document.getElementById('prevPage');
-    const nextPageBtn = document.getElementById('nextPage');
-    
-    if (prevPageBtn) {
-        prevPageBtn.addEventListener('click', function() {
-            const currentPage = Number(document.getElementById('currentPage').textContent);
-            if (currentPage > 1) {
-                const itemsPerPage = Number(document.getElementById('itemsPerPage').value);
-                const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
-                showFilteredPage(currentPage - 1, itemsPerPage, visibleItems);
-                savePaginationState(currentPage - 1, itemsPerPage);
-            }
-        });
-    }
-    
-    if (nextPageBtn) {
-        nextPageBtn.addEventListener('click', function() {
-            const currentPage = Number(document.getElementById('currentPage').textContent);
-            const totalPages = Number(document.getElementById('totalPages').textContent);
-            if (currentPage < totalPages) {
-                const itemsPerPage = Number(document.getElementById('itemsPerPage').value);
-                const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
-                showFilteredPage(currentPage + 1, itemsPerPage, visibleItems);
-                savePaginationState(currentPage + 1, itemsPerPage);
-            }
-        });
-    }
-    
-    // Add change listener for items per page dropdown
-    const itemsPerPageSelect = document.getElementById('itemsPerPage');
-    if (itemsPerPageSelect) {
-        itemsPerPageSelect.addEventListener('change', function() {
-            const itemsPerPage = Number(this.value);
+    // Add event listeners
+    document.getElementById('prevPage').addEventListener('click', function() {
+        const currentPage = Number(document.getElementById('currentPage').textContent);
+        if (currentPage > 1) {
+            const itemsPerPage = Number(document.getElementById('itemsPerPage').value);
             const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
-            const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
-            
-            // Recreate pagination controls - this will handle both single and multi-page cases
-            createPaginationControls(totalPages);
-            
-            // Reset to page 1 with new page size
-            showFilteredPage(1, itemsPerPage, visibleItems);
-            savePaginationState(1, itemsPerPage);
-        });
-    }
+            showFilteredPage(currentPage - 1, itemsPerPage, visibleItems);
+            savePaginationState(currentPage - 1, itemsPerPage);
+        }
+    });
+    
+    document.getElementById('nextPage').addEventListener('click', function() {
+        const currentPage = Number(document.getElementById('currentPage').textContent);
+        const totalPages = Number(document.getElementById('totalPages').textContent);
+        if (currentPage < totalPages) {
+            const itemsPerPage = Number(document.getElementById('itemsPerPage').value);
+            const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
+            showFilteredPage(currentPage + 1, itemsPerPage, visibleItems);
+            savePaginationState(currentPage + 1, itemsPerPage);
+        }
+    });
+    
+    document.getElementById('itemsPerPage').addEventListener('change', function() {
+        const itemsPerPage = Number(this.value);
+        const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
+        const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
+        
+        // Reset to page 1 with new page size
+        document.getElementById('totalPages').textContent = totalPages || 1;
+        showFilteredPage(1, itemsPerPage, visibleItems);
+        savePaginationState(1, itemsPerPage);
+    });
     
     // Load saved pagination state if exists
     loadPaginationState();
@@ -353,8 +331,10 @@ function resetPagination() {
     const itemsPerPage = Number(document.getElementById('itemsPerPage')?.value || 20);
     const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
     
-    // Recreate pagination controls since we might need to switch between "Show all" and paged view
-    createPaginationControls(totalPages);
+    // Update total pages
+    if (document.getElementById('totalPages')) {
+        document.getElementById('totalPages').textContent = totalPages || 1;
+    }
     
     // Show first page of filtered results
     if (visibleItems.length > 0) {
@@ -384,42 +364,26 @@ function savePaginationState(currentPage, itemsPerPage) {
 // Load pagination state from session storage
 function loadPaginationState() {
     try {
-        const savedItemsPerPage = sessionStorage.getItem('adminPaginationItemsPerPage');
         const savedPage = sessionStorage.getItem('adminPaginationPage');
-        const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
+        const savedItemsPerPage = sessionStorage.getItem('adminPaginationItemsPerPage');
         
-        // Apply saved items per page if available
         if (savedItemsPerPage) {
             const itemsPerPageSelect = document.getElementById('itemsPerPage');
-            if (itemsPerPageSelect) {
-                itemsPerPageSelect.value = savedItemsPerPage;
-            }
+            itemsPerPageSelect.value = savedItemsPerPage;
+            
+            // Dispatch change event to update page size
+            const event = new Event('change');
+            itemsPerPageSelect.dispatchEvent(event);
         }
         
-        // Get the current values
-        const itemsPerPage = Number(savedItemsPerPage || document.getElementById('itemsPerPage')?.value || 20);
-        const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
-        
-        // Determine which page to show
-        let pageToShow = 1;
         if (savedPage) {
-            const requestedPage = Number(savedPage);
-            // Make sure requested page is valid for current data
-            pageToShow = (requestedPage > 0 && requestedPage <= totalPages) ? requestedPage : 1;
+            const currentPage = Number(savedPage);
+            const itemsPerPage = Number(savedItemsPerPage || document.getElementById('itemsPerPage').value);
+            const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
+            showFilteredPage(currentPage, itemsPerPage, visibleItems);
         }
-        
-        // Update pagination controls to reflect current state
-        createPaginationControls(totalPages);
-        
-        // Show the appropriate page
-        showFilteredPage(pageToShow, itemsPerPage, visibleItems);
     } catch (e) {
         console.warn('Failed to load pagination state', e);
-        
-        // Fallback to showing all items on first page with default page size
-        const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
-        const itemsPerPage = 20;
-        showFilteredPage(1, itemsPerPage, visibleItems);
     }
 }
 
