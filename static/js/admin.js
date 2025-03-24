@@ -45,95 +45,45 @@ function applyFilters() {
     
     console.log("Active tab:", statusFilter, "Applying filters");
     
-    // STEP 1: Reset everything to a clean state
     const orderItems = document.querySelectorAll('.order-item');
     let visibleCount = 0;
     
-    // Completely reset all items
     orderItems.forEach(function(item) {
-        // Reset any CSS classes
-        item.classList.remove('filtered-out');
-        // Hide all items first to start fresh
-        item.style.display = 'none';
-        // Remove any inline styles that might interfere
-        item.style.opacity = '';
-        item.style.transform = '';
-        item.style.transition = '';
-    });
-    
-    // STEP 2: Apply status filter first
-    if (statusFilter === 'open') {
-        // For "open" tab - keep only non-completed items
-        orderItems.forEach(function(item) {
-            const itemStatus = item.dataset.status;
-            if (itemStatus !== 'completed') {
-                // This item should be visible in the "open" tab
-                item.classList.remove('filtered-out');
-                visibleCount++;
+        const itemStatus = item.dataset.status;
+        const itemDate = item.dataset.date;
+        
+        // Apply status filter
+        let statusMatch = true;
+        if (statusFilter) {
+            if (statusFilter === 'open') {
+                statusMatch = itemStatus !== 'completed';
+                if (item.classList.contains('order-item-top')) {
+                    console.log("Order item:", item.dataset.id, "Status:", itemStatus, "Matches open filter:", statusMatch);
+                }
+            } else if (statusFilter === 'closed') {
+                statusMatch = itemStatus === 'completed';
             } else {
-                // This item should be hidden in the "open" tab
-                item.classList.add('filtered-out');
+                statusMatch = true; // 'all' option
             }
-        });
-        console.log("Open filter applied:", visibleCount, "visible items");
-    } 
-    else if (statusFilter === 'closed') {
-        // For "closed" tab - keep only completed items
-        orderItems.forEach(function(item) {
-            const itemStatus = item.dataset.status;
-            if (itemStatus === 'completed') {
-                // This item should be visible in the "closed" tab
-                item.classList.remove('filtered-out');
-                visibleCount++;
-            } else {
-                // This item should be hidden in the "closed" tab
-                item.classList.add('filtered-out');
-            }
-        });
-        console.log("Closed filter applied:", visibleCount, "visible items");
-    } 
-    else {
-        // For "all" tab - show everything
-        orderItems.forEach(function(item) {
+        }
+        
+        // Apply date filters
+        let dateMatch = true;
+        if (startDate && itemDate < startDate) {
+            dateMatch = false;
+        }
+        if (endDate && itemDate > endDate) {
+            dateMatch = false;
+        }
+        
+        // Show/hide based on filters
+        if (statusMatch && dateMatch) {
             item.classList.remove('filtered-out');
             visibleCount++;
-        });
-        console.log("All items visible:", visibleCount, "items");
-    }
-    
-    // STEP 3: Apply date filters as secondary filters
-    if (startDate || endDate) {
-        let dateFilteredCount = 0;
-        
-        orderItems.forEach(function(item) {
-            // Skip already filtered out items
-            if (item.classList.contains('filtered-out')) {
-                return;
-            }
-            
-            const itemDate = item.dataset.date;
-            let dateMatch = true;
-            
-            if (startDate && itemDate < startDate) {
-                dateMatch = false;
-            }
-            if (endDate && itemDate > endDate) {
-                dateMatch = false;
-            }
-            
-            if (!dateMatch) {
-                item.classList.add('filtered-out');
-                visibleCount--;
-            } else {
-                dateFilteredCount++;
-            }
-        });
-        
-        console.log("Date filter applied:", dateFilteredCount, "items visible after date filtering");
-    }
-    
-    // Log the final result
-    console.log("Final filter result:", visibleCount, "visible items");
+        } else {
+            item.classList.add('filtered-out');
+        }
+    });
     
     // Reset and reinitialize pagination with filtered items
     resetPagination();
@@ -146,29 +96,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize filters first so pagination will work with filtered items
     initFilters();
     
-    // Check if we have a stored view state
-    try {
-        const savedView = sessionStorage.getItem('adminOrdersView');
-        if (savedView) {
-            // Find the option with this value
-            const targetOption = document.querySelector(`.toggle-option[data-value="${savedView}"]`);
-            if (targetOption) {
-                // Trigger a click on this option to restore the view
-                targetOption.click();
-                console.log("Restored saved view:", savedView);
-            } else {
-                // Apply the "open" filter by default
-                applyDefaultFilter();
-            }
-        } else {
-            // Apply the "open" filter by default
-            applyDefaultFilter();
-        }
-    } catch (e) {
-        console.warn('Failed to restore view state', e);
-        // Apply the "open" filter by default
-        applyDefaultFilter();
-    }
+    // Apply the "open" filter by default (immediately)
+    applyDefaultFilter();
     
     // Pagination (now works with filtered items)
     initPagination();
@@ -376,11 +305,6 @@ function initFilters() {
             const value = this.dataset.value;
             const activeOption = document.querySelector('.toggle-option.active');
             
-            // If clicking the already active tab, do nothing
-            if (activeOption === this) {
-                return;
-            }
-            
             if (activeOption) {
                 activeOption.classList.remove('active');
             }
@@ -396,35 +320,16 @@ function initFilters() {
                 slider.style.transform = `translateX(${index * 100}%)`;
             }
             
-            // Clear all filtering and pagination state
+            // Clear pagination state when changing tabs to force a clean filter
             try {
                 sessionStorage.removeItem('adminPaginationPage');
                 sessionStorage.removeItem('adminPaginationItemsPerPage');
-                sessionStorage.removeItem('adminOrdersView');
             } catch (e) {
                 console.warn('Failed to clear pagination state', e);
             }
             
-            // Store the current view
-            try {
-                sessionStorage.setItem('adminOrdersView', value);
-            } catch (e) {
-                console.warn('Failed to save view state', e);
-            }
-            
-            // For the most reliable results, let's force a hard reset of all items
-            document.querySelectorAll('.order-item').forEach(item => {
-                // Reset any filtering classes
-                item.classList.remove('filtered-out');
-                // Hide all items first
-                item.style.display = 'none';
-            });
-            
-            // Apply filter with a slight delay to ensure DOM is updated
-            setTimeout(() => {
-                console.log("Applying filter for tab:", value);
-                applyFilters();
-            }, 50);
+            // Apply filter
+            applyFilters();
         });
     });
     
@@ -447,11 +352,6 @@ function resetPagination() {
     const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
     
     console.log("Active tab:", statusFilter, "Visible items:", visibleItems.length);
-    
-    // Make sure all items are initially hidden to prevent any display issues
-    document.querySelectorAll('.order-item').forEach(item => {
-        item.style.display = 'none';
-    });
     
     // Update total pages
     if (document.getElementById('totalPages')) {
