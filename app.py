@@ -943,6 +943,23 @@ def to_central_filter(dt):
 
     return formatted
 
+# Create a middleware to add cache headers to appropriate responses
+@app.after_request
+def add_cache_headers_middleware(response):
+    """Add appropriate cache headers to static assets and images"""
+    path = request.path
+    
+    # Add caching for static assets
+    if path.startswith('/static/'):
+        if any(path.endswith(ext) for ext in ['.css', '.js']):
+            return add_cache_headers(response, content_type='static')
+        elif any(path.endswith(ext) for ext in ['.png', '.jpg', '.jpeg', '.gif', '.svg']):
+            return add_cache_headers(response, content_type='image')
+    
+    # We'll handle specific image routes individually to include ETags
+    
+    return response
+
 # Add new helper function after the existing helper functions but before routes
 def get_smart_image_url(order_id, filename, external=True, scheme='https'):
     """
@@ -976,11 +993,14 @@ def get_public_image(filename):
         logger.error(f"Image file not found in storage: {filename}")
         return "Image not found", 404
 
-    return Response(
+    response = Response(
         file_data,
         mimetype='image/png',
         headers={'Content-Disposition': f'inline; filename={filename}'}
     )
+    
+    # Add specific ETag for this image
+    return add_cache_headers(response, content_type='image', etag_content=file_data)
 
 @app.route('/order/thumbnail/<path:filename>')
 def get_public_thumbnail(filename):
