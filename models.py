@@ -18,14 +18,19 @@ class User(UserMixin, db.Model):
 
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    order_number = db.Column(db.String(20), unique=True, nullable=False)
-    invoice_number = db.Column(db.String(50), nullable=True)
+    order_number = db.Column(db.String(20), unique=True, nullable=False, index=True)
+    invoice_number = db.Column(db.String(50), nullable=True, index=True)
     po_number = db.Column(db.String(50), nullable=True)
-    email = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), nullable=False, index=True)
     total_cost = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='pending')
-    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow)
+    status = db.Column(db.String(20), default='pending', index=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow, index=True)
     items = db.relationship('OrderItem', backref='order', lazy=True)
+    
+    # Create composite index for common query patterns
+    __table_args__ = (
+        db.Index('idx_order_status_created', status, created_at),
+    )
 
     def to_dict(self):
         return {
@@ -41,13 +46,18 @@ class Order(db.Model):
 
 class OrderItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False)
-    file_key = db.Column(db.String(255), nullable=False)
+    order_id = db.Column(db.Integer, db.ForeignKey('order.id'), nullable=False, index=True)
+    file_key = db.Column(db.String(255), nullable=False, index=True)
     width_inches = db.Column(db.Float, nullable=False)
     height_inches = db.Column(db.Float, nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
     cost = db.Column(db.Float, nullable=False)
     notes = db.Column(db.Text, nullable=True)
+    
+    # Create composite index for the commonly searched pattern
+    __table_args__ = (
+        db.Index('idx_orderitem_order_file', order_id, file_key),
+    )
 
     def format_dimensions(self):
         return f"{self.width_inches:.2f}\" × {self.height_inches:.2f}\""
