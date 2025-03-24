@@ -4,7 +4,7 @@ from replit.object_storage import Client as ObjectStorageClient
 import time
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)  # Set to DEBUG for more detailed logs
+logger.setLevel(logging.INFO)  # Changed from DEBUG to INFO to reduce logging overhead
 
 BUCKET_ID = "replit-objstore-c3fb67d8-cc58-4f6a-8303-0ada7212ebd1"
 
