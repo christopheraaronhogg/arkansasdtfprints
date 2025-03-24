@@ -334,12 +334,40 @@ function resetPagination() {
         document.getElementById('totalPages').textContent = totalPages || 1;
     }
     
+    // Get current active tab
+    const activeTab = document.querySelector('.toggle-option.active');
+    const activeTabValue = activeTab ? activeTab.dataset.value : '';
+    console.log("Active tab:", activeTabValue, "Visible items:", visibleItems.length);
+    
+    // Remove any existing "no results" message first
+    const existingMessage = document.querySelector('.no-results-message');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
     // Show first page of filtered results
     if (visibleItems.length > 0) {
         showFilteredPage(1, itemsPerPage, visibleItems);
     } else {
-        // No results message
-        showNoResultsMessage();
+        // Check if this tab has any applicable orders at all
+        let hasOrdersInTabCategory = false;
+        
+        if (activeTabValue === 'open') {
+            // Check if there are any open (non-completed) orders
+            hasOrdersInTabCategory = document.querySelectorAll('.order-item[data-status="pending"], .order-item[data-status="processing"]').length > 0;
+        } else if (activeTabValue === 'closed') {
+            // Check if there are any completed orders
+            hasOrdersInTabCategory = document.querySelectorAll('.order-item[data-status="completed"]').length > 0;
+        } else {
+            // 'all' tab - should have orders unless database is empty
+            hasOrdersInTabCategory = document.querySelectorAll('.order-item').length > 0;
+        }
+        
+        // Only show the "no matches" message if this tab category should have orders
+        // but they're filtered out by date filters
+        if (hasOrdersInTabCategory) {
+            showNoResultsMessage();
+        }
     }
 }
 
@@ -402,6 +430,9 @@ function loadPaginationState() {
 // Show message when no results match filters
 function showNoResultsMessage() {
     const orderList = document.querySelector('.order-list');
+    const activeTab = document.querySelector('.toggle-option.active');
+    const activeTabValue = activeTab ? activeTab.dataset.value : '';
+    const dateFiltersActive = document.getElementById('startDate')?.value || document.getElementById('endDate')?.value;
     
     // Remove existing message if any
     const existingMessage = document.querySelector('.no-results-message');
@@ -412,8 +443,20 @@ function showNoResultsMessage() {
     // Create and insert message
     const messageElement = document.createElement('div');
     messageElement.className = 'no-results-message alert alert-info mt-3';
-    messageElement.innerHTML = '<i class="fas fa-info-circle me-2"></i>No orders match your current filters. Try adjusting your filter criteria.';
     
+    // Customize message based on active tab and filters
+    let message = '';
+    if (activeTabValue === 'open' && !dateFiltersActive) {
+        message = 'There are no open orders to display.';
+    } else if (activeTabValue === 'closed' && !dateFiltersActive) {
+        message = 'There are no completed orders to display.';
+    } else {
+        message = 'No orders match your current filters. Try adjusting your filter criteria.';
+    }
+    
+    messageElement.innerHTML = `<i class="fas fa-info-circle me-2"></i>${message}`;
+    
+    // Position the message correctly - next to order list
     orderList.parentNode.insertBefore(messageElement, orderList.nextSibling);
 }
 
