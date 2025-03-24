@@ -38,20 +38,27 @@ function applyFilters() {
     const orderItems = document.querySelectorAll('.order-item');
     let visibleCount = 0;
     
+    // First hide all items to start clean
+    orderItems.forEach(function(item) {
+        item.classList.add('filtered-out');
+    });
+    
+    // Then apply filters to show matching items
     orderItems.forEach(function(item) {
         const itemStatus = item.dataset.status;
         const itemDate = item.dataset.date;
         
         // Apply status filter
         let statusMatch = true;
-        if (statusFilter) {
-            if (statusFilter === 'open') {
-                statusMatch = itemStatus !== 'completed';
-            } else if (statusFilter === 'closed') {
-                statusMatch = itemStatus === 'completed';
-            } else {
-                statusMatch = true; // 'all' option
-            }
+        if (statusFilter === 'open') {
+            // Open tab - show only pending and processing orders
+            statusMatch = (itemStatus === 'pending' || itemStatus === 'processing');
+        } else if (statusFilter === 'closed') {
+            // Closed tab - show only completed orders
+            statusMatch = (itemStatus === 'completed');
+        } else {
+            // All tab - show everything
+            statusMatch = true;
         }
         
         // Apply date filters
@@ -67,10 +74,10 @@ function applyFilters() {
         if (statusMatch && dateMatch) {
             item.classList.remove('filtered-out');
             visibleCount++;
-        } else {
-            item.classList.add('filtered-out');
         }
     });
+    
+    console.log(`Applied ${statusFilter} filter, ${visibleCount} visible items`);
     
     // Reset and reinitialize pagination with filtered items
     resetPagination();
