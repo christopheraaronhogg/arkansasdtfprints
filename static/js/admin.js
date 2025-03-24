@@ -45,14 +45,13 @@ function applyFilters() {
     
     console.log("Active tab:", statusFilter, "Applying filters");
     
-    // Important: First reset ALL item states completely
+    // Important: Get all order items to filter
     const orderItems = document.querySelectorAll('.order-item');
     
-    // Reset all states first
+    // Reset display but don't remove filtered-out classes yet
+    // We need to evaluate each item's status first
     orderItems.forEach(function(item) {
-        // Remove filtered-out class from all items
-        item.classList.remove('filtered-out');
-        // Reset all display properties to none
+        // Just reset display to none initially
         item.style.display = 'none';
     });
 
@@ -63,15 +62,16 @@ function applyFilters() {
         const itemStatus = item.dataset.status;
         const itemDate = item.dataset.date;
         
+        // Reset filtered state for each item
+        item.classList.remove('filtered-out');
+        
         // Determine if this item should be visible based on status filter
         let statusMatch = true;
         if (statusFilter) {
             if (statusFilter === 'open') {
                 // Open means not completed
                 statusMatch = (itemStatus !== 'completed');
-                if (item.classList.contains('order-item-top')) {
-                    console.log("Order item:", item.dataset.id, "Status:", itemStatus, "Matches open filter:", statusMatch);
-                }
+                console.log("Order item:", item.dataset.id || 'unknown', "Status:", itemStatus, "Matches open filter:", statusMatch);
             } else if (statusFilter === 'closed') {
                 // Closed means completed
                 statusMatch = (itemStatus === 'completed');
@@ -315,8 +315,12 @@ function showFilteredPage(pageNumber, itemsPerPage, visibleItems) {
         console.log("DEBUG - Item:", itemStatus, "Will be displayed:", statusMatch && !item.classList.contains('filtered-out'));
         
         // Only show if it matches the filter criteria
+        // Important: We need to respect the filtered-out class that's already been set by applyFilters
         if (statusMatch && !item.classList.contains('filtered-out')) {
             item.style.display = 'flex';
+        } else {
+            // Make sure the item doesn't show if it shouldn't
+            item.style.display = 'none';
         }
     }
     
@@ -376,15 +380,14 @@ function initFilters() {
                 console.warn('Failed to clear pagination state', e);
             }
             
-            // First reset all order item display states
+            // Don't remove any filtered-out classes
+            // Instead, let applyFilters set them correctly based on its logic
             document.querySelectorAll('.order-item').forEach(item => {
-                // Remove filtered-out class to start fresh
-                item.classList.remove('filtered-out');
-                // Reset display to none before filtering
+                // Only reset display property
                 item.style.display = 'none';
             });
             
-            // Apply filter with a clean slate
+            // Apply filter with a clean slate - this will set correct filtered-out classes
             applyFilters();
         });
     });
