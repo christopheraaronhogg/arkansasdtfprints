@@ -53,6 +53,11 @@ order_cache_lock = threading.Lock()  # lock for thread safety
 MAX_ORDER_CACHE_SIZE = 100  # Maximum number of orders to keep in cache
 ORDER_CACHE_TTL = 300  # Time-to-live for cached orders (5 minutes)
 
+# Cache for admin page orders list
+admin_orders_cache = None  # (orders list, timestamp)
+admin_cache_lock = threading.Lock()  # lock for thread safety
+ADMIN_CACHE_TTL = 60  # Time-to-live for admin orders list cache (1 minute)
+
 def check_thumbnail_exists(filename):
     """Check if a thumbnail exists, using cache when possible"""
     thumbnail_key = get_thumbnail_key(filename)
@@ -330,14 +335,57 @@ def logout():
     return redirect(url_for('index'))
 
 # Protect admin routes with login_required
+# Function to get cached orders list for admin page
+def get_cached_orders_list():
+    """
+    Get a cached list of all orders for the admin page.
+    Includes caching with TTL to improve performance for repeated views.
+    """
+    global admin_orders_cache
+    current_time = time.time()
+    
+    # Check if cache exists and is still valid
+    with admin_cache_lock:
+        if admin_orders_cache is not None:
+            orders_list, timestamp = admin_orders_cache
+            # Check if cache entry is still valid (not expired)
+            if current_time - timestamp < ADMIN_CACHE_TTL:
+                logger.info("Admin orders list cache hit")
+                return orders_list
+    
+    # Not in cache or expired, fetch from database
+    try:
+        # Get all orders sorted by creation date
+        orders = Order.query.order_by(Order.created_at.desc()).all()
+        
+        # Update cache
+        with admin_cache_lock:
+            admin_orders_cache = (orders, current_time)
+        
+        logger.info("Admin orders list cache miss, fetched from database")
+        return orders
+        
+    except Exception as e:
+        logger.error(f"Error fetching admin orders list: {str(e)}")
+        return []
+
 @app.route('/admin')
 @login_required
 def admin():
     if not current_user.is_admin:
         flash('You do not have permission to access this page.')
         return redirect(url_for('index'))
-    orders = Order.query.order_by(Order.created_at.desc()).all()
-    return render_template('admin.html', orders=orders)
+    
+    # Use cached orders list for better performance
+    orders = get_cached_orders_list()
+    
+    # Ensure we send a full redirect response to avoid client-side routing issues
+    response = make_response(render_template('admin.html', orders=orders))
+    # Add cache control headers to prevent browser caching
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 # Function to get order with caching
 def get_cached_order(order_id):
@@ -416,11 +464,18 @@ def update_order_status(order_id):
     order.status = new_status
     db.session.commit()
     
-    # Invalidate cache for this order after status update
+    # Invalidate caches after status update
     with order_cache_lock:
         if order_id in order_cache:
             order_cache.pop(order_id)
-            logger.info(f"Invalidated cache for order_id {order_id} after status update from {old_status} to {new_status}")
+            logger.info(f"Invalidated order cache for order_id {order_id} after status update from {old_status} to {new_status}")
+    
+    # Also invalidate admin page cache since order status is displayed there
+    with admin_cache_lock:
+        global admin_orders_cache
+        if admin_orders_cache is not None:
+            admin_orders_cache = None
+            logger.info("Invalidated admin orders cache after order status update")
     
     return redirect(url_for('view_order', order_id=order.id))
 
@@ -722,11 +777,18 @@ def update_invoice_number():
         order.invoice_number = invoice_number if invoice_number.strip() else None
         db.session.commit()
         
-        # Invalidate cache for this order after invoice update
+        # Invalidate caches after invoice update
         with order_cache_lock:
             if order_id in order_cache:
                 order_cache.pop(order_id)
-                logger.info(f"Invalidated cache for order_id {order_id} after invoice update from '{old_invoice}' to '{order.invoice_number}'")
+                logger.info(f"Invalidated order cache for order_id {order_id} after invoice update from '{old_invoice}' to '{order.invoice_number}'")
+        
+        # Also invalidate admin page cache since invoice number is displayed there
+        with admin_cache_lock:
+            global admin_orders_cache
+            if admin_orders_cache is not None:
+                admin_orders_cache = None
+                logger.info("Invalidated admin orders cache after invoice update")
 
         return jsonify({'success': True, 'invoice_number': order.invoice_number})
     except Exception as e:
