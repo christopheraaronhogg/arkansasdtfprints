@@ -4,7 +4,7 @@ import json
 import pytz
 import time
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response
+from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response, make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail, Message
 from werkzeug.utils import secure_filename
@@ -598,6 +598,20 @@ def bulk_status_update():
 
         db.session.commit()
         logger.info(f"Bulk updated {updated} orders to status: {new_status}")
+        
+        # Invalidate individual order caches
+        with order_cache_lock:
+            for order_id in order_ids:
+                if order_id in order_cache:
+                    order_cache.pop(order_id)
+            logger.info(f"Invalidated {len(order_ids)} order caches after bulk status update")
+        
+        # Also invalidate admin page cache since statuses are displayed there
+        with admin_cache_lock:
+            global admin_orders_cache
+            if admin_orders_cache is not None:
+                admin_orders_cache = None
+                logger.info("Invalidated admin orders cache after bulk status update")
 
         return jsonify({'success': True, 'updated': updated}), 200
     except Exception as e:
@@ -825,6 +839,13 @@ def bulk_invoice_update():
                     order_cache.pop(order_id)
                     
             logger.info(f"Bulk updated {updated} orders with invoice number: {invoice_number} and invalidated {len(order_ids)} order caches")
+        
+        # Also invalidate admin page cache since invoice numbers are displayed there
+        with admin_cache_lock:
+            global admin_orders_cache
+            if admin_orders_cache is not None:
+                admin_orders_cache = None
+                logger.info("Invalidated admin orders cache after bulk invoice update")
 
         return jsonify({'success': True, 'updated': updated}), 200
     except Exception as e:
