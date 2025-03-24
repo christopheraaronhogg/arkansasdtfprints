@@ -31,7 +31,10 @@ def create_indexes():
                 ("ix_order_email", "CREATE INDEX IF NOT EXISTS ix_order_email ON \"order\" (email)"),
                 ("ix_order_status", "CREATE INDEX IF NOT EXISTS ix_order_status ON \"order\" (status)"),
                 ("ix_order_created_at", "CREATE INDEX IF NOT EXISTS ix_order_created_at ON \"order\" (created_at)"),
-                ("idx_order_status_created", "CREATE INDEX IF NOT EXISTS idx_order_status_created ON \"order\" (status, created_at)")
+                ("idx_order_status_created", "CREATE INDEX IF NOT EXISTS idx_order_status_created ON \"order\" (status, created_at)"),
+                # New composite indexes for frequently used query patterns
+                ("idx_order_email_created", "CREATE INDEX IF NOT EXISTS idx_order_email_created ON \"order\" (email, created_at DESC)"),
+                ("idx_order_invoice_status", "CREATE INDEX IF NOT EXISTS idx_order_invoice_status ON \"order\" (invoice_number, status)")
             ]
             
             for idx_name, idx_sql in indexes_to_create:
@@ -52,7 +55,11 @@ def create_indexes():
             indexes_to_create = [
                 ("ix_order_item_order_id", "CREATE INDEX IF NOT EXISTS ix_order_item_order_id ON order_item (order_id)"),
                 ("ix_order_item_file_key", "CREATE INDEX IF NOT EXISTS ix_order_item_file_key ON order_item (file_key)"),
-                ("idx_orderitem_order_file", "CREATE INDEX IF NOT EXISTS idx_orderitem_order_file ON order_item (order_id, file_key)")
+                ("idx_orderitem_order_file", "CREATE INDEX IF NOT EXISTS idx_orderitem_order_file ON order_item (order_id, file_key)"),
+                # New index for quantity-based queries
+                ("idx_orderitem_quantity", "CREATE INDEX IF NOT EXISTS idx_orderitem_quantity ON order_item (quantity)"),
+                # New composite index for dimension-based calculations
+                ("idx_orderitem_dimensions", "CREATE INDEX IF NOT EXISTS idx_orderitem_dimensions ON order_item (width_inches, height_inches)")
             ]
             
             for idx_name, idx_sql in indexes_to_create:

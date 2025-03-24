@@ -354,8 +354,9 @@ from utils import allowed_file, generate_order_number, calculate_cost, get_image
 with app.app_context():
     db.create_all()
     # Create default admin user if it doesn't exist
-    admin_user = User.query.filter_by(username='admin').first()
-    if not admin_user:
+    # Use EXISTS for checking admin user existence (more efficient than COUNT or first())
+    admin_exists = db.session.query(db.exists().where(User.username == 'admin')).scalar()
+    if not admin_exists:
         admin_user = User(
             username='admin',
             email='admin@appareldecorating.net',
@@ -374,6 +375,7 @@ def login():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        # We still need to retrieve the full user record to check the password
         user = User.query.filter_by(username=username).first()
 
         if user and user.check_password(password) and user.is_admin:
