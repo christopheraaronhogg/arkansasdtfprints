@@ -24,6 +24,14 @@ function applyDefaultFilter() {
             slider.style.transform = `translateX(${index * 100}%)`;
         }
         
+        // Clear any filter cache to ensure a clean state
+        try {
+            sessionStorage.removeItem('adminPaginationPage');
+            sessionStorage.removeItem('adminPaginationItemsPerPage');
+        } catch (e) {
+            console.warn('Failed to clear pagination state', e);
+        }
+        
         // Apply the filter immediately
         applyFilters();
     }
@@ -34,6 +42,8 @@ function applyFilters() {
     const statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
     const startDate = document.getElementById('startDate')?.value || '';
     const endDate = document.getElementById('endDate')?.value || '';
+    
+    console.log("Active tab:", statusFilter, "Applying filters");
     
     const orderItems = document.querySelectorAll('.order-item');
     let visibleCount = 0;
@@ -47,6 +57,9 @@ function applyFilters() {
         if (statusFilter) {
             if (statusFilter === 'open') {
                 statusMatch = itemStatus !== 'completed';
+                if (item.classList.contains('order-item-top')) {
+                    console.log("Order item:", item.dataset.id, "Status:", itemStatus, "Matches open filter:", statusMatch);
+                }
             } else if (statusFilter === 'closed') {
                 statusMatch = itemStatus === 'completed';
             } else {
@@ -307,6 +320,14 @@ function initFilters() {
                 slider.style.transform = `translateX(${index * 100}%)`;
             }
             
+            // Clear pagination state when changing tabs to force a clean filter
+            try {
+                sessionStorage.removeItem('adminPaginationPage');
+                sessionStorage.removeItem('adminPaginationItemsPerPage');
+            } catch (e) {
+                console.warn('Failed to clear pagination state', e);
+            }
+            
             // Apply filter
             applyFilters();
         });
@@ -325,9 +346,12 @@ function initFilters() {
 // Reset pagination after filters change
 function resetPagination() {
     // Get only visible items after filtering
+    const statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
     const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
     const itemsPerPage = Number(document.getElementById('itemsPerPage')?.value || 20);
     const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
+    
+    console.log("Active tab:", statusFilter, "Visible items:", visibleItems.length);
     
     // Update total pages
     if (document.getElementById('totalPages')) {
