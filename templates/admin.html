@@ -94,9 +94,12 @@
                 {% for item in order.items %}
                 <div class="img-container" style="background-size: 10px 10px !important;">
                     <div class="img-count-badge">{{ item.quantity }}x</div>
-                    <img src="{{ url_for('get_order_thumbnail', order_id=order.id, filename=item.file_key) }}"
+                    <img loading="lazy" 
+                         src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" 
+                         data-src="{{ url_for('get_order_thumbnail', order_id=order.id, filename=item.file_key) }}"
                          alt="Preview of {{ item.file_key }}"
                          data-full-image="{{ url_for('get_order_image', order_id=order.id, filename=item.file_key) }}"
+                         class="lazy-image"
                          onclick="showFullSizePreview(this)">
                 </div>
                 {% endfor %}
@@ -267,6 +270,16 @@
 /* Add image count badge */
 .img-container {
     position: relative;
+}
+
+/* Lazy loading image styles */
+.lazy-image {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.lazy-image.loaded {
+    opacity: 1;
 }
 
 .img-count-badge {
@@ -1905,4 +1918,8 @@ document.addEventListener('DOMContentLoaded', function() {
     updateSelectedCount();
 });
 </script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 {% endblock %}
