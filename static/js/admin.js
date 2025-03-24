@@ -209,8 +209,12 @@ function createPaginationControls(totalPages) {
     paginationContainer.appendChild(pageSizeContainer);
     paginationContainer.appendChild(pagesContainer);
     
-    // Add pagination after order list
-    orderList.parentNode.insertBefore(paginationContainer, orderList.nextSibling);
+    // If server-side pagination is active, don't add client-side pagination
+    const serverPagination = document.querySelector('.pagination-container');
+    if (!serverPagination) {
+        // Add pagination after order list if server-side pagination isn't present
+        orderList.parentNode.insertBefore(paginationContainer, orderList.nextSibling);
+    }
     
     // Add event listeners
     document.getElementById('prevPage').addEventListener('click', function() {

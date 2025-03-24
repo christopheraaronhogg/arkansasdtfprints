@@ -509,6 +509,9 @@ def admin():
     if page < 1:
         page = 1
     
+    # Import joinedload for eager loading
+    from sqlalchemy.orm import joinedload
+
     # Use cached paginated orders list
     orders, total_orders, total_pages = get_cached_orders_list(
         page=page,
