@@ -45,33 +45,38 @@ function applyFilters() {
     
     console.log("Active tab:", statusFilter, "Applying filters");
     
-    // Important: Reset all items' display state and filtered-out class before applying filters
+    // Important: First reset ALL item states completely
     const orderItems = document.querySelectorAll('.order-item');
+    
+    // Reset all states first
+    orderItems.forEach(function(item) {
+        // Remove filtered-out class from all items
+        item.classList.remove('filtered-out');
+        // Reset all display properties to none
+        item.style.display = 'none';
+    });
+
+    // Now apply fresh filters
     let visibleCount = 0;
     
-    // First pass: Remove all filtered-out classes to start fresh
-    orderItems.forEach(function(item) {
-        item.classList.remove('filtered-out');
-    });
-    
-    // Second pass: Apply the correct filters
     orderItems.forEach(function(item) {
         const itemStatus = item.dataset.status;
         const itemDate = item.dataset.date;
         
-        // Apply status filter
+        // Determine if this item should be visible based on status filter
         let statusMatch = true;
         if (statusFilter) {
             if (statusFilter === 'open') {
-                statusMatch = itemStatus !== 'completed';
+                // Open means not completed
+                statusMatch = (itemStatus !== 'completed');
                 if (item.classList.contains('order-item-top')) {
                     console.log("Order item:", item.dataset.id, "Status:", itemStatus, "Matches open filter:", statusMatch);
                 }
             } else if (statusFilter === 'closed') {
-                statusMatch = itemStatus === 'completed';
-            } else {
-                statusMatch = true; // 'all' option
+                // Closed means completed
+                statusMatch = (itemStatus === 'completed');
             }
+            // else 'all' option - keep statusMatch true
         }
         
         // Apply date filters
@@ -83,16 +88,15 @@ function applyFilters() {
             dateMatch = false;
         }
         
-        // Show/hide based on filters
-        if (statusMatch && dateMatch) {
-            // Keep the filtered-out class removed
-            visibleCount++;
-        } else {
+        // Only include in visible items if it matches all filters
+        if (!statusMatch || !dateMatch) {
             item.classList.add('filtered-out');
+        } else {
+            visibleCount++;
         }
     });
     
-    console.log("Total visible items after filtering:", visibleCount);
+    console.log("Total visible items after filtering:", visibleCount, "Filter applied:", statusFilter);
     
     // Reset and reinitialize pagination with filtered items
     resetPagination();
@@ -275,17 +279,36 @@ function createPaginationControls(totalPages) {
 function showFilteredPage(pageNumber, itemsPerPage, visibleItems) {
     const startIndex = (pageNumber - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, visibleItems.length);
+    const statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
     
-    // Always hide all items first to ensure clean state
+    console.log("Showing page", pageNumber, "with filter", statusFilter);
+    
+    // Always hide ALL items first (complete reset)
     document.querySelectorAll('.order-item').forEach(item => {
+        // Make sure display is set to none
         item.style.display = 'none';
     });
     
-    // Make sure we're only showing items that match the current filter
-    // This double-checks that all shown items are not filtered-out
+    // Verify again that we're only showing items that match the filter criteria
+    // Don't assume the filtered-out class is accurate - double verify status match
     for (let i = startIndex; i < endIndex; i++) {
-        if (visibleItems[i] && !visibleItems[i].classList.contains('filtered-out')) {
-            visibleItems[i].style.display = 'flex';
+        if (!visibleItems[i]) continue;
+        
+        const item = visibleItems[i];
+        const itemStatus = item.dataset.status;
+        
+        // Double-check status matches for current filter (safety check)
+        let statusMatch = true;
+        if (statusFilter === 'open') {
+            statusMatch = (itemStatus !== 'completed');
+        } else if (statusFilter === 'closed') {
+            statusMatch = (itemStatus === 'completed');
+        }
+        // else 'all' status - keep statusMatch true
+        
+        // Only show if it matches the filter criteria
+        if (statusMatch && !item.classList.contains('filtered-out')) {
+            item.style.display = 'flex';
         }
     }
     
@@ -370,8 +393,48 @@ function initFilters() {
 
 // Reset pagination after filters change
 function resetPagination() {
-    // Get only visible items after filtering
+    // Get current filter status
     const statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
+    
+    // Important: Double-check which items should be visible based on current filter
+    // This is a safety check to ensure our filter state is correct
+    const orderItems = document.querySelectorAll('.order-item');
+    
+    // Verify filter state for all items
+    orderItems.forEach(function(item) {
+        const itemStatus = item.dataset.status;
+        
+        // Re-validate status matches for safety
+        let shouldBeVisible = true;
+        
+        if (statusFilter === 'open') {
+            shouldBeVisible = (itemStatus !== 'completed');
+        } else if (statusFilter === 'closed') {
+            shouldBeVisible = (itemStatus === 'completed');
+        }
+        // else 'all' option, keep shouldBeVisible true
+        
+        // Apply date filters too (re-check)
+        const itemDate = item.dataset.date;
+        const startDate = document.getElementById('startDate')?.value || '';
+        const endDate = document.getElementById('endDate')?.value || '';
+        
+        if (startDate && itemDate < startDate) {
+            shouldBeVisible = false;
+        }
+        if (endDate && itemDate > endDate) {
+            shouldBeVisible = false;
+        }
+        
+        // Ensure correct filtered-out class
+        if (!shouldBeVisible) {
+            item.classList.add('filtered-out');
+        } else {
+            item.classList.remove('filtered-out');
+        }
+    });
+    
+    // Now get the properly filtered items
     const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
     const itemsPerPage = Number(document.getElementById('itemsPerPage')?.value || 20);
     const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
