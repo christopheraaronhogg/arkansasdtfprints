@@ -2,6 +2,7 @@ import os
 import logging
 import json
 import pytz
+import time
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, flash, redirect, url_for, send_file, Response
 from flask_sqlalchemy import SQLAlchemy
@@ -860,37 +861,53 @@ def send_order_emails(order):
             logger.debug(f"To: {order.email}")
             logger.debug(f"Subject: DTF Printing Order Confirmation - {order.order_number}")
 
-            response = sg.send(customer_email)
-            if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send customer email. Status code: {response.status_code}")
-                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
-                return False
-            logger.info(f"Successfully sent customer email for order {order.order_number}")
+            for attempt in range(3):  # Try up to 3 times
+                try:
+                    response = sg.send(customer_email)
+                    if response.status_code in [200, 201, 202]:
+                        logger.info(f"Successfully sent customer email for order {order.order_number}")
+                        break
+                    else:
+                        logger.error(f"Failed to send customer email. Status code: {response.status_code}")
+                        logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
+                        if attempt < 2:  # Don't sleep on the last attempt
+                            time.sleep((attempt + 1) * 2)  # Exponential backoff: 2s, 4s
+                except Exception as e:
+                    logger.error(f"Error sending customer email (attempt {attempt + 1}): {str(e)}")
+                    if attempt < 2:
+                        time.sleep((attempt + 1) * 2)
+                    else:
+                        return False
 
             # Send production team email
             logger.info(f"Attempting to send production team email for order {order.order_number}")
             logger.debug(f"To: {', '.join(app.config['PRODUCTION_TEAM_EMAIL'])}")
-            response = sg.send(production_email)
-            if response.status_code not in [200, 201, 202]:
-                logger.error(f"Failed to send production team email. Status code: {response.status_code}")
-                logger.error(f"Response body: {response.body.decode('utf-8') if hasattr(response, 'body') else 'No body'}")
-                return False
-            logger.info(f"Successfully sent production team email for order {order.order_number}")
+
+            for attempt in range(3):  # Try up to 3 times
+                try:
+                    response = sg.send(production_email)
+                    if response.status_code in [200, 201, 202]:
+                        logger.info(f"Successfully sent production team email for order {order.order_number}")
+                        break
+                    else:
+                        logger.error(f"Failed to send production team email. Status code: {response.status_code}")
+                        if attempt < 2:
+                            time.sleep((attempt + 1) * 2)
+                except Exception as e:
+                    logger.error(f"Error sending production team email (attempt {attempt + 1}): {str(e)}")
+                    if attempt < 2:
+                        time.sleep((attempt + 1) * 2)
+                    else:
+                        return False
 
             return True
 
         except Exception as e:
             logger.error(f"SendGrid API error: {str(e)}")
-            if hasattr(e, 'body'):
-                try:
-                    error_body = e.body.decode('utf-8')
-                    logger.error(f"SendGrid API error details: {error_body}")
-                except:
-                    logger.error("Could not decode error body")
             return False
 
     except Exception as e:
-        logger.error(f"Error preparing emails: {str(e)}")
+        logger.error(f"General error in send_order_emails: {str(e)}")
         return False
 
 @app.route('/send_order_emails', methods=['POST'])
