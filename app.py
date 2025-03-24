@@ -41,11 +41,17 @@ db = SQLAlchemy(model_class=Base)
 mail = Mail()
 login_manager = LoginManager()
 
-# Simple in-memory cache and queue for thumbnails to avoid repeated storage calls
+# Simple in-memory caches and queues to avoid repeated operations
 thumbnail_cache = {}  # filename -> bool (exists)
 thumbnail_generation_queue = queue.Queue()  # queue of file_keys to process
 thumbnail_queue_lock = threading.Lock()  # lock for thread safety
 MAX_CACHE_SIZE = 1000  # Maximum number of items to keep in cache
+
+# Cache for database queries to reduce repeated lookups
+order_cache = {}  # order_id -> (Order object, timestamp)
+order_cache_lock = threading.Lock()  # lock for thread safety
+MAX_ORDER_CACHE_SIZE = 100  # Maximum number of orders to keep in cache
+ORDER_CACHE_TTL = 300  # Time-to-live for cached orders (5 minutes)
 
 def check_thumbnail_exists(filename):
     """Check if a thumbnail exists, using cache when possible"""
@@ -333,13 +339,68 @@ def admin():
     orders = Order.query.order_by(Order.created_at.desc()).all()
     return render_template('admin.html', orders=orders)
 
+# Function to get order with caching
+def get_cached_order(order_id):
+    """
+    Get an Order by ID with caching.
+    Uses joinedload to prevent N+1 queries and caches the result.
+    """
+    current_time = time.time()
+    
+    # Check if order is in cache and not expired
+    with order_cache_lock:
+        if order_id in order_cache:
+            cached_order, timestamp = order_cache[order_id]
+            # Check if cache entry is still valid (not expired)
+            if current_time - timestamp < ORDER_CACHE_TTL:
+                logger.info(f"Order cache hit for order_id {order_id}")
+                return cached_order
+    
+    # Not in cache or expired, fetch from database with eager loading
+    try:
+        # Use joinedload to prevent N+1 queries for OrderItems
+        from sqlalchemy.orm import joinedload
+        
+        order = Order.query.options(
+            joinedload(Order.items)  # Eagerly load the items relationship
+        ).get_or_404(order_id)
+        
+        # Add to cache
+        with order_cache_lock:
+            # Clear some entries if cache is full
+            if len(order_cache) >= MAX_ORDER_CACHE_SIZE:
+                # Find and remove oldest entries (simple approach)
+                sorted_keys = sorted(
+                    order_cache.keys(),
+                    key=lambda k: order_cache[k][1]  # Sort by timestamp
+                )
+                # Remove oldest 25% of entries
+                for key in sorted_keys[:MAX_ORDER_CACHE_SIZE // 4]:
+                    order_cache.pop(key, None)
+            
+            # Cache the order with current timestamp
+            order_cache[order_id] = (order, current_time)
+        
+        logger.info(f"Order cache miss for order_id {order_id}, fetched from database")
+        return order
+        
+    except Exception as e:
+        logger.error(f"Error fetching order {order_id}: {str(e)}")
+        return None
+
 @app.route('/admin/order/<int:order_id>')
 @login_required
 def view_order(order_id):
     if not current_user.is_admin:
         flash('You do not have permission to access this page.')
         return redirect(url_for('index'))
-    order = Order.query.get_or_404(order_id)
+    
+    # Get order with optimized query and caching
+    order = get_cached_order(order_id)
+    if not order:
+        flash('Order not found or database error occurred.')
+        return redirect(url_for('admin'))
+        
     return render_template('order_detail.html', order=order)
 
 @app.route('/admin/order/<int:order_id>/status', methods=['POST'])
@@ -348,9 +409,19 @@ def update_order_status(order_id):
     if not current_user.is_admin:
         flash('You do not have permission to access this page.')
         return redirect(url_for('index'))
+    
     order = Order.query.get_or_404(order_id)
-    order.status = request.form.get('status', 'pending')
+    old_status = order.status
+    new_status = request.form.get('status', 'pending')
+    order.status = new_status
     db.session.commit()
+    
+    # Invalidate cache for this order after status update
+    with order_cache_lock:
+        if order_id in order_cache:
+            order_cache.pop(order_id)
+            logger.info(f"Invalidated cache for order_id {order_id} after status update from {old_status} to {new_status}")
+    
     return redirect(url_for('view_order', order_id=order.id))
 
 @app.route('/admin/order/<int:order_id>/image/<path:filename>')
@@ -408,7 +479,12 @@ def download_all_images(order_id):
     if not current_user.is_admin:
         flash('You do not have permission to access this page.')
         return redirect(url_for('index'))
-    order = Order.query.get_or_404(order_id)
+    
+    # Use cached order if available
+    order = get_cached_order(order_id)
+    if not order:
+        # Fall back to direct query if cache fails
+        order = Order.query.get_or_404(order_id)
 
     # Create a zip file in memory
     memory_file = BytesIO()
@@ -639,8 +715,18 @@ def update_invoice_number():
         if not order:
             return jsonify({'error': 'Order not found'}), 404
 
+        # Store old invoice number for logging
+        old_invoice = order.invoice_number
+        
+        # Update invoice number
         order.invoice_number = invoice_number if invoice_number.strip() else None
         db.session.commit()
+        
+        # Invalidate cache for this order after invoice update
+        with order_cache_lock:
+            if order_id in order_cache:
+                order_cache.pop(order_id)
+                logger.info(f"Invalidated cache for order_id {order_id} after invoice update from '{old_invoice}' to '{order.invoice_number}'")
 
         return jsonify({'success': True, 'invoice_number': order.invoice_number})
     except Exception as e:
@@ -669,7 +755,14 @@ def bulk_invoice_update():
         )
 
         db.session.commit()
-        logger.info(f"Bulk updated {updated} orders with invoice number: {invoice_number}")
+        
+        # Invalidate cache for all affected orders
+        with order_cache_lock:
+            for order_id in order_ids:
+                if order_id in order_cache:
+                    order_cache.pop(order_id)
+                    
+            logger.info(f"Bulk updated {updated} orders with invoice number: {invoice_number} and invalidated {len(order_ids)} order caches")
 
         return jsonify({'success': True, 'updated': updated}), 200
     except Exception as e:
