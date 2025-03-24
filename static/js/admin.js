@@ -45,9 +45,16 @@ function applyFilters() {
     
     console.log("Active tab:", statusFilter, "Applying filters");
     
+    // Important: Reset all items' display state and filtered-out class before applying filters
     const orderItems = document.querySelectorAll('.order-item');
     let visibleCount = 0;
     
+    // First pass: Remove all filtered-out classes to start fresh
+    orderItems.forEach(function(item) {
+        item.classList.remove('filtered-out');
+    });
+    
+    // Second pass: Apply the correct filters
     orderItems.forEach(function(item) {
         const itemStatus = item.dataset.status;
         const itemDate = item.dataset.date;
@@ -78,12 +85,14 @@ function applyFilters() {
         
         // Show/hide based on filters
         if (statusMatch && dateMatch) {
-            item.classList.remove('filtered-out');
+            // Keep the filtered-out class removed
             visibleCount++;
         } else {
             item.classList.add('filtered-out');
         }
     });
+    
+    console.log("Total visible items after filtering:", visibleCount);
     
     // Reset and reinitialize pagination with filtered items
     resetPagination();
@@ -267,14 +276,15 @@ function showFilteredPage(pageNumber, itemsPerPage, visibleItems) {
     const startIndex = (pageNumber - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, visibleItems.length);
     
-    // Hide all items first
+    // Always hide all items first to ensure clean state
     document.querySelectorAll('.order-item').forEach(item => {
         item.style.display = 'none';
     });
     
-    // Show only filtered items for current page
+    // Make sure we're only showing items that match the current filter
+    // This double-checks that all shown items are not filtered-out
     for (let i = startIndex; i < endIndex; i++) {
-        if (visibleItems[i]) {
+        if (visibleItems[i] && !visibleItems[i].classList.contains('filtered-out')) {
             visibleItems[i].style.display = 'flex';
         }
     }
@@ -305,6 +315,13 @@ function initFilters() {
             const value = this.dataset.value;
             const activeOption = document.querySelector('.toggle-option.active');
             
+            // Skip if this option is already active
+            if (activeOption === this) {
+                return;
+            }
+            
+            console.log("Switching filter from", activeOption?.dataset.value, "to", value);
+            
             if (activeOption) {
                 activeOption.classList.remove('active');
             }
@@ -328,7 +345,15 @@ function initFilters() {
                 console.warn('Failed to clear pagination state', e);
             }
             
-            // Apply filter
+            // First reset all order item display states
+            document.querySelectorAll('.order-item').forEach(item => {
+                // Remove filtered-out class to start fresh
+                item.classList.remove('filtered-out');
+                // Reset display to none before filtering
+                item.style.display = 'none';
+            });
+            
+            // Apply filter with a clean slate
             applyFilters();
         });
     });
