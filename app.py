@@ -563,11 +563,17 @@ def download_order_image(order_id, filename):
         flash('You do not have permission to access this page.')
         return redirect(url_for('index'))
     order = Order.query.get_or_404(order_id)
-    # Find the order item for this file to get its quantity
-    order_item = OrderItem.query.filter_by(order_id=order_id, file_key=filename).first()
-    if not order_item:
+    # Check if the order item exists using EXISTS (more efficient than first() or COUNT())
+    item_exists = db.session.query(db.exists().where(
+        (OrderItem.order_id == order_id) & (OrderItem.file_key == filename)
+    )).scalar()
+    
+    if not item_exists:
         logger.error(f"Order item not found for file: {filename}")
         return "Image not found", 404
+        
+    # If item exists and we need its properties, then fetch it
+    order_item = OrderItem.query.filter_by(order_id=order_id, file_key=filename).first()
 
     file_data = storage.get_file(filename)
     if file_data is None:
@@ -840,10 +846,14 @@ def update_invoice_number():
         if not order_id or invoice_number is None:
             return jsonify({'error': 'Missing required fields'}), 400
 
-        order = Order.query.get(order_id)
-        if not order:
+        # Check if order exists using EXISTS (more efficient than full query)
+        order_exists = db.session.query(db.exists().where(Order.id == order_id)).scalar()
+        if not order_exists:
             return jsonify({'error': 'Order not found'}), 404
-
+            
+        # Get order for update and logging
+        order = Order.query.get(order_id)
+        
         # Store old invoice number for logging
         old_invoice = order.invoice_number
         
@@ -1151,10 +1161,13 @@ def upload_file():
         if not order_id:
             return jsonify({'error': 'Missing order ID'}), 400
 
-        # Get existing order
-        order = Order.query.get(order_id)
-        if not order:
+        # Check if order exists using EXISTS (more efficient than full query)
+        order_exists = db.session.query(db.exists().where(Order.id == order_id)).scalar()
+        if not order_exists:
             return jsonify({'error': 'Invalid order ID'}), 404
+            
+        # Get the order if it exists
+        order = Order.query.get(order_id)
 
         file = request.files['file']
         try:
@@ -1333,9 +1346,13 @@ def send_order_emails_api():
         if not order_id:
             return jsonify({'error': 'Missing order ID'}), 400
 
-        order = Order.query.get(order_id)
-        if not order:
+        # Check if order exists using EXISTS (more efficient than full query)
+        order_exists = db.session.query(db.exists().where(Order.id == order_id)).scalar()
+        if not order_exists:
             return jsonify({'error': 'Order not found'}), 404
+            
+        # Get the order if it exists
+        order = Order.query.get(order_id)
         
         success = send_order_emails(order)
         return jsonify({'success': success})
