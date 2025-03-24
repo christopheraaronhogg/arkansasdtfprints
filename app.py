@@ -22,6 +22,7 @@ from PIL import Image
 import io
 import uuid
 import shutil
+import hashlib
 from apscheduler.schedulers.background import BackgroundScheduler
 import threading
 import queue
@@ -46,6 +47,60 @@ thumbnail_cache = {}  # filename -> bool (exists)
 thumbnail_generation_queue = queue.Queue()  # queue of file_keys to process
 thumbnail_queue_lock = threading.Lock()  # lock for thread safety
 MAX_CACHE_SIZE = 1000  # Maximum number of items to keep in cache
+
+# Cache duration settings for different content types (in seconds)
+CACHE_DURATION = {
+    'static': 604800,        # 1 week for static assets (css, js)
+    'thumbnail': 2592000,    # 30 days for thumbnails
+    'image': 604800,         # 1 week for full images
+    'dynamic': 300,          # 5 minutes for dynamic content
+}
+
+def add_cache_headers(response, content_type=None, etag_content=None):
+    """Add appropriate cache headers to a response
+    
+    Args:
+        response: The Flask response object
+        content_type: Type of content for determining cache duration 
+                     ('static', 'thumbnail', 'image', or 'dynamic')
+        etag_content: Content to use for ETag generation, or None for no ETag
+    
+    Returns:
+        The modified response object
+    """
+    # Set cache duration based on content type
+    max_age = None
+    if content_type in CACHE_DURATION:
+        max_age = CACHE_DURATION[content_type]
+    
+    # Set Cache-Control header if max_age is specified
+    if max_age is not None:
+        if max_age > 0:
+            response.headers['Cache-Control'] = f'public, max-age={max_age}'
+        else:
+            # No caching desired
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+    
+    # Add ETag support if content is provided
+    if etag_content is not None:
+        # Generate ETag from content (simple hash-based approach)
+        if isinstance(etag_content, bytes):
+            content_hash = hashlib.md5(etag_content).hexdigest()
+        else:
+            content_hash = hashlib.md5(str(etag_content).encode('utf-8')).hexdigest()
+            
+        etag = f'W/"{content_hash}"'  # Use weak ETag
+        response.headers['ETag'] = etag
+        
+        # Check If-None-Match header for 304 response
+        if_none_match = request.headers.get('If-None-Match')
+        if if_none_match and if_none_match == etag:
+            response.status_code = 304  # Not Modified
+            response.data = b''  # No need to send content
+    
+    return response
 
 # Cache for database queries to reduce repeated lookups
 order_cache = {}  # order_id -> (Order object, timestamp)
