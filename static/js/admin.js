@@ -282,6 +282,7 @@ function showFilteredPage(pageNumber, itemsPerPage, visibleItems) {
     const statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
     
     console.log("Showing page", pageNumber, "with filter", statusFilter);
+    console.log("DEBUG - visibleItems passed into showFilteredPage:", visibleItems.length);
     
     // Always hide ALL items first (complete reset)
     document.querySelectorAll('.order-item').forEach(item => {
@@ -301,10 +302,17 @@ function showFilteredPage(pageNumber, itemsPerPage, visibleItems) {
         let statusMatch = true;
         if (statusFilter === 'open') {
             statusMatch = (itemStatus !== 'completed');
+            console.log("DEBUG showFilteredPage - Item status:", itemStatus, "In OPEN tab, statusMatch:", statusMatch);
         } else if (statusFilter === 'closed') {
             statusMatch = (itemStatus === 'completed');
+            console.log("DEBUG showFilteredPage - Item status:", itemStatus, "In CLOSED tab, statusMatch:", statusMatch);
+        } else {
+            console.log("DEBUG showFilteredPage - Item status:", itemStatus, "In ALL tab, statusMatch:", statusMatch);
         }
         // else 'all' status - keep statusMatch true
+        
+        // Log if this item will be displayed
+        console.log("DEBUG - Item:", itemStatus, "Will be displayed:", statusMatch && !item.classList.contains('filtered-out'));
         
         // Only show if it matches the filter criteria
         if (statusMatch && !item.classList.contains('filtered-out')) {
@@ -409,8 +417,12 @@ function resetPagination() {
         
         if (statusFilter === 'open') {
             shouldBeVisible = (itemStatus !== 'completed');
+            console.log("DEBUG - Item status:", itemStatus, "In OPEN tab, shouldBeVisible:", shouldBeVisible);
         } else if (statusFilter === 'closed') {
             shouldBeVisible = (itemStatus === 'completed');
+            console.log("DEBUG - Item status:", itemStatus, "In CLOSED tab, shouldBeVisible:", shouldBeVisible);
+        } else {
+            console.log("DEBUG - Item status:", itemStatus, "In ALL tab, shouldBeVisible:", shouldBeVisible);
         }
         // else 'all' option, keep shouldBeVisible true
         
@@ -429,8 +441,10 @@ function resetPagination() {
         // Ensure correct filtered-out class
         if (!shouldBeVisible) {
             item.classList.add('filtered-out');
+            console.log("DEBUG - Adding filtered-out to item:", itemStatus);
         } else {
             item.classList.remove('filtered-out');
+            console.log("DEBUG - Removing filtered-out from item:", itemStatus);
         }
     });
     
