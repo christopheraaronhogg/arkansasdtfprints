@@ -32,87 +32,58 @@ function applyDefaultFilter() {
             console.warn('Failed to clear pagination state', e);
         }
         
-        // Initialize filter state with 'open'
-        filterState.statusFilter = 'open';
-        
         // Apply the filter immediately
         applyFilters();
     }
 }
 
-// Single source of truth for current filter state
-const filterState = {
-    statusFilter: '',
-    startDate: '',
-    endDate: '',
-    // Call this to update the filter state from the DOM
-    updateFromDOM: function() {
-        this.statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
-        this.startDate = document.getElementById('startDate')?.value || '';
-        this.endDate = document.getElementById('endDate')?.value || '';
-        console.log("Filter state updated:", this.statusFilter, this.startDate, this.endDate);
-        return this;
-    }
-};
-
 // Apply all filters and update pagination
 function applyFilters() {
-    // Update filter state from DOM
-    filterState.updateFromDOM();
+    const statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
+    const startDate = document.getElementById('startDate')?.value || '';
+    const endDate = document.getElementById('endDate')?.value || '';
     
-    console.log("Active tab:", filterState.statusFilter, "Applying filters");
+    console.log("Active tab:", statusFilter, "Applying filters");
     
-    // Important: Get all order items to filter
     const orderItems = document.querySelectorAll('.order-item');
-    
-    // Reset display but don't remove filtered-out classes yet
-    orderItems.forEach(function(item) {
-        // Just reset display to none initially
-        item.style.display = 'none';
-    });
-
-    // Now apply fresh filters
     let visibleCount = 0;
     
     orderItems.forEach(function(item) {
         const itemStatus = item.dataset.status;
         const itemDate = item.dataset.date;
         
-        // Reset filtered state for each item - important to start fresh
-        item.classList.remove('filtered-out');
-        
-        // Determine if this item should be visible based on status filter
+        // Apply status filter
         let statusMatch = true;
-        if (filterState.statusFilter) {
-            if (filterState.statusFilter === 'open') {
-                // Open means not completed
-                statusMatch = (itemStatus !== 'completed');
-                console.log("Order item:", item.dataset.id || 'unknown', "Status:", itemStatus, "Matches open filter:", statusMatch);
-            } else if (filterState.statusFilter === 'closed') {
-                // Closed means completed
-                statusMatch = (itemStatus === 'completed');
+        if (statusFilter) {
+            if (statusFilter === 'open') {
+                statusMatch = itemStatus !== 'completed';
+                if (item.classList.contains('order-item-top')) {
+                    console.log("Order item:", item.dataset.id, "Status:", itemStatus, "Matches open filter:", statusMatch);
+                }
+            } else if (statusFilter === 'closed') {
+                statusMatch = itemStatus === 'completed';
+            } else {
+                statusMatch = true; // 'all' option
             }
-            // else 'all' option - keep statusMatch true
         }
         
         // Apply date filters
         let dateMatch = true;
-        if (filterState.startDate && itemDate < filterState.startDate) {
+        if (startDate && itemDate < startDate) {
             dateMatch = false;
         }
-        if (filterState.endDate && itemDate > filterState.endDate) {
+        if (endDate && itemDate > endDate) {
             dateMatch = false;
         }
         
-        // Only include in visible items if it matches all filters
-        if (!statusMatch || !dateMatch) {
-            item.classList.add('filtered-out');
-        } else {
+        // Show/hide based on filters
+        if (statusMatch && dateMatch) {
+            item.classList.remove('filtered-out');
             visibleCount++;
+        } else {
+            item.classList.add('filtered-out');
         }
     });
-    
-    console.log("Total visible items after filtering:", visibleCount, "Filter applied:", filterState.statusFilter);
     
     // Reset and reinitialize pagination with filtered items
     resetPagination();
@@ -296,48 +267,15 @@ function showFilteredPage(pageNumber, itemsPerPage, visibleItems) {
     const startIndex = (pageNumber - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, visibleItems.length);
     
-    // Use the filterState object instead of querying the DOM again
-    // This ensures consistent filter criteria across function calls
-    console.log("Showing page", pageNumber, "with filter state:", filterState);
-    console.log("DEBUG - visibleItems passed into showFilteredPage:", visibleItems.length);
-    
-    // Always hide ALL items first (complete reset)
+    // Hide all items first
     document.querySelectorAll('.order-item').forEach(item => {
-        // Make sure display is set to none
         item.style.display = 'none';
     });
     
-    // Verify again that we're only showing items that match the filter criteria
-    // Don't assume the filtered-out class is accurate - double verify status match
+    // Show only filtered items for current page
     for (let i = startIndex; i < endIndex; i++) {
-        if (!visibleItems[i]) continue;
-        
-        const item = visibleItems[i];
-        const itemStatus = item.dataset.status;
-        
-        // Double-check status matches for current filter (safety check)
-        let statusMatch = true;
-        if (filterState.statusFilter === 'open') {
-            statusMatch = (itemStatus !== 'completed');
-            console.log("DEBUG showFilteredPage - Item status:", itemStatus, "In OPEN tab, statusMatch:", statusMatch);
-        } else if (filterState.statusFilter === 'closed') {
-            statusMatch = (itemStatus === 'completed');
-            console.log("DEBUG showFilteredPage - Item status:", itemStatus, "In CLOSED tab, statusMatch:", statusMatch);
-        } else {
-            console.log("DEBUG showFilteredPage - Item status:", itemStatus, "In ALL tab, statusMatch:", statusMatch);
-        }
-        // else 'all' status - keep statusMatch true
-        
-        // Log if this item will be displayed
-        console.log("DEBUG - Item:", itemStatus, "Will be displayed:", statusMatch && !item.classList.contains('filtered-out'));
-        
-        // Only show if it matches the filter criteria
-        // Important: We need to respect the filtered-out class that's already been set by applyFilters
-        if (statusMatch && !item.classList.contains('filtered-out')) {
-            item.style.display = 'flex';
-        } else {
-            // Make sure the item doesn't show if it shouldn't
-            item.style.display = 'none';
+        if (visibleItems[i]) {
+            visibleItems[i].style.display = 'flex';
         }
     }
     
@@ -367,13 +305,6 @@ function initFilters() {
             const value = this.dataset.value;
             const activeOption = document.querySelector('.toggle-option.active');
             
-            // Skip if this option is already active
-            if (activeOption === this) {
-                return;
-            }
-            
-            console.log("Switching filter from", activeOption?.dataset.value, "to", value);
-            
             if (activeOption) {
                 activeOption.classList.remove('active');
             }
@@ -397,19 +328,7 @@ function initFilters() {
                 console.warn('Failed to clear pagination state', e);
             }
             
-            // Don't remove any filtered-out classes
-            // Instead, let applyFilters set them correctly based on its logic
-            document.querySelectorAll('.order-item').forEach(item => {
-                // Only reset display property
-                item.style.display = 'none';
-            });
-            
-            // Explicitly set the filter state before applying filters
-            // This ensures our single source of truth is updated
-            filterState.statusFilter = value;
-            console.log("Explicitly setting filter state to:", value);
-            
-            // Apply filter with a clean slate - this will set correct filtered-out classes
+            // Apply filter
             applyFilters();
         });
     });
@@ -419,76 +338,20 @@ function initFilters() {
     const endDateInput = document.getElementById('endDate');
     
     if (startDateInput && endDateInput) {
-        startDateInput.addEventListener('change', function() {
-            // Update filter state explicitly
-            filterState.startDate = this.value;
-            console.log("Updated start date in filter state:", filterState.startDate);
-            applyFilters();
-        });
-        
-        endDateInput.addEventListener('change', function() {
-            // Update filter state explicitly
-            filterState.endDate = this.value;
-            console.log("Updated end date in filter state:", filterState.endDate);
-            applyFilters();
-        });
+        startDateInput.addEventListener('change', applyFilters);
+        endDateInput.addEventListener('change', applyFilters);
     }
 }
 
 // Reset pagination after filters change
 function resetPagination() {
-    // We already have the filter state from the previous applyFilters call
-    // No need to query the DOM again
-    console.log("Resetting pagination with filter state:", filterState);
-    
-    // Important: Double-check which items should be visible based on current filter
-    // This is a safety check to ensure our filter state is correct
-    const orderItems = document.querySelectorAll('.order-item');
-    
-    // Verify filter state for all items
-    orderItems.forEach(function(item) {
-        const itemStatus = item.dataset.status;
-        
-        // Re-validate status matches for safety
-        let shouldBeVisible = true;
-        
-        if (filterState.statusFilter === 'open') {
-            shouldBeVisible = (itemStatus !== 'completed');
-            console.log("DEBUG - Item status:", itemStatus, "In OPEN tab, shouldBeVisible:", shouldBeVisible);
-        } else if (filterState.statusFilter === 'closed') {
-            shouldBeVisible = (itemStatus === 'completed');
-            console.log("DEBUG - Item status:", itemStatus, "In CLOSED tab, shouldBeVisible:", shouldBeVisible);
-        } else {
-            console.log("DEBUG - Item status:", itemStatus, "In ALL tab, shouldBeVisible:", shouldBeVisible);
-        }
-        // else 'all' option, keep shouldBeVisible true
-        
-        // Apply date filters too (re-check)
-        const itemDate = item.dataset.date;
-        
-        if (filterState.startDate && itemDate < filterState.startDate) {
-            shouldBeVisible = false;
-        }
-        if (filterState.endDate && itemDate > filterState.endDate) {
-            shouldBeVisible = false;
-        }
-        
-        // Ensure correct filtered-out class
-        if (!shouldBeVisible) {
-            item.classList.add('filtered-out');
-            console.log("DEBUG - Adding filtered-out to item:", itemStatus);
-        } else {
-            item.classList.remove('filtered-out');
-            console.log("DEBUG - Removing filtered-out from item:", itemStatus);
-        }
-    });
-    
-    // Now get the properly filtered items
+    // Get only visible items after filtering
+    const statusFilter = document.querySelector('.toggle-option.active')?.dataset.value || '';
     const visibleItems = Array.from(document.querySelectorAll('.order-item:not(.filtered-out)'));
     const itemsPerPage = Number(document.getElementById('itemsPerPage')?.value || 20);
     const totalPages = Math.ceil(visibleItems.length / itemsPerPage);
     
-    console.log("Active tab:", filterState.statusFilter, "Visible items:", visibleItems.length);
+    console.log("Active tab:", statusFilter, "Visible items:", visibleItems.length);
     
     // Update total pages
     if (document.getElementById('totalPages')) {
@@ -596,9 +459,6 @@ function clearFilters() {
         if (slider) {
             slider.style.transform = `translateX(${index * 100}%)`;
         }
-        
-        // Reset filter state - set to "all" status (empty string)
-        filterState.statusFilter = '';
     }
     
     // Reset date inputs
@@ -607,12 +467,6 @@ function clearFilters() {
     
     if (startDateInput) startDateInput.value = '';
     if (endDateInput) endDateInput.value = '';
-    
-    // Reset date filter state
-    filterState.startDate = '';
-    filterState.endDate = '';
-    
-    console.log("Cleared all filters, filter state reset to:", filterState);
     
     // Show all items
     document.querySelectorAll('.order-item').forEach(function(item) {
